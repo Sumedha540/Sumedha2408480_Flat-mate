@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #0D3A2F;
+  --color-primary-light: #1F5A47;
+  --color-button-primary: #2F7D5F;
+  --color-button-primary-hover: #25684E;
+  --color-button-secondary: #F0EDE6;
+  --color-background-light: #F7F9F8;
+  --color-background-accent: #D7EDE4;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #FFFFFF;
+  color: #0D3A2F;
+}
+
+/* Smooth animations for interactive elements */
+@layer components {
+  /* Icon hover animations */
+  .icon-hover {
+    @apply transition-all duration-200;
+  }
+  
+  .icon-hover:hover {
+    @apply scale-110 opacity-80;
+  }
+
+  /* Card hover animations */
+  .card-hover {
+    @apply transition-all duration-300;
+  }
+  
+  .card-hover:hover {
+    @apply shadow-xl -translate-y-1;
+  }
+
+  /* Button press animation */
+  .btn-press:active {
+    @apply scale-95;
+  }
+
+  /* Smooth transitions for all interactive elements */
+  button, a, [role="button"] {
+    @apply transition-all duration-200;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F7F9F8;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #D7EDE4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #2F7D5F;
+}
