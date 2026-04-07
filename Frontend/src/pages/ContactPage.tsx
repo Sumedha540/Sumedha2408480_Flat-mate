@@ -1,9 +1,83 @@
+/**
+ * CONTACT PAGE - Customer support and inquiry form
+ * 
+ * PURPOSE:
+ * - Provides a contact form for users to reach out to Flat-Mate support
+ * - Displays company contact information and location map
+ * - Validates form inputs and stores submissions in database
+ * 
+ * KEY FEATURES:
+ * 1. Contact Form with validation:
+ *    - First Name (no numbers allowed)
+ *    - Last Name (no numbers allowed)
+ *    - Email (valid format required)
+ *    - Phone (exactly 10 digits, auto-limited)
+ *    - Subject (minimum 5 characters)
+ *    - Message (minimum 10 characters)
+ * 
+ * 2. Real-time Validation:
+ *    - Red error messages and borders for invalid inputs
+ *    - Live character/digit counters
+ *    - Prevents form submission until all fields are valid
+ * 
+ * 3. Success Handling:
+ *    - Green toast notification on successful submission
+ *    - Form automatically clears after submission
+ *    - Message stored in database for admin review
+ * 
+ * DATA FLOW:
+ * - Form submission → POST /api/contact/submit
+ * - Backend stores in ContactMessage model
+ * - Admin can view in AdminDashboard → Contact Messages tab
+ * - Admin receives notification of new message
+ * 
+ * BACKEND CONNECTION:
+ * - POST /api/contact/submit
+ *   Request body: { firstName, lastName, email, phone, subject, message }
+ *   Response: { success: true, message: "Message sent successfully" }
+ *   Database: Stores in contact_messages collection
+ * 
+ * VALIDATION RULES:
+ * - Names: No numbers, only letters and spaces
+ * - Email: Must match email regex pattern
+ * - Phone: Exactly 10 digits, numeric only
+ * - Subject: Minimum 5 characters
+ * - Message: Minimum 10 characters
+ * 
+ * UI COMPONENTS:
+ * - Contact form with icon-prefixed inputs
+ * - Interactive map showing office location
+ * - Contact info cards (phone, email, address)
+ * - Breadcrumb navigation
+ * 
+ * ERROR HANDLING:
+ * - Network errors: Red toast with error message
+ * - Validation errors: Inline red text below fields
+ * - Empty fields: Prevents submission with validation
+ */
+
+/**
+ * CONTACT PAGE
+ * =============
+ * Customer support and contact information:
+ * - Contact form for inquiries
+ * - Display office location and map
+ * - Contact information (email, phone)
+ * - Business hours
+ * - FAQ section
+ * - Chat support option
+ * - Form submission to backend
+ * - Auto-populate user email if logged in
+ */
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { MailIcon, PhoneIcon, MapPinIcon, SendIcon, MapIcon, ClockIcon, MessageCircleIcon, HeadphonesIcon, Navigation, Loader } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
+import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 // Office coordinates (Kathmandu, Nepal)
 const OFFICE_LAT = 27.7172;
@@ -23,6 +97,8 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
 };
 
 export function ContactPage() {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -31,11 +107,61 @@ export function ContactPage() {
     subject: '',
     message: ''
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [distanceToOffice, setDistanceToOffice] = useState<number | null>(null);
   const [geoError, setGeoError] = useState<string | null>(null);
   const [isLoadingGeo, setIsLoadingGeo] = useState(false);
+
+  // Validation functions
+  const validateName = (name: string, field: string): string => {
+    if (!name.trim()) return `${field} is required`;
+    if (name.trim().length < 2) return `${field} must be at least 2 characters`;
+    if (/\d/.test(name)) return `${field} cannot contain numbers`;
+    if (!/^[a-zA-Z\s]+$/.test(name)) return `${field} can only contain letters`;
+    return '';
+  };
+
+  const validateEmail = (email: string): string => {
+    if (!email.trim()) return 'Email is required';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const validatePhone = (phone: string): string => {
+    if (!phone.trim()) return 'Phone number is required';
+    const digitsOnly = phone.replace(/\D/g, '');
+    if (digitsOnly.length !== 10) return 'Phone number must be exactly 10 digits';
+    if (!/^\d+$/.test(digitsOnly)) return 'Phone number can only contain digits';
+    return '';
+  };
+
+  const validateSubject = (subject: string): string => {
+    if (!subject.trim()) return 'Subject is required';
+    if (subject.trim().length < 5) return 'Subject must be at least 5 characters';
+    return '';
+  };
+
+  const validateMessage = (message: string): string => {
+    if (!message.trim()) return 'Message is required';
+    if (message.trim().length < 10) return 'Message must be at least 10 characters';
+    return '';
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    // Special handling for phone - only allow digits and limit to 10
+    if (field === 'phone') {
+      const digitsOnly = value.replace(/\D/g, '').slice(0, 10);
+      setFormData({ ...formData, [field]: digitsOnly });
+      setErrors({ ...errors, [field]: '' });
+      return;
+    }
+
+    setFormData({ ...formData, [field]: value });
+    setErrors({ ...errors, [field]: '' });
+  };
 
   // Get user's geolocation
   useEffect(() => {
@@ -104,8 +230,8 @@ export function ContactPage() {
       if (mapContainer.querySelector('.leaflet-pane')) return;
 
       // Create map centered between user and office
-      const centerLat = (userLocation.lat + OFFICE_LAT) / 2;
-      const centerLng = (userLocation.lng + OFFICE_LNG) / 2;
+      const centerLat = (userLocation?.lat ?? 0) + (OFFICE_LAT ?? 0) / 2;
+      const centerLng = (userLocation?.lng ?? 0) + (OFFICE_LNG ?? 0) / 2;
 
       const map = L.map('contact-map').setView([centerLat, centerLng], 13);
 
@@ -116,7 +242,7 @@ export function ContactPage() {
       }).addTo(map);
 
       // Add user location marker (blue)
-      L.marker([userLocation.lat, userLocation.lng], {
+      L.marker([userLocation?.lat ?? 0, userLocation?.lng ?? 0], {
         icon: L.icon({
           iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png',
           shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/0.7.7/images/marker-shadow.png',
@@ -126,7 +252,7 @@ export function ContactPage() {
           shadowSize: [41, 41]
         })
       })
-        .bindPopup('<div class="font-semibold text-sm">📍 Your Location</div><div class="text-xs text-gray-600">Lat: ' + userLocation.lat.toFixed(4) + '<br/>Lng: ' + userLocation.lng.toFixed(4) + '</div>')
+        .bindPopup('<div class="font-semibold text-sm">📍 Your Location</div><div class="text-xs text-gray-600">Lat: ' + (userLocation?.lat?.toFixed(4) ?? '0.0000') + '<br/>Lng: ' + (userLocation?.lng?.toFixed(4) ?? '0.0000') + '</div>')
         .addTo(map)
         .openPopup();
 
@@ -147,14 +273,14 @@ export function ContactPage() {
       // Draw a line between user and office
       if (userLocation) {
         L.polyline(
-          [[userLocation.lat, userLocation.lng], [OFFICE_LAT, OFFICE_LNG]],
+          [[userLocation?.lat ?? 0, userLocation?.lng ?? 0], [OFFICE_LAT, OFFICE_LNG]],
           { color: '#3b82f6', weight: 2, opacity: 0.6, dashArray: '5, 5' }
         ).addTo(map);
       }
 
       // Fit bounds to show both markers
       const group = L.featureGroup([
-        L.marker([userLocation.lat, userLocation.lng]),
+        L.marker([userLocation?.lat ?? 0, userLocation?.lng ?? 0]),
         L.marker([OFFICE_LAT, OFFICE_LNG])
       ]);
       map.fitBounds(group.getBounds().pad(0.1));
@@ -164,23 +290,89 @@ export function ContactPage() {
   }, [userLocation]);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setTimeout(() => {
-      toast.success("Message sent successfully! We'll get back to you soon.");
-      setFormData({
-        firstName: '',
-        lastName: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: ''
+    
+    // Validate all fields
+    const newErrors: Record<string, string> = {};
+    newErrors.firstName = validateName(formData.firstName, 'First name');
+    newErrors.lastName = validateName(formData.lastName, 'Last name');
+    newErrors.email = validateEmail(formData.email);
+    newErrors.phone = validatePhone(formData.phone);
+    newErrors.subject = validateSubject(formData.subject);
+    newErrors.message = validateMessage(formData.message);
+
+    // Filter out empty errors
+    const filteredErrors = Object.fromEntries(
+      Object.entries(newErrors).filter(([_, value]) => value !== '')
+    );
+
+    if (Object.keys(filteredErrors).length > 0) {
+      setErrors(filteredErrors);
+      toast.error('Please fix the errors in the form', {
+        style: {
+          background: '#ef4444',
+          color: 'white',
+        },
       });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      console.log('Submitting contact form:', formData);
+      
+      const response = await fetch('http://localhost:5000/api/contact/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+
+      console.log('Response status:', response.status);
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+
+      if (response.ok) {
+        toast.success(data.message || "Message sent successfully! We'll get back to you soon.", {
+          style: {
+            background: '#2F7D5F',
+            color: 'white',
+          },
+        });
+        setFormData({
+          firstName: '',
+          lastName: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: ''
+        });
+        setErrors({});
+      } else {
+        toast.error(data.message || 'Failed to send message. Please try again.', {
+          style: {
+            background: '#ef4444',
+            color: 'white',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Submit error:', error);
+      toast.error('Failed to send message. Please check your connection and try again.', {
+        style: {
+          background: '#ef4444',
+          color: 'white',
+        },
+      });
+    } finally {
       setIsSubmitting(false);
-    }, 1500);
+    }
   };
   return <main className="min-h-screen bg-background-light">
       {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-button-primary via-primary to-button-primary text-white py-20 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-button-primary via-primary to-button-primary text-white pt-36 pb-20 overflow-hidden">
         {/* Animated Background Pattern */}
         <motion.div animate={{
         backgroundPosition: ['0% 0%', '100% 100%']
@@ -351,39 +543,98 @@ export function ContactPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <Input label="First Name" placeholder="John" value={formData.firstName} onChange={e => setFormData({
-                  ...formData,
-                  firstName: e.target.value
-                })} required />
-                  <Input label="Last Name" placeholder="Doe" value={formData.lastName} onChange={e => setFormData({
-                  ...formData,
-                  lastName: e.target.value
-                })} required />
+                  <div>
+                    <Input 
+                      label="First Name" 
+                      placeholder="John" 
+                      value={formData.firstName} 
+                      onChange={e => handleInputChange('firstName', e.target.value)}
+                      required 
+                      className={errors.firstName ? 'border-red-500 focus:border-red-500' : ''}
+                    />
+                    {errors.firstName && (
+                      <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {errors.firstName}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Input 
+                      label="Last Name" 
+                      placeholder="Doe" 
+                      value={formData.lastName} 
+                      onChange={e => handleInputChange('lastName', e.target.value)}
+                      required 
+                      className={errors.lastName ? 'border-red-500 focus:border-red-500' : ''}
+                    />
+                    {errors.lastName && (
+                      <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {errors.lastName}</p>
+                    )}
+                  </div>
                 </div>
 
-                <Input label="Email Address" type="email" placeholder="john@example.com" value={formData.email} onChange={e => setFormData({
-                ...formData,
-                email: e.target.value
-              })} required />
+                <div>
+                  <Input 
+                    label="Email Address" 
+                    type="email" 
+                    placeholder="john@example.com" 
+                    value={formData.email} 
+                    onChange={e => handleInputChange('email', e.target.value)}
+                    required 
+                    className={errors.email ? 'border-red-500 focus:border-red-500' : ''}
+                  />
+                  {errors.email && (
+                    <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {errors.email}</p>
+                  )}
+                </div>
 
-                <Input label="Phone Number" placeholder="+977 98XXXXXXXX" value={formData.phone} onChange={e => setFormData({
-                ...formData,
-                phone: e.target.value
-              })} />
+                <div>
+                  <Input 
+                    label="Phone Number" 
+                    placeholder="98XXXXXXXX (10 digits)" 
+                    value={formData.phone} 
+                    onChange={e => handleInputChange('phone', e.target.value)}
+                    maxLength={10}
+                    required
+                    className={errors.phone ? 'border-red-500 focus:border-red-500' : ''}
+                  />
+                  <p className="text-gray-500 text-xs mt-1">{formData.phone.length}/10 digits</p>
+                  {errors.phone && (
+                    <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {errors.phone}</p>
+                  )}
+                </div>
 
-                <Input label="Subject" placeholder="How can we help you?" value={formData.subject} onChange={e => setFormData({
-                ...formData,
-                subject: e.target.value
-              })} required />
+                <div>
+                  <Input 
+                    label="Subject" 
+                    placeholder="How can we help you?" 
+                    value={formData.subject} 
+                    onChange={e => handleInputChange('subject', e.target.value)}
+                    required 
+                    className={errors.subject ? 'border-red-500 focus:border-red-500' : ''}
+                  />
+                  {errors.subject && (
+                    <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {errors.subject}</p>
+                  )}
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Message
                   </label>
-                  <textarea rows={5} value={formData.message} onChange={e => setFormData({
-                  ...formData,
-                  message: e.target.value
-                })} className="w-full px-4 py-3 rounded-xl border-2 border-gray-200 focus:outline-none focus:ring-4 focus:ring-button-primary/10 focus:border-button-primary transition-all resize-none" placeholder="Tell us more about your inquiry..." required />
+                  <textarea 
+                    rows={5} 
+                    value={formData.message} 
+                    onChange={e => handleInputChange('message', e.target.value)}
+                    className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none focus:ring-4 focus:ring-button-primary/10 transition-all resize-none ${
+                      errors.message 
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-100' 
+                        : 'border-gray-200 focus:border-button-primary'
+                    }`}
+                    placeholder="Tell us more about your inquiry..." 
+                    required 
+                  />
+                  {errors.message && (
+                    <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {errors.message}</p>
+                  )}
                 </div>
 
                 <Button type="submit" size="lg" fullWidth isLoading={isSubmitting} className="gap-2">
@@ -404,14 +655,14 @@ export function ContactPage() {
         }} transition={{
           delay: 0.8,
           duration: 0.6
-        }} className="space-y-6">
+        }} className="space-y-6 relative z-0">
             {/* Map Card with Geolocation */}
-            <Card className="p-0 overflow-hidden shadow-xl border-0">
-              <div className="relative w-full h-80 bg-gradient-to-br from-button-primary/20 to-primary/20" style={{ overflow: 'hidden' }}>
+            <Card className="p-0 overflow-hidden shadow-xl border-0 relative z-0">
+              <div className="relative w-full h-80 bg-gradient-to-br from-button-primary/20 to-primary/20 z-0" style={{ overflow: 'hidden' }}>
                 {/* Dynamic Map using Leaflet */}
                 <div 
                   id="contact-map" 
-                  className="w-full h-full"
+                  className="w-full h-full relative z-0"
                   style={{ background: '#e5e3df', position: 'relative', overflow: 'hidden' }}
                 >
                   {!userLocation && (
@@ -535,7 +786,17 @@ export function ContactPage() {
                 Check out our FAQ section for instant answers to common
                 questions.
               </p>
-              <Button variant="outline" className="border-button-primary text-button-primary hover:bg-button-primary hover:text-white">
+              <Button 
+                variant="outline" 
+                className="border-button-primary text-button-primary hover:bg-button-primary hover:text-white"
+                onClick={() => {
+                  if (isAuthenticated) {
+                    navigate('/home-faq');
+                  } else {
+                    navigate('/#faq');
+                  }
+                }}
+              >
                 Visit FAQ
               </Button>
             </Card>

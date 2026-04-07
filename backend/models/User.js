@@ -1,16 +1,38 @@
+// models/User.js
 import mongoose from 'mongoose';
 
-const userSchema = new mongoose.Schema({
-  firstName: { type: String, required: true },
-  lastName: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  role: { type: String, enum: ['tenant', 'owner', 'admin'], default: 'tenant' },
-  isVerified: { type: Boolean, default: false }, // For the OTP check
-  otp: { type: String },
-  otpExpires: { type: Date },
-}, { timestamps: true });
+const userSchema = new mongoose.Schema(
+  {
+    firstName: { type: String, required: true, trim: true },
+    lastName:  { type: String, required: true, trim: true },
+    email: {
+      type: String, required: true, unique: true,
+      lowercase: true, trim: true,
+    },
+    password:  { type: String, required: true },
+    phone: { type: String, default: null },
+    role: {
+      type: String,
+      enum: ['tenant', 'landlord', 'admin'],
+      default: 'tenant',
+    },
 
-const User = mongoose.model('User', userSchema);
-export default User;
+    // Signup verification
+    isVerified:  { type: Boolean, default: false },
+    otp:         { type: String,  default: null },
+    otpExpiry:   { type: Date,    default: null },
 
+    // Login OTP (separate from signup OTP)
+    loginOtp:        { type: String, default: null },
+    loginOtpExpiry:  { type: Date,   default: null },
+
+    // Google OAuth
+    isGoogleUser: { type: Boolean, default: false },
+    googleId:     { type: String,  default: null },
+  },
+  { timestamps: true }
+);
+
+userSchema.index({ email: 1 });
+
+export default mongoose.model('User', userSchema);

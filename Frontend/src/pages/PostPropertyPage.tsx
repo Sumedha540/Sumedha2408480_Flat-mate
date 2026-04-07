@@ -1,3 +1,4 @@
+
 import React, { useState, Fragment } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -37,6 +38,27 @@ export function PostPropertyPage() {
   const [legalDocument, setLegalDocument] = useState<File | null>(null);
   const amenitiesList = ['WiFi', 'Parking', 'Elevator', 'Security', 'Water Supply', 'Backup Power', 'Garden', 'Gym'];
   const handleNext = () => {
+    if (currentStep === 1) {
+      // Validate phone: must be exactly 10 digits (excluding +977 prefix)
+      const digits = ownerDetails.phone.replace(/\D/g, '');
+      if (ownerDetails.phone && digits.length !== 10 && digits.length !== 13) {
+        toast.error('Phone number should be 10 digits');
+        return;
+      }
+      // If 13 digits, check if it starts with 977
+      if (digits.length === 13 && !digits.startsWith('977')) {
+        toast.error('Phone number should be 10 digits');
+        return;
+      }
+      // If 13 digits starting with 977, extract last 10 digits
+      if (digits.length === 13) {
+        const last10 = digits.slice(3);
+        if (last10.length !== 10) {
+          toast.error('Phone number should be 10 digits');
+          return;
+        }
+      }
+    }
     if (currentStep < TOTAL_STEPS) {
       setCurrentStep(currentStep + 1);
     }
@@ -46,13 +68,71 @@ export function PostPropertyPage() {
       setCurrentStep(currentStep - 1);
     }
   };
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      toast.success('Property submitted successfully!');
+    try {
+      // Convert first image to base64 if available
+      let imageUrl = 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop';
+      if (images.length > 0) {
+        const reader = new FileReader();
+        imageUrl = await new Promise((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(images[0]);
+        });
+      }
+
+      const user = JSON.parse(localStorage.getItem('flatmate_user') || '{}');
+      const ownerName = user.name || ownerDetails.name || 'Owner';
+
+      const propertyData = {
+        id: `p${Date.now()}`,
+        title: propertyDetails.type + ' in ' + propertyDetails.location,
+        location: propertyDetails.location,
+        rent: parseInt(propertyDetails.price),
+        beds: parseInt(propertyDetails.rooms),
+        baths: 1,
+        type: propertyDetails.type,
+        area: '850 sqft',
+        status: 'pending',
+        furnishing: 'Unfurnished',
+        parking: 'Available',
+        wifi: propertyDetails.amenities.includes('WiFi'),
+        description: propertyDetails.description,
+        amenities: propertyDetails.amenities,
+        image: imageUrl,
+        ownerName: ownerName,
+        postedAt: new Date().toISOString().split('T')[0],
+        views: 0,
+        saves: 0,
+        inquiries: 0
+      };
+
+      // Save to localStorage
+      const allProperties = JSON.parse(localStorage.getItem('fm_all_properties') || '[]');
+      allProperties.unshift(propertyData);
+      localStorage.setItem('fm_all_properties', JSON.stringify(allProperties));
+
+      // Notify admin
+      const adminNotifs = JSON.parse(localStorage.getItem('fm_admin_notifs') || '[]');
+      adminNotifs.unshift({
+        id: Date.now().toString(),
+        type: 'new_property',
+        title: 'New Property Submitted',
+        msg: `${ownerName} submitted: "${propertyData.title}"`,
+        time: 'Just now',
+        read: false,
+        propId: propertyData.id
+      });
+      localStorage.setItem('fm_admin_notifs', JSON.stringify(adminNotifs));
+
+      toast.success('Property submitted for admin review!');
       navigate('/dashboard/owner');
-    }, 2000);
+    } catch (error: any) {
+      console.error('Error submitting property:', error);
+      toast.error(error.message || 'Failed to submit property');
+    } finally {
+      setIsLoading(false);
+    }
   };
   const handleOtpChange = (index: number, value: string) => {
     if (value.length <= 1 && /^\d*$/.test(value)) {
@@ -98,10 +178,14 @@ export function PostPropertyPage() {
               ...ownerDetails,
               email: e.target.value
             })} icon={<MailIcon className="w-5 h-5" />} />
-              <Input label="Phone Number" type="tel" placeholder="+977 98XXXXXXXX" value={ownerDetails.phone} onChange={e => setOwnerDetails({
-              ...ownerDetails,
-              phone: e.target.value
-            })} icon={<PhoneIcon className="w-5 h-5" />} />
+              <Input label="Phone Number" type="tel" placeholder="+977 98XXXXXXXX" value={ownerDetails.phone}
+              onChange={e => {
+                // Allow only digits and leading +
+                const val = e.target.value.replace(/[^\d+]/g, '')
+                setOwnerDetails({ ...ownerDetails, phone: val })
+              }}
+              maxLength={14}
+              icon={<PhoneIcon className="w-5 h-5" />} />
               <Input label="Address" type="text" placeholder="Your address" value={ownerDetails.address} onChange={e => setOwnerDetails({
               ...ownerDetails,
               address: e.target.value
@@ -110,7 +194,7 @@ export function PostPropertyPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Profile Photo (Optional)
+                Profile Photo
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:border-button-primary transition-colors cursor-pointer">
                 <input type="file" accept="image/*" onChange={e => setOwnerDetails({
@@ -245,7 +329,7 @@ export function PostPropertyPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Property Video (Optional)
+                Property Video
               </label>
               <div className="border-2 border-dashed border-gray-300 rounded-xl p-8 text-center hover:border-button-primary transition-colors cursor-pointer">
                 <input type="file" accept="video/*" onChange={e => setVideo(e.target.files?.[0] || null)} className="hidden" id="property-video" />

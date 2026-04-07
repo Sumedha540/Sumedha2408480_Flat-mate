@@ -1,163 +1,495 @@
+// routes/auth.js
 import express from 'express';
 import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import nodemailer from 'nodemailer';
+import { OAuth2Client } from 'google-auth-library';
 import User from '../models/User.js';
-import sendEmail from '../utils/sendEmail.js';
 
 const router = express.Router();
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// --- 1. SIGNUP & SEND INITIAL OTP ---
+// ─── Email Transporter ────────────────────────────────────────────────────────
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
+
+const sendOTPEmail = async (email, otp, subject) => {
+  await transporter.sendMail({
+    from: `"Flat-Mate" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject,
+    html: `
+      <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;border-radius:12px;border:1px solid #e2e8f0;">
+        <h2 style="color:#1a202c;margin-bottom:8px;">Flat-Mate Verification</h2>
+        <p style="color:#718096;margin-bottom:24px;">Use the code below. It expires in <strong>10 minutes</strong>.</p>
+        <div style="background:#f7fafc;border-radius:8px;padding:24px;text-align:center;letter-spacing:12px;font-size:32px;font-weight:bold;color:#2d7a5c;">
+          ${otp}
+        </div>
+        <p style="color:#a0aec0;font-size:12px;margin-top:24px;">If you didn't request this, ignore this email.</p>
+      </div>
+    `,
+  });
+};
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SIGNUP
+// ═══════════════════════════════════════════════════════════════════════════════
 router.post('/signup', async (req, res) => {
   try {
-    const { firstName, lastName, email, password, role } = req.body;
+    let { firstName, lastName, email, password, role } = req.body;
+    email = email.trim().toLowerCase();
 
     const existingUser = await User.findOne({ email });
-    if (existingUser) return res.status(400).json({ message: 'User already exists' });
 
-    // Hash Password
-    const salt = await bcrypt.genSalt(10);
-    const hashedPassword = await bcrypt.hash(password, salt);
-
-    // Generate 6-digit OTP
-    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`📨 Generated OTP for ${email}: ${otpCode}`);
-
-    const user = new User({
-      firstName,
-      lastName,
-      email,
-      password: hashedPassword,
-      role,
-      otp: otpCode,
-      otpExpires: Date.now() + 10 * 60 * 1000, // 10 mins
-      isVerified: false
-    });
-
-    await user.save();
-    console.log(`✅ User saved with OTP: ${otpCode}`);
-
-    // Send Real Email
-    try {
-      await sendEmail({
-        email: user.email,
-        subject: 'Verify your Flat-Mate Account',
-        otp: otpCode
-      });
-      console.log(`✅ Email sent for ${email} with OTP: ${otpCode}`);
-    } catch (emailError) {
-      console.error(`❌ Email send error: ${emailError.message}`);
-      return res.status(500).json({ message: 'Email configuration error. Please try again later.' });
+    if (existingUser && existingUser.isVerified) {
+      return res.status(400).json({ message: 'An account with this email already exists. Please log in.' });
     }
 
-    res.status(201).json({ message: 'Registration successful. OTP sent to email.' });
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    if (existingUser && !existingUser.isVerified) {
+      existingUser.firstName = firstName;
+      existingUser.lastName = lastName;
+      existingUser.password = hashedPassword;
+      existingUser.role = role || 'tenant';
+      existingUser.otp = otp;
+      existingUser.otpExpiry = otpExpiry;
+      await existingUser.save();
+    } else {
+      await User.create({
+        firstName,
+        lastName,
+        email,
+        password: hashedPassword,
+        role: role || 'tenant',
+        isVerified: false,
+        otp,
+        otpExpiry,
+      });
+    }
+
+    await sendOTPEmail(email, otp, 'Verify Your Flat-Mate Account');
+    res.status(200).json({ message: 'OTP sent to your email.' });
   } catch (error) {
-    console.error('❌ Signup error:', error);
-    res.status(500).json({ message: 'Server error during signup' });
+    console.error('Signup error:', error);
+    res.status(500).json({ message: 'Server error. Please try again.' });
   }
 });
 
-// --- 2. VERIFY OTP ---
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERIFY OTP (signup)
+// ═══════════════════════════════════════════════════════════════════════════════
 router.post('/verify-otp', async (req, res) => {
   try {
-    const { email, otp } = req.body;
-    console.log(`🔍 Verifying OTP for ${email}. Received: ${otp}`);
+    let { email, otp } = req.body;
+    email = email.trim().toLowerCase();
 
-    // Validate inputs
-    if (!email || !otp) {
-      return res.status(400).json({ message: 'Email and OTP are required' });
-    }
-
-    // Find user with matching OTP and check expiry
     const user = await User.findOne({ email });
-
-    if (!user) {
-      console.log(`❌ User not found: ${email}`);
-      return res.status(400).json({ message: 'User not found' });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (user.otp !== otp) return res.status(400).json({ message: 'Invalid OTP.' });
+    if (!user.otpExpiry || new Date() > user.otpExpiry) {
+      return res.status(400).json({ message: 'OTP expired. Please request a new one.' });
     }
 
-    // Check if OTP exists and matches
-    if (!user.otp || user.otp !== otp) {
-      console.log(`❌ OTP mismatch for ${email}. Stored: ${user.otp}, Received: ${otp}`);
-      return res.status(400).json({ message: 'Invalid OTP' });
-    }
-
-    // Check if OTP has expired
-    if (!user.otpExpires || user.otpExpires < new Date(Date.now())) {
-      console.log(`❌ OTP expired for ${email}`);
-      return res.status(400).json({ message: 'OTP has expired' });
-    }
-
-    console.log(`✅ OTP verified for ${email}`);
     user.isVerified = true;
-    user.otp = undefined; 
-    user.otpExpires = undefined;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
     await user.save();
 
-    res.status(200).json({ message: 'Email verified successfully!' });
-  } catch (error) {
-    console.error('❌ Verification error:', error);
-    res.status(500).json({ message: 'Verification failed' });
-  }
-});
-
-// --- 3. RESEND OTP ---
-router.post('/resend-otp', async (req, res) => {
-  try {
-    const { email } = req.body;
-    const user = await User.findOne({ email });
-
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    console.log(`📨 Generated new OTP for ${email}: ${newOtp}`);
-    
-    user.otp = newOtp;
-    user.otpExpires = Date.now() + 10 * 60 * 1000;
-    await user.save();
-    console.log(`✅ New OTP saved for ${email}`);
-
-    try {
-      await sendEmail({
+    res.status(200).json({
+      message: 'Account verified successfully.',
+      user: {
+        name: `${user.firstName} ${user.lastName}`,
         email: user.email,
-        subject: 'Your New Verification Code',
-        otp: newOtp
-      });
-      console.log(`✅ Resend email sent to ${email}`);
-    } catch (emailError) {
-      console.error(`❌ Resend email error: ${emailError.message}`);
-      return res.status(500).json({ message: 'Email configuration error. Please try again later.' });
-    }
-
-    res.status(200).json({ message: 'New OTP sent to your email.' });
-  } catch (error) {
-    console.error('❌ Resend OTP error:', error);
-    res.status(500).json({ message: 'Error resending OTP' });
-  }
-});
-
-// --- 4. LOGIN ---
-router.post('/login', async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-
-    if (!user) return res.status(401).json({ message: 'Invalid email or password' });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(401).json({ message: 'Invalid email or password' });
-
-    if (!user.isVerified) {
-      return res.status(403).json({ 
-        message: 'Account not verified.', 
-        notVerified: true 
-      });
-    }
-
-    res.status(200).json({ 
-        message: 'Login successful!', 
-        user: { id: user._id, email: user.email, role: user.role } 
+        role: user.role,
+      },
     });
   } catch (error) {
-    res.status(500).json({ message: 'Server error' });
+    console.error('OTP verify error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESEND OTP (signup)
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/resend-otp', async (req, res) => {
+  try {
+    let { email } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await sendOTPEmail(email, otp, 'Your New Verification Code');
+    res.status(200).json({ message: 'OTP resent.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LOGIN
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/login', async (req, res) => {
+  try {
+    let { email, password, role } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ message: 'No account found with this email.' });
+
+    if (!user.isVerified) {
+      return res.status(403).json({
+        message: 'Please verify your email before logging in.',
+        notVerified: true,
+      });
+    }
+
+    // ✅ Validate that the user's role matches what they selected
+    if (role) {
+      const normalizedRole = role === 'owner' ? 'landlord' : role;
+      const userRole = user.role === 'owner' ? 'landlord' : user.role;
+      if (normalizedRole !== userRole) {
+        return res.status(403).json({
+          message: `This account is registered as a ${user.role}, not a ${role}. Please select the correct role.`,
+          wrongRole: true,
+        });
+      }
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: 'Incorrect password.' });
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful.',
+      token,
+      user: {
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERIFY LOGIN OTP
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/verify-login-otp', async (req, res) => {
+  try {
+    let { email, otp } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (user.loginOtp !== otp) return res.status(400).json({ message: 'Invalid OTP.' });
+    if (!user.loginOtpExpiry || new Date() > user.loginOtpExpiry) {
+      return res.status(400).json({ message: 'OTP expired. Please log in again.' });
+    }
+
+    user.loginOtp = undefined;
+    user.loginOtpExpiry = undefined;
+    await user.save();
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful.',
+      token,
+      user: {
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESEND LOGIN OTP
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/resend-login-otp', async (req, res) => {
+  try {
+    let { email } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    const otp = generateOTP();
+    user.loginOtp = otp;
+    user.loginOtpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await sendOTPEmail(email, otp, 'Your New Login Code');
+    res.status(200).json({ message: 'OTP resent.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GOOGLE SIGNUP
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/google-signup', async (req, res) => {
+  try {
+    const { idToken, role } = req.body;
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload.email.toLowerCase();
+    const firstName = payload.given_name || payload.name.split(' ')[0];
+    const lastName = payload.family_name || payload.name.split(' ').slice(1).join(' ') || firstName;
+
+    const existingUser = await User.findOne({ email });
+    if (existingUser && existingUser.isVerified) {
+      return res.status(400).json({ message: 'Account already exists. Please log in instead.' });
+    }
+
+    const otp = generateOTP();
+    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+
+    if (existingUser) {
+      existingUser.firstName = firstName;
+      existingUser.lastName = lastName;
+      existingUser.role = role || 'tenant';
+      existingUser.isGoogleUser = true;
+      existingUser.googleId = payload.sub;
+      existingUser.otp = otp;
+      existingUser.otpExpiry = otpExpiry;
+      await existingUser.save();
+    } else {
+      await User.create({
+        firstName,
+        lastName,
+        email,
+        password: await bcrypt.hash(Math.random().toString(36), 10),
+        role: role || 'tenant',
+        isVerified: false,
+        isGoogleUser: true,
+        googleId: payload.sub,
+        otp,
+        otpExpiry,
+      });
+    }
+
+    await sendOTPEmail(email, otp, 'Verify Your Flat-Mate Account');
+    res.status(200).json({
+      message: 'OTP sent.',
+      user: { name: `${firstName} ${lastName}`, email },
+    });
+  } catch (error) {
+    console.error('Google signup error:', error);
+    res.status(500).json({ message: 'Google signup failed.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERIFY GOOGLE SIGNUP OTP
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/verify-google-otp', async (req, res) => {
+  try {
+    let { email, otp } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (user.otp !== otp) return res.status(400).json({ message: 'Invalid OTP.' });
+    if (!user.otpExpiry || new Date() > user.otpExpiry) {
+      return res.status(400).json({ message: 'OTP expired.' });
+    }
+
+    user.isVerified = true;
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({
+      message: 'Account verified.',
+      user: { name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GOOGLE LOGIN
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/google-login', async (req, res) => {
+  try {
+    const { idToken } = req.body;
+
+    const ticket = await client.verifyIdToken({
+      idToken,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const email = payload.email.toLowerCase();
+
+    const user = await User.findOne({ email, isVerified: true });
+    if (!user) {
+      return res.status(404).json({
+        message: 'No account found. Please sign up first.',
+        shouldSignup: true,
+      });
+    }
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful.',
+      token,
+      user: { name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({ message: 'Google login failed.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERIFY GOOGLE LOGIN OTP
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/verify-google-login-otp', async (req, res) => {
+  try {
+    let { email, otp } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (user.loginOtp !== otp) return res.status(400).json({ message: 'Invalid OTP.' });
+    if (!user.loginOtpExpiry || new Date() > user.loginOtpExpiry) {
+      return res.status(400).json({ message: 'OTP expired.' });
+    }
+
+    user.loginOtp = undefined;
+    user.loginOtpExpiry = undefined;
+    await user.save();
+
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '7d' }
+    );
+
+    res.status(200).json({
+      message: 'Login successful.',
+      token,
+      user: { name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role },
+    });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FORGOT PASSWORD
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/forgot-password', async (req, res) => {
+  try {
+    let { email } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email, isVerified: true });
+    if (!user) return res.status(404).json({ message: 'No verified account found with this email.' });
+
+    const otp = generateOTP();
+    user.otp = otp;
+    user.otpExpiry = new Date(Date.now() + 10 * 60 * 1000);
+    await user.save();
+
+    await sendOTPEmail(email, otp, 'Reset Your Flat-Mate Password');
+    res.status(200).json({ message: 'OTP sent to your email.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VERIFY FORGOT PASSWORD OTP
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/verify-forgot-otp', async (req, res) => {
+  try {
+    let { email, otp } = req.body;
+    email = email.trim().toLowerCase();
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+    if (user.otp !== otp) return res.status(400).json({ message: 'Invalid OTP.' });
+    if (!user.otpExpiry || new Date() > user.otpExpiry) {
+      return res.status(400).json({ message: 'OTP expired.' });
+    }
+
+    user.otp = undefined;
+    user.otpExpiry = undefined;
+    await user.save();
+
+    res.status(200).json({ message: 'OTP verified.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// RESET PASSWORD
+// ═══════════════════════════════════════════════════════════════════════════════
+router.post('/reset-password', async (req, res) => {
+  try {
+    let { email, newPassword } = req.body;
+    email = email.trim().toLowerCase();
+
+    if (!newPassword || newPassword.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters.' });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: 'User not found.' });
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    res.status(200).json({ message: 'Password reset successfully.' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error.' });
   }
 });
 

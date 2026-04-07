@@ -1,3 +1,14 @@
+/**
+ * VERIFY EMAIL PAGE
+ * ==================
+ * Email verification after signup:
+ * - Collect OTP from user
+ * - Verify email address
+ * - Handle verification errors
+ * - Redirect to dashboard on success
+ * - Resend verification code option
+ */
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -18,7 +29,7 @@ export function VerifyEmail() {
 
   // Handle Countdown logic
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (timer > 0) {
       interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
     } else {

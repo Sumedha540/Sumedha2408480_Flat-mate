@@ -1,46 +1,73 @@
-import React, { Component } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { MapPinIcon, CalendarIcon, BriefcaseIcon, DollarSignIcon, CheckCircleIcon, MessageCircleIcon, Share2Icon, FlagIcon, UserIcon, CoffeeIcon, MoonIcon, UsersIcon } from 'lucide-react';
-import { Button } from '../components/ui/Button';
-import { Badge } from '../components/ui/Badge';
-import { Card } from '../components/ui/Card';
+/**
+ * ROOMMATE PROFILE PAGE
+ * =====================
+ * Detailed profile view for a specific roommate:
+ * - Display roommate information (age, occupation, budget, location)
+ * - Show profile picture and bio
+ * - Display interests/tags and preferences
+ * - Show compatibility score
+ * - Message/contact roommate button
+ * - Like/unlike roommate option
+ * - Back navigation to search
+ */
+
+import React from 'react'
+import { useParams, Link, useNavigate } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import {
+  MapPinIcon,
+  CalendarIcon,
+  BriefcaseIcon,
+  DollarSignIcon,
+  CheckCircleIcon,
+  MessageCircleIcon,
+  Share2Icon,
+  FlagIcon,
+  UserIcon,
+  CoffeeIcon,
+  MoonIcon,
+  UsersIcon,
+  AlertCircleIcon,
+} from 'lucide-react'
+import { Button } from '../components/ui/Button'
+import { Badge } from '../components/ui/Badge'
+import { Card } from '../components/ui/Card'
+import { getRoommateById } from '../utils/roommateData'
+
 export function RoommateProfilePage() {
-  const {
-    id
-  } = useParams();
-  const navigate = useNavigate();
-  // Mock data - in real app fetch based on ID
-  const profile = {
-    name: 'Aarav Sharma',
-    age: 24,
-    gender: 'Male',
-    occupation: 'Software Developer',
-    budget: 'NPR 10,000 - 15,000',
-    location: 'Koteshwor, Kathmandu',
-    moveInDate: 'Immediate',
-    bio: "Hi! I'm a software developer working for a tech company in Thamel. I'm clean, organized, and respect privacy. I usually work from home 2 days a week. I enjoy hiking on weekends and cooking dinner sometimes. Looking for a friendly roommate to share a flat with.",
-    tags: ['Early Riser', 'Non-Smoker', 'Vegetarian', 'No Pets'],
-    verified: true,
-    image: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800&auto=format&fit=crop',
-    preferences: {
-      cleanliness: 'Very Clean',
-      smoking: 'Non-smoker',
-      drinking: 'Socially',
-      guests: 'Occasional',
-      pets: 'No pets',
-      food: 'Vegetarian'
-    },
-    socials: {
-      instagram: 'aarav_s',
-      linkedin: 'aarav-sharma'
-    }
-  };
+  const { id } = useParams()
+  const navigate = useNavigate()
+  
+  // Fetch profile based on ID from URL
+  const profile = getRoommateById(id || '')
+  
+  // Handle profile not found
+  if (!profile) {
+    return (
+      <main className="min-h-screen bg-background-light py-8 pt-28">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <Card className="p-12 text-center">
+            <AlertCircleIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+            <h1 className="text-2xl font-bold text-primary mb-2">Profile Not Found</h1>
+            <p className="text-gray-600 mb-6">
+              The roommate profile you're looking for doesn't exist or has been removed.
+            </p>
+            <Link to="/find-roommate">
+              <Button>Back to Find Roommate</Button>
+            </Link>
+          </Card>
+        </div>
+      </main>
+    )
+  }
   const handleSendMessage = () => {
     // Navigate to messages page with the profile ID as a query parameter
-    navigate(`/messages?userId=${id}&userName=${encodeURIComponent(profile.name)}`);
-  };
-  return <main className="min-h-screen bg-background-light py-8">
+    navigate(
+      `/messages?userId=${id}&userName=${encodeURIComponent(profile.name)}`,
+    )
+  }
+  return (
+    <main className="min-h-screen bg-background-light py-8 pt-28">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="mb-6 text-sm">
@@ -67,10 +94,19 @@ export function RoommateProfilePage() {
             <Card className="p-6 sticky top-24">
               <div className="text-center mb-6">
                 <div className="relative inline-block mb-4">
-                  <img src={profile.image} alt={profile.name} className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg mx-auto" />
-                  {profile.verified && <div className="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-sm" title="Verified User">
+                  <img
+                    src={profile.image}
+                    alt={profile.name}
+                    className="w-32 h-32 rounded-full object-cover border-4 border-white shadow-lg mx-auto"
+                  />
+                  {profile.verified && (
+                    <div
+                      className="absolute bottom-1 right-1 bg-white rounded-full p-1 shadow-sm"
+                      title="Verified User"
+                    >
                       <CheckCircleIcon className="w-6 h-6 text-blue-500 fill-white" />
-                    </div>}
+                    </div>
+                  )}
                 </div>
                 <h1 className="text-2xl font-bold text-primary mb-1">
                   {profile.name}
@@ -138,9 +174,11 @@ export function RoommateProfilePage() {
                 Lifestyle & Interests
               </h3>
               <div className="flex flex-wrap gap-2">
-                {profile.tags.map((tag, index) => <Badge key={index} variant="secondary" className="px-3 py-1">
+                {profile.tags.map((tag, index) => (
+                  <Badge key={index} variant="info" className="px-3 py-1">
                     {tag}
-                  </Badge>)}
+                  </Badge>
+                ))}
               </div>
             </Card>
 
@@ -180,7 +218,10 @@ export function RoommateProfilePage() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-500">Sleep Schedule</p>
-                    <p className="font-medium text-primary">Early Riser</p>
+                    <p className="font-medium text-primary">
+                      {profile.tags.includes('Early Riser') ? 'Early Riser' : 
+                       profile.tags.includes('Night Owl') ? 'Night Owl' : 'Flexible'}
+                    </p>
                   </div>
                 </div>
 
@@ -216,5 +257,6 @@ export function RoommateProfilePage() {
           </div>
         </div>
       </div>
-    </main>;
+    </main>
+  )
 }

@@ -1,427 +1,288 @@
-import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { StarIcon, SendIcon, UserIcon, MailIcon, MessageSquareIcon, SparklesIcon, CheckCircle2Icon } from 'lucide-react';
-import { Button } from './ui/Button';
-import { toast } from 'sonner';
-export function ReviewSubmissionForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    review: ''
-  });
-  const [rating, setRating] = useState(0);
-  const [hoverRating, setHoverRating] = useState(0);
-  const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (rating === 0) {
-      toast.error('Please select a rating');
-      return;
-    }
-    setIsSubmitting(true);
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    setIsSuccess(true);
-    toast.success('Thank you for your review!');
-    setTimeout(() => {
-      setIsSuccess(false);
-      setFormData({
-        name: '',
-        email: '',
-        review: ''
-      });
-      setRating(0);
-    }, 3000);
-  };
-  const ratingLabels = [{
-    emoji: '😞',
-    text: 'Poor',
-    color: 'text-red-500'
-  }, {
-    emoji: '😐',
-    text: 'Fair',
-    color: 'text-orange-500'
-  }, {
-    emoji: '😊',
-    text: 'Good',
-    color: 'text-yellow-500'
-  }, {
-    emoji: '😄',
-    text: 'Great',
-    color: 'text-lime-500'
-  }, {
-    emoji: '🌟',
-    text: 'Excellent',
-    color: 'text-green-500'
-  }];
-  return <motion.div initial={{
-    opacity: 0,
-    y: 30
-  }} whileInView={{
-    opacity: 1,
-    y: 0
-  }} viewport={{
-    once: true
-  }} transition={{
-    duration: 0.8,
-    ease: [0.16, 1, 0.3, 1]
-  }} className="relative">
-      {/* Floating Orbs Background */}
-      <motion.div animate={{
-      y: [0, -20, 0],
-      rotate: [0, 5, 0]
-    }} transition={{
-      duration: 6,
-      repeat: Infinity,
-      ease: 'easeInOut'
-    }} className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-button-primary/20 to-primary/20 rounded-full blur-3xl" />
-      <motion.div animate={{
-      y: [0, 20, 0],
-      rotate: [0, -5, 0]
-    }} transition={{
-      duration: 8,
-      repeat: Infinity,
-      ease: 'easeInOut',
-      delay: 1
-    }} className="absolute -bottom-24 -left-24 w-56 h-56 bg-gradient-to-br from-primary/20 to-button-primary/20 rounded-full blur-3xl" />
+// src/components/ReviewSubmissionForm.tsx
+import React, { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  StarIcon, UserIcon, MailIcon, MessageSquareIcon,
+  SendIcon, AlertTriangleIcon, CheckCircleIcon, XIcon,
+  QuoteIcon, ThumbsUpIcon, SparklesIcon,
+} from 'lucide-react'
+import { toast } from 'sonner'
 
-      <div className="relative bg-white/90 backdrop-blur-2xl rounded-3xl shadow-2xl border border-gray-100/50 overflow-hidden">
-        {/* Animated Header Gradient */}
-        <div className="relative bg-gradient-to-br from-button-primary via-primary to-button-primary p-10 text-white overflow-hidden">
-          {/* Animated Background Pattern */}
-          <motion.div animate={{
-          backgroundPosition: ['0% 0%', '100% 100%']
-        }} transition={{
-          duration: 20,
-          repeat: Infinity,
-          repeatType: 'reverse',
-          ease: 'linear'
-        }} className="absolute inset-0 opacity-20" style={{
-          backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 80%, white 1px, transparent 1px)',
-          backgroundSize: '50px 50px'
-        }} />
+const BANNED_WORDS = [
+  'stupid','idiot',
+  'worst','terrible','awful','horrible','disgusting','hate','kill',
+  'abuse','abusive','racist','loser','dumb','useless','garbage',
+  'trash','pathetic','moron','imbecile','crap','shit','damn',
+  'hell','ass','bastard','bitch','fuck','bloody',
+]
 
-          <motion.div animate={{
-          scale: [1, 1.2, 1],
-          opacity: [0.3, 0.5, 0.3]
-        }} transition={{
-          duration: 4,
-          repeat: Infinity,
-          ease: 'easeInOut'
-        }} className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+function containsHateSpeech(text: string): string[] {
+  return BANNED_WORDS.filter(w => new RegExp(`\\b${w}\\b`, 'i').test(text))
+}
 
-          <div className="relative z-10 text-center">
-            <motion.div initial={{
-            scale: 0,
-            rotate: -180
-          }} animate={{
-            scale: 1,
-            rotate: 0
-          }} transition={{
-            delay: 0.2,
-            type: 'spring',
-            stiffness: 200,
-            damping: 15
-          }} className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-3xl mb-6 shadow-lg">
-              <SparklesIcon className="w-10 h-10" />
-            </motion.div>
-            <motion.h2 initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.3
-          }} className="text-4xl font-bold mb-3">
-              Share Your Experience
-            </motion.h2>
-            <motion.p initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.4
-          }} className="text-white/90 text-lg">
-              Your feedback helps us improve and helps others make better
-              decisions
-            </motion.p>
+const RATING_LABELS = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent']
+const RATING_COLORS = ['', 'text-red-400', 'text-orange-400', 'text-yellow-400', 'text-lime-500', 'text-green-500']
+
+function HateSpeechAlert({ words, onClose }: { words: string[]; onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.85, y: 24 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.85, y: 24 }}
+        transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+        className="relative bg-white rounded-3xl shadow-2xl p-8 max-w-sm w-full z-10 overflow-hidden"
+      >
+        {/* decorative red top bar */}
+        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-red-400 via-red-500 to-orange-400 rounded-t-3xl" />
+        <button onClick={onClose} className="absolute top-5 right-5 w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 transition-colors">
+          <XIcon className="w-4 h-4 text-gray-500" />
+        </button>
+        <div className="flex flex-col items-center text-center pt-2">
+          <motion.div
+            initial={{ scale: 0 }} animate={{ scale: 1 }}
+            transition={{ delay: 0.1, type: 'spring', stiffness: 260 }}
+            className="w-16 h-16 bg-red-100 rounded-2xl flex items-center justify-center mb-5"
+          >
+            <AlertTriangleIcon className="w-9 h-9 text-red-500" />
+          </motion.div>
+          <h3 className="text-xl font-bold text-gray-900 mb-2">Review Blocked</h3>
+          <p className="text-gray-500 text-sm mb-5 leading-relaxed">
+            Your review contains language that violates our community guidelines. Please keep feedback respectful.
+          </p>
+          <div className="bg-red-50 border border-red-100 rounded-2xl px-5 py-3 mb-6 w-full text-left">
+            <p className="text-xs font-bold text-red-500 uppercase tracking-widest mb-1.5">Flagged words</p>
+            <div className="flex flex-wrap gap-1.5">
+              {words.map(w => (
+                <span key={w} className="px-2.5 py-0.5 bg-red-100 text-red-700 text-xs font-semibold rounded-full">{w}</span>
+              ))}
+            </div>
           </div>
+          <button onClick={onClose} className="w-full py-3 bg-gray-900 text-white font-semibold rounded-xl hover:bg-gray-700 transition-colors">
+            Edit My Review
+          </button>
         </div>
+      </motion.div>
+    </div>
+  )
+}
 
-        <AnimatePresence mode="wait">
-          {isSuccess ? <motion.div key="success" initial={{
-          opacity: 0,
-          scale: 0.8
-        }} animate={{
-          opacity: 1,
-          scale: 1
-        }} exit={{
-          opacity: 0,
-          scale: 0.8
-        }} transition={{
-          duration: 0.5,
-          ease: [0.16, 1, 0.3, 1]
-        }} className="p-16 text-center">
-              <motion.div initial={{
-            scale: 0
-          }} animate={{
-            scale: 1
-          }} transition={{
-            delay: 0.2,
-            type: 'spring',
-            stiffness: 200,
-            damping: 15
-          }} className="relative inline-block mb-8">
-                <motion.div animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 0.8, 0.5]
-            }} transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: 'easeInOut'
-            }} className="absolute inset-0 bg-green-400/30 rounded-full blur-xl" />
-                <div className="relative w-24 h-24 bg-gradient-to-br from-green-400 to-green-600 rounded-full flex items-center justify-center shadow-2xl">
-                  <motion.div initial={{
-                pathLength: 0,
-                opacity: 0
-              }} animate={{
-                pathLength: 1,
-                opacity: 1
-              }} transition={{
-                duration: 0.6,
-                delay: 0.4
-              }}>
-                    <CheckCircle2Icon className="w-12 h-12 text-white" strokeWidth={3} />
-                  </motion.div>
-                </div>
-              </motion.div>
+export function ReviewSubmissionForm() {
+  const [form, setForm] = useState({ name: '', email: '', comment: '', rating: 0 })
+  const [hover, setHover] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [hateSpeechWords, setHateSpeechWords] = useState<string[]>([])
+  const [submitted, setSubmitted] = useState(false)
+  const [focused, setFocused] = useState<string | null>(null)
 
-              <motion.h3 initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.5
-          }} className="text-3xl font-bold text-primary mb-3">
-                Thank You! 🎉
-              </motion.h3>
-              <motion.p initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.6
-          }} className="text-gray-600 text-lg">
-                Your review has been submitted successfully
-              </motion.p>
+  const activeRating = hover || form.rating
 
-              <motion.div initial={{
-            opacity: 0
-          }} animate={{
-            opacity: 1
-          }} transition={{
-            delay: 0.8
-          }} className="flex items-center justify-center gap-2 mt-6">
-                {[...Array(3)].map((_, i) => <motion.div key={i} animate={{
-              scale: [1, 1.5, 1],
-              opacity: [0.5, 1, 0.5]
-            }} transition={{
-              duration: 1.5,
-              repeat: Infinity,
-              delay: i * 0.2
-            }} className="w-2 h-2 bg-button-primary rounded-full" />)}
-              </motion.div>
-            </motion.div> : <motion.form key="form" initial={{
-          opacity: 0
-        }} animate={{
-          opacity: 1
-        }} exit={{
-          opacity: 0
-        }} onSubmit={handleSubmit} className="p-10 space-y-8">
-              {/* Rating Section */}
-              <motion.div initial={{
-            opacity: 0,
-            y: 20
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.1
-          }} className="text-center">
-                <label className="block text-lg font-semibold text-gray-800 mb-6">
-                  How would you rate your experience?
-                </label>
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (form.rating === 0) { toast.error('Please select a star rating'); return }
+    if (!form.name.trim()) { toast.error('Please enter your name'); return }
+    if (!form.email.trim()) { toast.error('Please enter your email'); return }
+    if (!form.comment.trim()) { toast.error('Please write your review'); return }
 
-                <div className="flex justify-center gap-3 mb-4">
-                  {[1, 2, 3, 4, 5].map(star => <motion.button key={star} type="button" onClick={() => setRating(star)} onMouseEnter={() => setHoverRating(star)} onMouseLeave={() => setHoverRating(0)} whileHover={{
-                scale: 1.3,
-                rotate: [0, -10, 10, 0],
-                transition: {
-                  duration: 0.3
-                }
-              }} whileTap={{
-                scale: 0.9
-              }} className="relative focus:outline-none group">
-                      <motion.div animate={{
-                  scale: star <= (hoverRating || rating) ? [1, 1.2, 1] : 1
-                }} transition={{
-                  duration: 0.5,
-                  repeat: star <= (hoverRating || rating) ? Infinity : 0,
-                  repeatDelay: 0.5
-                }} className={`absolute inset-0 rounded-full blur-lg ${star <= (hoverRating || rating) ? 'bg-yellow-400/50' : 'bg-transparent'}`} />
-                      <StarIcon className={`relative w-12 h-12 transition-all duration-300 ${star <= (hoverRating || rating) ? 'fill-yellow-400 text-yellow-400 drop-shadow-2xl' : 'text-gray-300 hover:text-gray-400'}`} />
-                    </motion.button>)}
-                </div>
+    const flagged = containsHateSpeech(form.comment + ' ' + form.name)
+    if (flagged.length > 0) { setHateSpeechWords(flagged); return }
 
-                <AnimatePresence mode="wait">
-                  {(rating > 0 || hoverRating > 0) && <motion.div key={hoverRating || rating} initial={{
-                opacity: 0,
-                y: -10,
-                scale: 0.8
-              }} animate={{
-                opacity: 1,
-                y: 0,
-                scale: 1
-              }} exit={{
-                opacity: 0,
-                y: -10,
-                scale: 0.8
-              }} transition={{
-                duration: 0.3,
-                ease: [0.16, 1, 0.3, 1]
-              }} className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-full border border-yellow-200">
-                      <span className="text-2xl">
-                        {ratingLabels[(hoverRating || rating) - 1].emoji}
-                      </span>
-                      <span className={`font-semibold ${ratingLabels[(hoverRating || rating) - 1].color}`}>
-                        {ratingLabels[(hoverRating || rating) - 1].text}
-                      </span>
-                    </motion.div>}
-                </AnimatePresence>
-              </motion.div>
+    setIsLoading(true)
+    try {
+      const res = await fetch('http://localhost:5000/reviews', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: form.name.trim(), email: form.email.trim().toLowerCase(), comment: form.comment.trim(), rating: form.rating }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setSubmitted(true)
+        setForm({ name: '', email: '', comment: '', rating: 0 })
+        setTimeout(() => setSubmitted(false), 5000)
+      } else {
+        toast.error(data.message || 'Failed to submit review')
+      }
+    } catch { toast.error('Server error. Please try again.') }
+    finally { setIsLoading(false) }
+  }
 
-              {/* Form Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {[{
-              name: 'name',
-              label: 'Your Name',
-              icon: UserIcon,
-              placeholder: 'John Doe',
-              type: 'text',
-              delay: 0.2
-            }, {
-              name: 'email',
-              label: 'Email Address',
-              icon: MailIcon,
-              placeholder: 'john@example.com',
-              type: 'email',
-              delay: 0.3
-            }].map(field => <motion.div key={field.name} initial={{
-              opacity: 0,
-              x: field.delay === 0.2 ? -30 : 30
-            }} animate={{
-              opacity: 1,
-              x: 0
-            }} transition={{
-              delay: field.delay,
-              duration: 0.6,
-              ease: [0.16, 1, 0.3, 1]
-            }}>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">
-                      {field.label}
-                    </label>
-                    <div className="relative group">
-                      <motion.div animate={{
-                  scale: focusedField === field.name ? 1.1 : 1,
-                  color: focusedField === field.name ? '#2F7D5F' : '#9CA3AF'
-                }} transition={{
-                  duration: 0.2
-                }} className="absolute left-4 top-1/2 -translate-y-1/2 z-10">
-                        <field.icon className="w-5 h-5" />
-                      </motion.div>
+  return (
+    <>
+      <AnimatePresence>{hateSpeechWords.length > 0 && <HateSpeechAlert words={hateSpeechWords} onClose={() => setHateSpeechWords([])} />}</AnimatePresence>
 
-                      <motion.div className="absolute inset-0 bg-gradient-to-r from-button-primary/5 to-primary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" animate={{
-                  scale: focusedField === field.name ? 1 : 0.95
-                }} />
+      <AnimatePresence mode="wait">
+        {submitted ? (
+          <motion.div
+            key="success"
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl p-14 text-center"
+          >
+            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 240, delay: 0.1 }} className="w-24 h-24 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-6">
+              <CheckCircleIcon className="w-12 h-12 text-white" />
+            </motion.div>
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
+              <h3 className="text-3xl font-bold text-white mb-3">Thank You! 🎉</h3>
+              <p className="text-white/80 text-lg">Your review has been submitted and will help others find their perfect home.</p>
+            </motion.div>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }} className="flex justify-center gap-1 mt-6">
+              {[1,2,3,4,5].map(s => (
+                <motion.div key={s} initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.5 + s * 0.07 }}>
+                  <StarIcon className="w-7 h-7 fill-yellow-300 text-yellow-300" />
+                </motion.div>
+              ))}
+            </motion.div>
+          </motion.div>
+        ) : (
+          <motion.div
+            key="form"
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -24 }}
+            className="relative"
+          >
+            {/* Decorative quote icon */}
+            <div className="absolute -top-5 -left-3 w-12 h-12 bg-white/15 backdrop-blur-sm rounded-2xl flex items-center justify-center border border-white/20 z-10 hidden md:flex">
+              <QuoteIcon className="w-5 h-5 text-white/70" />
+            </div>
 
-                      <motion.input whileFocus={{
-                  scale: 1.01
-                }} type={field.type} value={formData[field.name as keyof typeof formData]} onChange={e => setFormData({
-                  ...formData,
-                  [field.name]: e.target.value
-                })} onFocus={() => setFocusedField(field.name)} onBlur={() => setFocusedField(null)} placeholder={field.placeholder} required className="relative w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-button-primary/50 focus:border-button-primary transition-all duration-300 bg-white/50 backdrop-blur-sm" />
+            <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-3xl overflow-hidden shadow-2xl">
+              {/* Top accent bar */}
+              <div className="h-1 bg-gradient-to-r from-yellow-300 via-white/60 to-yellow-300" />
+
+              <div className="p-8 md:p-10">
+                {/* Header */}
+                <div className="flex items-start justify-between mb-8">
+                  <div>
+                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 rounded-full mb-3 border border-white/20">
+                      <SparklesIcon className="w-3.5 h-3.5 text-yellow-300" />
+                      <span className="text-xs font-semibold text-white/90 uppercase tracking-wider">Share Your Story</span>
                     </div>
-                  </motion.div>)}
-              </div>
-
-              {/* Review Textarea */}
-              <motion.div initial={{
-            opacity: 0,
-            y: 30
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.4,
-            duration: 0.6,
-            ease: [0.16, 1, 0.3, 1]
-          }}>
-                <label className="block text-sm font-semibold text-gray-700 mb-3">
-                  Your Review
-                </label>
-                <div className="relative group">
-                  <motion.div animate={{
-                scale: focusedField === 'review' ? 1.1 : 1,
-                color: focusedField === 'review' ? '#2F7D5F' : '#9CA3AF'
-              }} transition={{
-                duration: 0.2
-              }} className="absolute left-4 top-4 z-10">
-                    <MessageSquareIcon className="w-5 h-5" />
-                  </motion.div>
-
-                  <motion.div className="absolute inset-0 bg-gradient-to-br from-button-primary/5 to-primary/5 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" animate={{
-                scale: focusedField === 'review' ? 1 : 0.95
-              }} />
-
-                  <motion.textarea whileFocus={{
-                scale: 1.01
-              }} rows={5} value={formData.review} onChange={e => setFormData({
-                ...formData,
-                review: e.target.value
-              })} onFocus={() => setFocusedField('review')} onBlur={() => setFocusedField(null)} placeholder="Tell us about your experience with Flat-Mate... What did you love? What could be better?" required className="relative w-full pl-12 pr-4 py-4 border-2 border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-button-primary/50 focus:border-button-primary transition-all duration-300 resize-none bg-white/50 backdrop-blur-sm" />
+                    <h3 className="text-2xl md:text-3xl font-bold text-white leading-tight">How was your experience?</h3>
+                    <p className="text-white/60 text-sm mt-1">Your honest review helps thousands find their home</p>
+                  </div>
+                  <div className="hidden md:flex flex-col items-center bg-white/10 rounded-2xl px-4 py-3 border border-white/15">
+                    <ThumbsUpIcon className="w-5 h-5 text-white/80 mb-1" />
+                    <span className="text-white font-bold text-lg leading-none">1K+</span>
+                    <span className="text-white/50 text-xs">Reviews</span>
+                  </div>
                 </div>
-              </motion.div>
 
-              {/* Submit Button */}
-              <motion.div initial={{
-            opacity: 0,
-            y: 30
-          }} animate={{
-            opacity: 1,
-            y: 0
-          }} transition={{
-            delay: 0.5,
-            duration: 0.6,
-            ease: [0.16, 1, 0.3, 1]
-          }}>
-                <Button type="submit" fullWidth size="lg" isLoading={isSubmitting} disabled={isSubmitting} className="py-5 text-lg font-semibold rounded-2xl">
-                  {isSubmitting ? 'Submitting...' : <span className="flex items-center justify-center gap-3">
-                      Submit Review
-                      <SendIcon className="w-5 h-5" />
-                    </span>}
-                </Button>
-              </motion.div>
-            </motion.form>}
-        </AnimatePresence>
-      </div>
-    </motion.div>;
+                <form onSubmit={handleSubmit} className="space-y-5">
+                  {/* Star Rating — prominent */}
+                  <div className="bg-white/10 rounded-2xl p-5 border border-white/15">
+                    <p className="text-white/80 text-sm font-medium mb-3">Rate your overall experience</p>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-1">
+                        {[1,2,3,4,5].map(star => (
+                          <motion.button
+                            key={star} type="button"
+                            whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.9 }}
+                            onMouseEnter={() => setHover(star)}
+                            onMouseLeave={() => setHover(0)}
+                            onClick={() => setForm({ ...form, rating: star })}
+                          >
+                            <StarIcon className={`w-9 h-9 transition-all duration-150 drop-shadow-sm ${star <= activeRating ? 'fill-yellow-300 text-yellow-300 scale-110' : 'text-white/30'}`} />
+                          </motion.button>
+                        ))}
+                      </div>
+                      <AnimatePresence mode="wait">
+                        {activeRating > 0 && (
+                          <motion.span
+                            key={activeRating}
+                            initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 8 }}
+                            className={`text-sm font-bold ${RATING_COLORS[activeRating]}`}
+                          >
+                            {RATING_LABELS[activeRating]}
+                          </motion.span>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  </div>
+
+                  {/* Name + Email row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Name */}
+                    <div>
+                      <label className="block text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Full Name <span className="text-yellow-300">*</span></label>
+                      <div className={`relative transition-all duration-200 ${focused === 'name' ? 'ring-2 ring-white/40 rounded-xl' : ''}`}>
+                        <UserIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                        <input
+                          type="text" value={form.name}
+                          onChange={e => setForm({ ...form, name: e.target.value })}
+                          onFocus={() => setFocused('name')} onBlur={() => setFocused(null)}
+                          placeholder="Your full name" required
+                          className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:bg-white/15 transition-all"
+                        />
+                      </div>
+                    </div>
+                    {/* Email */}
+                    <div>
+                      <label className="block text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Email <span className="text-yellow-300">*</span></label>
+                      <div className={`relative transition-all duration-200 ${focused === 'email' ? 'ring-2 ring-white/40 rounded-xl' : ''}`}>
+                        <MailIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
+                        <input
+                          type="email" value={form.email}
+                          onChange={e => setForm({ ...form, email: e.target.value })}
+                          onFocus={() => setFocused('email')} onBlur={() => setFocused(null)}
+                          placeholder="your@email.com" required
+                          className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:bg-white/15 transition-all"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Comment */}
+                  <div>
+                    <label className="block text-white/80 text-xs font-semibold uppercase tracking-wider mb-2">Your Review <span className="text-yellow-300">*</span></label>
+                    <div className={`relative transition-all duration-200 ${focused === 'comment' ? 'ring-2 ring-white/40 rounded-xl' : ''}`}>
+                      <MessageSquareIcon className="absolute left-3.5 top-3.5 w-4 h-4 text-white/40 pointer-events-none" />
+                      <textarea
+                        value={form.comment}
+                        onChange={e => setForm({ ...form, comment: e.target.value })}
+                        onFocus={() => setFocused('comment')} onBlur={() => setFocused(null)}
+                        placeholder="Tell us about your experience finding a home on Flat-Mate..."
+                        required rows={4}
+                        className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:bg-white/15 transition-all resize-none"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <p className="text-white/40 text-xs">Keep it respectful and constructive</p>
+                      <p className="text-white/40 text-xs">{form.comment.length} chars</p>
+                    </div>
+                  </div>
+
+                  {/* Submit */}
+                  <motion.button
+                    whileHover={{ scale: 1.02, boxShadow: '0 8px 30px rgba(0,0,0,0.25)' }}
+                    whileTap={{ scale: 0.97 }}
+                    type="submit" disabled={isLoading}
+                    className="w-full py-4 bg-white text-primary font-bold rounded-xl flex items-center justify-center gap-2.5 hover:bg-white/90 transition-all disabled:opacity-60 disabled:cursor-not-allowed text-base shadow-lg"
+                  >
+                    {isLoading ? (
+                      <>
+                        <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.8, repeat: Infinity, ease: 'linear' }} className="w-5 h-5 border-2 border-primary/30 border-t-primary rounded-full" />
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <SendIcon className="w-5 h-5" />
+                        Submit Review
+                      </>
+                    )}
+                  </motion.button>
+                </form>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  )
 }

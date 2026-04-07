@@ -1,3 +1,16 @@
+/**
+ * BE OWNER PAGE
+ * =============
+ * Owner registration/conversion page:
+ * - Collect owner information (name, email, phone, company)
+ * - Password creation and confirmation
+ * - Form validation
+ * - API call to register as property owner
+ * - Redirect to owner dashboard after successful signup
+ * - Toast notifications for user feedback
+ * - Toggle password visibility
+ */
+
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

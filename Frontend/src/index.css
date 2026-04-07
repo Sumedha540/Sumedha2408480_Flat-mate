@@ -32,6 +32,16 @@ body {
   color: #0D3A2F;
 }
 
+/* Global accent color for form controls including date pickers */
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"] {
+  accent-color: #2F7D5F;
+  color-scheme: light;
+}
+
 /* Smooth animations for interactive elements */
 @layer components {
   /* Icon hover animations */

@@ -1,3 +1,16 @@
+/**
+ * CATEGORY PAGE
+ * ==============
+ * Property listing by category:
+ * - Dynamic category-based property display
+ * - Properties filtered by type (rooms, 1BHK, 2BHK, 3BHK+)
+ * - Search and sort options within category
+ * - Price filtering
+ * - Property cards with key details
+ * - Pagination for browsing
+ * - Related/featured properties section
+ */
+
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';

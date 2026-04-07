@@ -1,3 +1,16 @@
+/**
+ * PROFILE SETTINGS PAGE
+ * =====================
+ * User profile management and account settings:
+ * - Edit personal information (name, email, phone, location)
+ * - Change profile picture/avatar
+ * - Update password and security settings
+ * - Display user role and account status
+ * - Preference settings
+ * - Account verification status
+ * - Navigation back to dashboard
+ */
+
 import React, { useState, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';

@@ -1,8 +1,21 @@
+/**
+ * COMPATIBILITY QUIZ PAGE
+ * =======================
+ * Multi-question quiz to find compatible roommates:
+ * - Display quiz questions one at a time
+ * - Multiple choice answer options
+ * - Progress bar showing quiz completion
+ * - Calculate compatibility score based on answers
+ * - Redirect to match suggestions after completion
+ * - Store user preferences for matching algorithm
+ */
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronRightIcon, CheckIcon } from 'lucide-react';
+import { ChevronRightIcon, CheckIcon, HomeIcon, ChevronRightIcon as ChevRight } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Link, useNavigate } from 'react-router-dom';
 const questions = [{
   id: 1,
   question: "What's your typical sleep schedule?",
@@ -25,22 +38,34 @@ const questions = [{
   options: ['Split everything evenly', 'Pay for what you use', 'Take turns buying supplies', 'Keep everything separate']
 }];
 export function CompatibilityQuizPage() {
+  const navigate = useNavigate();
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<number, string>>({});
   const [isComplete, setIsComplete] = useState(false);
   const handleAnswer = (answer: string) => {
-    setAnswers({
-      ...answers,
-      [currentQuestion]: answer
-    });
+    const updated = { ...answers, [currentQuestion]: answer };
+    setAnswers(updated);
     if (currentQuestion < questions.length - 1) {
       setTimeout(() => setCurrentQuestion(currentQuestion + 1), 300);
     } else {
       setTimeout(() => setIsComplete(true), 300);
     }
   };
+  const handleViewMatches = () => {
+    // Pass quiz answers as a serialized param so MatchSuggestionsPage can filter
+    const encoded = encodeURIComponent(JSON.stringify(answers));
+    navigate(`/match-suggestions?quiz=${encoded}`);
+  };
   return <main className="min-h-screen bg-background-light py-12 flex items-center justify-center">
       <div className="w-full max-w-2xl px-4">
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6">
+          <Link to="/" className="hover:text-primary transition-colors">Home</Link>
+          <ChevRight className="w-3.5 h-3.5" />
+          <Link to="/find-roommate" className="hover:text-primary transition-colors">Find Roommate</Link>
+          <ChevRight className="w-3.5 h-3.5" />
+          <span className="text-primary font-semibold">Compatibility Quiz</span>
+        </nav>
         {!isComplete ? <div className="space-y-8">
             <div className="text-center">
               <h1 className="text-3xl font-bold text-primary mb-2">
@@ -107,7 +132,7 @@ export function CompatibilityQuizPage() {
               We've analyzed your preferences. You're now ready to see roommates
               who match your lifestyle.
             </p>
-            <Button size="lg" onClick={() => window.location.href = '/match-suggestions'}>
+            <Button size="lg" onClick={handleViewMatches}>
               View My Matches
             </Button>
           </motion.div>}
