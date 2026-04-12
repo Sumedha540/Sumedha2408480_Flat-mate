@@ -2673,14 +2673,14 @@ export function AdminDashboard() {
                 </div>
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    {label:'Active Subscriptions', value:'24', icon:CheckCircleIcon, color:'text-green-600'},
-                    {label:'Monthly Revenue', value:'₹23,976', icon:TrendingUpIcon, color:'text-blue-600'},
-                    {label:'Premium Properties', value:'18', icon:StarIcon, color:'text-amber-600'},
+                    {label:'Active subscriptions', value:'24', icon:CheckCircleIcon, color:'text-green-600'},
+                    {label:'Monthly revenue', value:'₹23,976', icon:TrendingUpIcon, color:'text-blue-600'},
+                    {label:'Premium properties', value:'18', icon:StarIcon, color:'text-amber-600'},
                   ].map(stat=>(
                     <div key={stat.label} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
                       <div className="flex items-center gap-2 mb-2">
                         <stat.icon className={`w-4 h-4 ${stat.color}`}/>
-                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">{stat.label}</span>
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{stat.label}</span>
                       </div>
                       <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
                     </div>
@@ -2721,17 +2721,16 @@ export function AdminDashboard() {
                 
                 <div className="grid grid-cols-3 gap-4">
                   {[
-                    {id:'monthly', label:'Monthly Plan', period:'per month', icon:'📅'},
-                    {id:'quarterly', label:'Quarterly Plan', period:'per 3 months', icon:'📊', badge:'Save 17%'},
-                    {id:'yearly', label:'Yearly Plan', period:'per year', icon:'⭐', badge:'Save 25%'},
+                    {id:'monthly', label:'Monthly Plan', period:'per month', bg:'bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20', border:'border-yellow-200 dark:border-yellow-800', badge:''},
+                    {id:'quarterly', label:'Quarterly Plan', period:'per 3 months', bg:'bg-gradient-to-br from-blue-50 to-sky-100 dark:from-blue-900/20 dark:to-sky-900/20', border:'border-blue-200 dark:border-blue-800', badge:'Save 17%'},
+                    {id:'yearly', label:'Yearly Plan', period:'per year', bg:'bg-gradient-to-br from-pink-50 to-rose-100 dark:from-pink-900/20 dark:to-rose-900/20', border:'border-pink-200 dark:border-pink-800', badge:'Save 25%'},
                   ].map(plan=>(
                     <div key={plan.id} className={`p-5 rounded-xl border-2 transition-all ${
                       editingPricing 
-                        ? 'border-button-primary bg-button-primary/5' 
-                        : 'border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700'
+                        ? `border-button-primary ${plan.bg}` 
+                        : `${plan.border} ${plan.bg}`
                     }`}>
                       <div className="text-center mb-4">
-                        <div className="text-3xl mb-2">{plan.icon}</div>
                         <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{plan.label}</h4>
                         <p className="text-xs text-gray-400">{plan.period}</p>
                         {plan.badge&&<span className="inline-block mt-2 px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-full">{plan.badge}</span>}
@@ -2739,7 +2738,7 @@ export function AdminDashboard() {
                       
                       {editingPricing ? (
                         <div className="space-y-2">
-                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Price (₹)</label>
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400">Price (₹)</label>
                           <input type="number" value={tempPricing[plan.id]}
                             onChange={(e)=>setTempPricing({...tempPricing, [plan.id]:parseInt(e.target.value)||0})}
                             className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center text-xl font-bold focus:outline-none focus:border-button-primary transition-all"/>
