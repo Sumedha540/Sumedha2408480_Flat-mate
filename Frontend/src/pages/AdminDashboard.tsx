@@ -1312,58 +1312,21 @@ export function AdminDashboard() {
     }
   }, [])
 
-  // Initialize profile form with user data
+  // Initialize profile form with user data from localStorage
   useEffect(() => {
-    const loadUserProfile = async () => {
-      if (!user?.email) return
-
-      try {
-        // Fetch complete user data from backend
-        const response = await fetch(`http://localhost:5000/api/users/email/${encodeURIComponent(user.email)}`)
-        if (response.ok) {
-          const data = await response.json()
-          if (data.success && data.user) {
-            // Update profile form with backend data
-            setProfileForm({
-              firstName: data.user.firstName || user.name?.split(' ')[0] || '',
-              lastName: data.user.lastName || user.name?.split(' ').slice(1).join(' ') || '',
-              email: data.user.email || user.email || '',
-              role: data.user.role || user.role || 'admin',
-              phone: data.user.phone || '',
-              profilePicture: data.user.profilePicture || ''
-            })
-
-            // Update localStorage with complete user data
-            const updatedUser = {
-              ...user,
-              id: data.user.id,
-              _id: data.user._id,
-              name: `${data.user.firstName} ${data.user.lastName}`,
-              email: data.user.email,
-              role: data.user.role,
-              phone: data.user.phone,
-              profilePicture: data.user.profilePicture
-            }
-            localStorage.setItem('flatmate_user', JSON.stringify(updatedUser))
-            return
-          }
-        }
-      } catch (error) {
-        console.error('Error loading user profile:', error)
-      }
-
-      // Fallback to user object if fetch fails
+    if (user) {
+      // Load from localStorage
+      const storedUser = JSON.parse(localStorage.getItem('flatmate_user') || '{}')
+      
       setProfileForm({
-        firstName: user.name?.split(' ')[0] || '',
-        lastName: user.name?.split(' ').slice(1).join(' ') || '',
-        email: user.email || '',
-        role: user.role || 'admin',
-        phone: (user as any).phone || '',
-        profilePicture: (user as any).profilePicture || ''
+        firstName: storedUser.name?.split(' ')[0] || user.name?.split(' ')[0] || '',
+        lastName: storedUser.name?.split(' ').slice(1).join(' ') || user.name?.split(' ').slice(1).join(' ') || '',
+        email: storedUser.email || user.email || '',
+        role: storedUser.role || user.role || 'admin',
+        phone: storedUser.phone || (user as any).phone || '',
+        profilePicture: storedUser.profilePicture || (user as any).profilePicture || ''
       })
     }
-
-    loadUserProfile()
   }, [user])
 
   // Fetch user ID from backend using email
@@ -1555,13 +1518,7 @@ export function AdminDashboard() {
   }
 
   // Save profile handler
-  const handleSaveProfile = async () => {
-    const userId = await getUserId()
-    if (!userId) {
-      toast.error('Unable to identify user. Please log in again.')
-      return
-    }
-
+  const handleSaveProfile = () => {
     // Validation
     if (!profileForm.firstName.trim() || !profileForm.lastName.trim()) {
       toast.error('First name and last name are required')
@@ -1574,102 +1531,38 @@ export function AdminDashboard() {
     }
 
     setSavingProfile(true)
-    try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/profile`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(profileForm)
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        // Update user context with complete data
-        const updatedUser = {
-          id: userId,
-          _id: userId,
-          name: `${profileForm.firstName} ${profileForm.lastName}`,
-          email: profileForm.email,
-          role: profileForm.role,
-          phone: profileForm.phone,
-          profilePicture: profileForm.profilePicture,
-          avatar: profileForm.profilePicture
-        }
-        
-        // Update both localStorage keys
-        localStorage.setItem('flatmate_user', JSON.stringify(updatedUser))
-        
-        const authData = JSON.parse(localStorage.getItem('fm_auth') || '{}')
-        authData.user = updatedUser
-        localStorage.setItem('fm_auth', JSON.stringify(authData))
-
-        toast.success('Profile updated successfully!')
-        
-        // Force re-render by reloading after a short delay
-        setTimeout(() => {
-          window.location.reload()
-        }, 1500)
-      } else {
-        toast.error(data.message || 'Failed to update profile')
-      }
-    } catch (error) {
-      console.error('Error updating profile:', error)
-      toast.error('Failed to update profile')
-    } finally {
-      setSavingProfile(false)
+    
+    // Update user data in localStorage only (no database for now)
+    const updatedUser = {
+      name: `${profileForm.firstName} ${profileForm.lastName}`,
+      email: profileForm.email,
+      role: profileForm.role,
+      phone: profileForm.phone,
+      profilePicture: profileForm.profilePicture,
+      avatar: profileForm.profilePicture
     }
+    
+    // Update both localStorage keys
+    localStorage.setItem('flatmate_user', JSON.stringify(updatedUser))
+    
+    const authData = JSON.parse(localStorage.getItem('fm_auth') || '{}')
+    authData.user = updatedUser
+    localStorage.setItem('fm_auth', JSON.stringify(authData))
+
+    toast.success('Profile updated successfully!')
+    
+    setSavingProfile(false)
+    
+    // Reload page to reflect changes
+    setTimeout(() => {
+      window.location.reload()
+    }, 1000)
   }
 
   // Change password handler
-  const handleChangePassword = async () => {
-    const userId = await getUserId()
-    if (!userId) {
-      toast.error('Unable to identify user. Please log in again.')
-      return
-    }
-
-    // Validation
-    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
-      toast.error('All password fields are required')
-      return
-    }
-
-    if (passwordForm.newPassword.length < 6) {
-      toast.error('New password must be at least 6 characters long')
-      return
-    }
-
-    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      toast.error('New passwords do not match')
-      return
-    }
-
-    setChangingPassword(true)
-    try {
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/password`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: passwordForm.currentPassword,
-          newPassword: passwordForm.newPassword
-        })
-      })
-
-      const data = await response.json()
-
-      if (response.ok && data.success) {
-        toast.success('Password changed successfully!')
-        setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
-        setShowPasswordForm(false)
-      } else {
-        toast.error(data.message || 'Failed to change password')
-      }
-    } catch (error) {
-      console.error('Error changing password:', error)
-      toast.error('Failed to change password')
-    } finally {
-      setChangingPassword(false)
-    }
+  const handleChangePassword = () => {
+    toast.error('Password change is not available in localStorage mode')
+    setShowPasswordForm(false)
   }
 
   const handleLogout = () => { 
