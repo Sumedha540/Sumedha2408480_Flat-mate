@@ -16,6 +16,7 @@ const userSchema = new mongoose.Schema(
       enum: ['tenant', 'landlord', 'admin'],
       default: 'tenant',
     },
+    profilePicture: { type: String, default: null }, // URL or base64 image
 
     // Signup verification
     isVerified:  { type: Boolean, default: false },
