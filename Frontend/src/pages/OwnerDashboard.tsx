@@ -60,8 +60,10 @@ import {
   BedDoubleIcon, BathIcon, PackageIcon, ArchiveIcon, VolumeXIcon, UserCheckIcon,
   ClockIcon, AlertTriangleIcon, TrendingDownIcon, CheckSquareIcon, RefreshCwIcon,
   ArrowLeftIcon, InfoIcon, CheckCheckIcon, VideoIcon, MicIcon, KeyRoundIcon, GlobeIcon,
+  SunIcon, MoonIcon, BellRingIcon,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { toast } from 'sonner'
 import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '../utils/chatStorage'
 import { getProperties, createProperty, updateProperty, deleteProperty, Property } from '../utils/propertyAPI'
@@ -1284,6 +1286,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
 
 // ─── Owner Settings Panel ─────────────────────────────────────────────────────
 function OwnerSettingsPanel({ user }: { user: any }) {
+  const { isDark, toggleTheme } = useTheme()
   const [profile, setProfile] = useState({
     firstName: user?.name?.split(' ')[0] || '',
     lastName:  user?.name?.split(' ').slice(1).join(' ') || '',
@@ -1354,7 +1357,23 @@ function OwnerSettingsPanel({ user }: { user: any }) {
     reader.onload = (event) => {
       const base64 = event.target?.result as string
       setProfilePhoto(base64)
-      toast.success('Photo uploaded successfully!')
+      
+      // Save immediately to localStorage
+      try {
+        const savedProfile = localStorage.getItem(`fm_owner_profile_${user?.email}`)
+        const profileData = savedProfile ? JSON.parse(savedProfile) : { profile }
+        profileData.photo = base64
+        profileData.updatedAt = new Date().toISOString()
+        localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(profileData))
+        window.dispatchEvent(new Event('ownerProfileUpdated'))
+      } catch {}
+      
+      toast('Photo uploaded successfully!', {
+        style: {
+          background: '#2F7D5F',
+          color: 'white',
+        },
+      })
     }
     reader.onerror = () => {
       toast.error('Failed to read image file')
@@ -1515,7 +1534,25 @@ function OwnerSettingsPanel({ user }: { user: any }) {
               <button 
                 onClick={() => {
                   setProfilePhoto(null)
-                  toast.info('Photo removed')
+                  
+                  // Remove from localStorage immediately
+                  try {
+                    const savedProfile = localStorage.getItem(`fm_owner_profile_${user?.email}`)
+                    if (savedProfile) {
+                      const parsed = JSON.parse(savedProfile)
+                      parsed.photo = null
+                      parsed.updatedAt = new Date().toISOString()
+                      localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(parsed))
+                      window.dispatchEvent(new Event('ownerProfileUpdated'))
+                    }
+                  } catch {}
+                  
+                  toast('Photo removed', {
+                    style: {
+                      background: '#D1D5DB',
+                      color: '#374151',
+                    },
+                  })
                 }}
                 className="text-[10px] text-red-500 font-semibold mt-1 ml-2 hover:underline">
                 Remove Photo
@@ -1629,7 +1666,7 @@ function OwnerSettingsPanel({ user }: { user: any }) {
           <p className="text-[10px] text-red-500 mb-3 flex items-center gap-1"><AlertCircleIcon className="w-3 h-3" />Passwords do not match</p>
         )}
         <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.97 }} onClick={changePassword} disabled={savingPw}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white font-semibold rounded-xl text-xs hover:bg-gray-700 disabled:opacity-60 transition-all">
+          className="flex items-center gap-2 px-5 py-2.5 bg-button-primary text-white font-semibold rounded-xl text-xs hover:bg-button-primary/90 disabled:opacity-60 transition-all">
           {savingPw && <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />}
           <LockIcon className="w-3.5 h-3.5" />
           {savingPw ? 'Updating...' : 'Update Password'}
@@ -1654,6 +1691,45 @@ function OwnerSettingsPanel({ user }: { user: any }) {
               }} />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── Display Preferences ── */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <SunIcon className="w-4 h-4 text-button-primary"/>
+          <p className="text-xs font-bold text-gray-700 uppercase tracking-wider">Display Preferences</p>
+        </div>
+        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
+              <MoonIcon className="w-4 h-4 text-button-primary"/>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-gray-900">Dark Mode</p>
+              <p className="text-[10px] text-gray-400">Switch to dark color scheme</p>
+            </div>
+          </div>
+          <Toggle on={isDark} onToggle={() => {
+            toggleTheme()
+            if (!isDark) {
+              // Enabling dark mode - green
+              toast('Dark mode enabled', {
+                style: {
+                  background: '#2F7D5F',
+                  color: 'white',
+                },
+              });
+            } else {
+              // Disabling dark mode - light grey
+              toast('Dark mode disabled', {
+                style: {
+                  background: '#D1D5DB',
+                  color: '#374151',
+                },
+              });
+            }
+          }} />
         </div>
       </div>
 
@@ -1902,7 +1978,16 @@ export function OwnerDashboard() {
     toast.success('Data refreshed!')
   }
 
-  const handleLogout = () => { logout(); toast.success('Signed out'); navigate('/login') }
+  const handleLogout = () => { 
+    logout(); 
+    toast('Signed out', {
+      style: {
+        background: '#D1D5DB',
+        color: '#374151',
+      },
+    }); 
+    navigate('/login') 
+  }
 
   const addProperty = () => {
     setEditingProperty(null)

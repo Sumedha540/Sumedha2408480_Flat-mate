@@ -45,13 +45,14 @@ import {
   UserIcon, MailIcon, PhoneIcon as PhoneIconSolid, MapPinIcon, CameraIcon,
   ShieldCheckIcon, BedDoubleIcon, BathIcon, TrashIcon, BarChart2Icon,
   ThumbsUpIcon, ListIcon, SendIcon as SendIcon2, EyeIcon, MessageSquareIcon,
-  CheckIcon,
+  CheckIcon, SunIcon, MoonIcon,
 } from 'lucide-react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
 import { Avatar } from '../components/ui/Avatar'
 import { PropertyCard } from '../components/PropertyCard'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { useFavorites } from '../contexts/FavoritesContext'
 import { generateOwnerResponse, simulateTypingDelay } from '../utils/chatbot'
 import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '../utils/chatStorage'
@@ -108,6 +109,7 @@ function formatMsgTime(dateStr: string): string {
 // ─── Inline Profile Settings ───────────────────────────────────────────────────
 function ProfileSettingsPanel() {
   const { user } = useAuth()
+  const { isDark, toggleTheme } = useTheme()
   const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', phone: '', address: '', bio: '' })
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
@@ -424,6 +426,53 @@ function ProfileSettingsPanel() {
         </div>
       </div>
 
+      {/* Display Preferences */}
+      <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl mb-6">
+        <div className="flex items-center gap-2 mb-3">
+          <SunIcon className="w-4 h-4 text-button-primary"/>
+          <p className="font-semibold text-gray-800 text-sm">Display Preferences</p>
+        </div>
+        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
+              <MoonIcon className="w-4 h-4 text-button-primary"/>
+            </div>
+            <div>
+              <p className="text-sm font-medium text-gray-900">Dark Mode</p>
+              <p className="text-xs text-gray-500">Switch to dark color scheme</p>
+            </div>
+          </div>
+          <motion.button 
+            whileTap={{ scale: 0.9 }} 
+            onClick={() => {
+              toggleTheme()
+              if (!isDark) {
+                // Enabling dark mode - green
+                toast('Dark mode enabled', {
+                  style: {
+                    background: '#2F7D5F',
+                    color: 'white',
+                  },
+                });
+              } else {
+                // Disabling dark mode - light grey
+                toast('Dark mode disabled', {
+                  style: {
+                    background: '#D1D5DB',
+                    color: '#374151',
+                  },
+                });
+              }
+            }}
+            className={`w-12 h-6 rounded-full transition-all relative ${isDark ? 'bg-button-primary' : 'bg-gray-300'}`}>
+            <motion.div 
+              animate={{ x: isDark ? 24 : 2 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+          </motion.button>
+        </div>
+      </div>
+
       <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }} onClick={handleSave} disabled={saving}
         className="flex items-center gap-2 px-6 py-3 bg-button-primary text-white font-bold rounded-xl shadow-md hover:bg-button-primary/90 disabled:opacity-60 transition-all">
         {saving ? <><motion.div animate={{ rotate:360 }} transition={{ duration:0.7, repeat:Infinity, ease:'linear' }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />Saving...</> : 'Save Changes'}
@@ -644,10 +693,10 @@ export function TenantDashboard() {
 
   const handleLogout = () => {
     logout()
-    toast('Signed out successfully', {
+    toast('Signed out', {
       style: {
-        background: '#2F7D5F',
-        color: 'white',
+        background: '#D1D5DB',
+        color: '#374151',
       },
     })
     navigate('/')

@@ -316,6 +316,20 @@ const ALL_PROPERTIES = [...GENERATED_PROPERTIES, ...PREMIUM_PROPERTIES]
 function PropertyMap({ lat, lng, title, address }: { lat: number; lng: number; title: string; address: string }) {
   const ref  = useRef<HTMLDivElement>(null)
   const init = useRef(false)
+  
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  }
+  
   useEffect(() => {
     if (init.current) return
     init.current = true
@@ -327,18 +341,94 @@ function PropertyMap({ lat, lng, title, address }: { lat: number; lng: number; t
       const s = document.createElement('script'); s.src = 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js'
       s.onload = () => setTimeout(initMap, 100); document.body.appendChild(s)
     }
+    
     const initMap = () => {
       const L = (window as any).L
       if (!ref.current || ref.current.querySelector('.leaflet-pane')) return
-      const map = L.map(ref.current, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 16)
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map)
-      const icon = L.divIcon({
-        html: `<div style="width:38px;height:38px;background:linear-gradient(135deg,#1a4731,#2d6a4f);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3)"><div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;height:100%;font-size:15px">🏠</div></div>`,
-        className: '', iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -42],
-      })
-      L.marker([lat, lng], { icon })
-        .bindPopup(`<div style="font-family:sans-serif;padding:4px"><strong style="color:#1a4731;font-size:13px">${title}</strong><br/><span style="color:#6b7280;font-size:11px">${address}</span><br/><a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" style="color:#2d6a4f;font-size:11px;font-weight:700">Get Directions →</a></div>`, { maxWidth: 230 })
-        .addTo(map).openPopup()
+      
+      // Try to get user's location
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const userLat = position.coords.latitude
+            const userLng = position.coords.longitude
+            
+            // Calculate distance
+            const distance = calculateDistance(userLat, userLng, lat, lng)
+            const distanceText = distance < 1 
+              ? `${Math.round(distance * 1000)}m away` 
+              : `${distance.toFixed(1)}km away`
+            
+            // Create map centered between user and property
+            const centerLat = (userLat + lat) / 2
+            const centerLng = (userLng + lng) / 2
+            const map = L.map(ref.current, { zoomControl: true, scrollWheelZoom: false }).setView([centerLat, centerLng], 13)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map)
+            
+            // Property marker (green house)
+            const propertyIcon = L.divIcon({
+              html: `<div style="width:38px;height:38px;background:linear-gradient(135deg,#1a4731,#2d6a4f);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3)"><div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;height:100%;font-size:15px">🏠</div></div>`,
+              className: '', iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -42],
+            })
+            L.marker([lat, lng], { icon: propertyIcon })
+              .bindPopup(`<div style="font-family:sans-serif;padding:4px"><strong style="color:#1a4731;font-size:13px">${title}</strong><br/><span style="color:#6b7280;font-size:11px">${address}</span><br/><span style="color:#2d6a4f;font-size:12px;font-weight:700">📍 Property Location</span><br/><a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" style="color:#2d6a4f;font-size:11px;font-weight:700">Get Directions →</a></div>`, { maxWidth: 230 })
+              .addTo(map)
+            
+            // User location marker (blue pin)
+            const userIcon = L.divIcon({
+              html: `<div style="width:32px;height:32px;background:linear-gradient(135deg,#1e40af,#3b82f6);border-radius:50%;border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3);display:flex;align-items:center;justify-content:center;font-size:14px">📍</div>`,
+              className: '', iconSize: [32, 32], iconAnchor: [16, 16], popupAnchor: [0, -20],
+            })
+            L.marker([userLat, userLng], { icon: userIcon })
+              .bindPopup(`<div style="font-family:sans-serif;padding:4px"><strong style="color:#1e40af;font-size:13px">Your Location</strong><br/><span style="color:#6b7280;font-size:11px">Current position</span></div>`, { maxWidth: 200 })
+              .addTo(map)
+            
+            // Draw line between locations
+            const polyline = L.polyline([[userLat, userLng], [lat, lng]], {
+              color: '#2d6a4f',
+              weight: 3,
+              opacity: 0.7,
+              dashArray: '10, 10'
+            }).addTo(map)
+            
+            // Add distance label in the middle of the line
+            const midLat = (userLat + lat) / 2
+            const midLng = (userLng + lng) / 2
+            const distanceIcon = L.divIcon({
+              html: `<div style="background:white;padding:4px 8px;border-radius:12px;border:2px solid #2d6a4f;font-size:11px;font-weight:700;color:#1a4731;box-shadow:0 2px 8px rgba(0,0,0,0.2);white-space:nowrap">${distanceText}</div>`,
+              className: '', iconSize: [0, 0], iconAnchor: [0, 0]
+            })
+            L.marker([midLat, midLng], { icon: distanceIcon }).addTo(map)
+            
+            // Fit map to show both markers
+            map.fitBounds([[userLat, userLng], [lat, lng]], { padding: [50, 50] })
+          },
+          (error) => {
+            // If geolocation fails, show only property location
+            console.log('Geolocation error:', error.message)
+            const map = L.map(ref.current, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 16)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map)
+            const icon = L.divIcon({
+              html: `<div style="width:38px;height:38px;background:linear-gradient(135deg,#1a4731,#2d6a4f);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3)"><div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;height:100%;font-size:15px">🏠</div></div>`,
+              className: '', iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -42],
+            })
+            L.marker([lat, lng], { icon })
+              .bindPopup(`<div style="font-family:sans-serif;padding:4px"><strong style="color:#1a4731;font-size:13px">${title}</strong><br/><span style="color:#6b7280;font-size:11px">${address}</span><br/><a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" style="color:#2d6a4f;font-size:11px;font-weight:700">Get Directions →</a></div>`, { maxWidth: 230 })
+              .addTo(map).openPopup()
+          }
+        )
+      } else {
+        // Browser doesn't support geolocation, show only property
+        const map = L.map(ref.current, { zoomControl: true, scrollWheelZoom: false }).setView([lat, lng], 16)
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map)
+        const icon = L.divIcon({
+          html: `<div style="width:38px;height:38px;background:linear-gradient(135deg,#1a4731,#2d6a4f);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.3)"><div style="transform:rotate(45deg);display:flex;align-items:center;justify-content:center;height:100%;font-size:15px">🏠</div></div>`,
+          className: '', iconSize: [38, 38], iconAnchor: [19, 38], popupAnchor: [0, -42],
+        })
+        L.marker([lat, lng], { icon })
+          .bindPopup(`<div style="font-family:sans-serif;padding:4px"><strong style="color:#1a4731;font-size:13px">${title}</strong><br/><span style="color:#6b7280;font-size:11px">${address}</span><br/><a href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}" target="_blank" style="color:#2d6a4f;font-size:11px;font-weight:700">Get Directions →</a></div>`, { maxWidth: 230 })
+          .addTo(map).openPopup()
+      }
     }
     load()
   }, [lat, lng])

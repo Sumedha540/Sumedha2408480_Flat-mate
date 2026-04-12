@@ -4,10 +4,13 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 export type UserRole = 'tenant' | 'landlord' | 'owner' | 'admin';
 
 interface User {
+  id?: string;
   name: string;
   email: string;
   role: UserRole;
   avatar?: string;
+  phone?: string;
+  profilePicture?: string;
 }
 
 interface AuthContextType {

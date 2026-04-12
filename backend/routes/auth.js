@@ -186,9 +186,13 @@ router.post('/login', async (req, res) => {
       message: 'Login successful.',
       token,
       user: {
+        id: user._id.toString(),
+        _id: user._id.toString(),
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
         role: user.role,
+        profilePicture: user.profilePicture || null,
+        phone: user.phone || null
       },
     });
   } catch (error) {
@@ -226,9 +230,13 @@ router.post('/verify-login-otp', async (req, res) => {
       message: 'Login successful.',
       token,
       user: {
+        id: user._id.toString(),
+        _id: user._id.toString(),
         name: `${user.firstName} ${user.lastName}`,
         email: user.email,
         role: user.role,
+        profilePicture: user.profilePicture || null,
+        phone: user.phone || null
       },
     });
   } catch (error) {
@@ -378,7 +386,15 @@ router.post('/google-login', async (req, res) => {
     res.status(200).json({
       message: 'Login successful.',
       token,
-      user: { name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role },
+      user: {
+        id: user._id.toString(),
+        _id: user._id.toString(),
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role,
+        profilePicture: user.profilePicture || null,
+        phone: user.phone || null
+      },
     });
   } catch (error) {
     console.error('Google login error:', error);
@@ -414,7 +430,15 @@ router.post('/verify-google-login-otp', async (req, res) => {
     res.status(200).json({
       message: 'Login successful.',
       token,
-      user: { name: `${user.firstName} ${user.lastName}`, email: user.email, role: user.role },
+      user: {
+        id: user._id.toString(),
+        _id: user._id.toString(),
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email,
+        role: user.role,
+        profilePicture: user.profilePicture || null,
+        phone: user.phone || null
+      },
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error.' });
