@@ -88,7 +88,7 @@ export function Header() {
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
         isScrolled
-          ? 'bg-white/95 backdrop-blur-xl shadow-lg'
+          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-lg'
           : 'bg-gradient-to-r from-button-primary via-primary to-button-primary'
       }`}
     >
@@ -149,7 +149,7 @@ export function Header() {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center">
-            <div className={`flex items-center gap-1 p-1.5 rounded-full transition-all duration-300 ${isScrolled ? 'bg-gray-100' : 'bg-white/10 backdrop-blur-sm'}`}>
+            <div className={`flex items-center gap-1 p-1.5 rounded-full transition-all duration-300 ${isScrolled ? 'bg-gray-100 dark:bg-gray-800' : 'bg-white/10 backdrop-blur-sm'}`}>
               {navLinks.map(link => (
                 <Link key={link.path} to={link.path} className="relative">
                   <motion.div
@@ -230,7 +230,7 @@ export function Header() {
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           exit={{ opacity: 0, y: -10, scale: 0.95 }}
                           transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                          className="absolute right-0 top-full mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 py-2 z-50 overflow-hidden"
+                          className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-2 z-50 overflow-hidden"
                         >
                           <motion.button
                             whileHover={{ backgroundColor: 'rgba(215, 237, 228, 0.5)', x: 4 }}
@@ -287,7 +287,7 @@ export function Header() {
           {/* Mobile Menu Button */}
           <motion.button
             whileTap={{ scale: 0.9 }}
-            className={`md:hidden p-2 rounded-xl ${isScrolled ? 'text-gray-700 bg-gray-100' : 'text-white bg-white/10'}`}
+            className={`md:hidden p-2 rounded-xl ${isScrolled ? 'text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-800' : 'text-white bg-white/10'}`}
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           >
             {isMobileMenuOpen ? <XIcon className="w-6 h-6" /> : <MenuIcon className="w-6 h-6" />}
@@ -303,7 +303,7 @@ export function Header() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.4, ease: [0.16, 1, 0.3, 1] }}
-            className="md:hidden bg-white border-t border-gray-100 overflow-hidden"
+            className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 overflow-hidden"
           >
             <div className="px-4 py-6 space-y-2">
               {navLinks.map((link, index) => (

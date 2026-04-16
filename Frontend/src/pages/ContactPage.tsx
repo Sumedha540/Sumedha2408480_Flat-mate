@@ -252,7 +252,7 @@ export function ContactPage() {
           shadowSize: [41, 41]
         })
       })
-        .bindPopup('<div class="font-semibold text-sm">📍 Your Location</div><div class="text-xs text-gray-600">Lat: ' + (userLocation?.lat?.toFixed(4) ?? '0.0000') + '<br/>Lng: ' + (userLocation?.lng?.toFixed(4) ?? '0.0000') + '</div>')
+        .bindPopup('<div class="font-semibold text-sm">📍 Your Location</div><div class="text-xs text-gray-600 dark:text-gray-300">Lat: ' + (userLocation?.lat?.toFixed(4) ?? '0.0000') + '<br/>Lng: ' + (userLocation?.lng?.toFixed(4) ?? '0.0000') + '</div>')
         .addTo(map)
         .openPopup();
 
@@ -267,7 +267,7 @@ export function ContactPage() {
           shadowSize: [41, 41]
         })
       })
-        .bindPopup('<div class="font-semibold text-sm">🏢 Flat-Mate HQ</div><div class="text-xs text-gray-600">New Baneshwor<br/>Kathmandu</div>')
+        .bindPopup('<div class="font-semibold text-sm">🏢 Flat-Mate HQ</div><div class="text-xs text-gray-600 dark:text-gray-300">New Baneshwor<br/>Kathmandu</div>')
         .addTo(map);
 
       // Draw a line between user and office
@@ -669,14 +669,14 @@ export function ContactPage() {
                     <div className="absolute inset-0 flex items-center justify-center z-10 bg-white/80 backdrop-blur-sm">
                       <div className="text-center">
                         <Loader className="w-8 h-8 text-button-primary animate-spin mx-auto mb-2" />
-                        <p className="text-gray-600">Loading map with your location...</p>
+                        <p className="text-gray-600 dark:text-gray-300">Loading map with your location...</p>
                       </div>
                     </div>
                   )}
                 </div>
               </div>
 
-              <div className="p-6 bg-white">
+              <div className="p-6 bg-white dark:bg-gray-900">
                 <h3 className="font-bold text-gray-900 text-lg mb-2">
                   Our Office
                 </h3>
@@ -732,9 +732,9 @@ export function ContactPage() {
                 <div className="flex items-start gap-3">
                   <MapIcon className="w-5 h-5 text-button-primary mt-0.5 flex-shrink-0" />
                   <div>
-                    <p className="font-semibold text-gray-900">Flat-Mate HQ</p>
-                    <p className="text-gray-600">New Baneshwor, Kathmandu</p>
-                    <p className="text-gray-600">Bagmati Province, Nepal</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">Flat-Mate HQ</p>
+                    <p className="text-gray-600 dark:text-gray-300">New Baneshwor, Kathmandu</p>
+                    <p className="text-gray-600 dark:text-gray-300">Bagmati Province, Nepal</p>
                     <a 
                       href={`https://www.google.com/maps/dir/?api=1&destination=${OFFICE_LAT},${OFFICE_LNG}`}
                       target="_blank"
@@ -772,7 +772,7 @@ export function ContactPage() {
                     <span className="text-gray-700 font-medium">
                       {schedule.day}
                     </span>
-                    <span className="text-gray-600">{schedule.time}</span>
+                    <span className="text-gray-600 dark:text-gray-300">{schedule.time}</span>
                   </div>)}
               </div>
             </Card>

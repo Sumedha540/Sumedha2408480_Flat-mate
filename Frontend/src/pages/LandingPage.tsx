@@ -83,7 +83,7 @@ function FAQItem({ question, answer, isOpen, onToggle, index }: { question: stri
       initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: index * 0.1 }}
       className={`rounded-2xl overflow-hidden transition-all duration-500 ${isOpen ? 'bg-gradient-to-br from-button-primary to-primary' : 'bg-white border border-gray-200'}`}
     >
-      <motion.button onClick={onToggle} whileTap={{ scale: 0.98 }} className={`w-full p-6 flex items-center justify-between text-left ${isOpen ? 'text-white' : 'text-gray-900'}`}>
+      <motion.button onClick={onToggle} whileTap={{ scale: 0.98 }} className={`w-full p-6 flex items-center justify-between text-left ${isOpen ? 'text-white' : 'text-gray-900 dark:text-white'}`}>
         <span className="font-semibold pr-4">{question}</span>
         <motion.div animate={{ rotate: isOpen ? 180 : 0 }} transition={{ duration: 0.3 }} className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${isOpen ? 'bg-white/20' : 'bg-button-primary/10'}`}>
           <PlusIcon className={`w-5 h-5 transition-transform ${isOpen ? 'rotate-45 text-white' : 'text-button-primary'}`} />
@@ -123,14 +123,14 @@ export function LandingPage() {
   }
 
   return (
-    <main className="overflow-hidden bg-white">
+    <main className="overflow-hidden bg-white dark:bg-gray-900 transition-colors duration-300">
 
       {/* ══════════════════════════════════════════════════════════
           HERO — white background, real photo, no floating badges
       ══════════════════════════════════════════════════════════ */}
       <section
         ref={heroRef}
-        className="relative min-h-screen bg-white overflow-hidden pt-20"
+        className="relative min-h-screen bg-white dark:bg-gray-900 overflow-hidden pt-20"
       >
         {/* Subtle light-gray dot texture — very faint */}
         <div
@@ -160,7 +160,7 @@ export function LandingPage() {
               {/* Heading */}
               <motion.h1
                 initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.8 }}
-                className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-gray-900"
+                className="text-4xl md:text-5xl lg:text-6xl font-bold leading-tight mb-6 text-gray-900 dark:text-white"
               >
                 Discover Affordable{' '}
                 <span className="text-button-primary">Rooms, Flats</span>{' '}
@@ -190,15 +190,6 @@ export function LandingPage() {
                     <ArrowRightIcon className="w-5 h-5" />
                   </motion.div>
                 </motion.button>
-                <Link to="/login">
-                  <motion.button
-                    whileHover={{ scale: 1.04 }}
-                    whileTap={{ scale: 0.96 }}
-                    className="px-8 py-4 bg-white text-gray-800 font-bold rounded-full border-2 border-gray-200 hover:border-button-primary transition-colors"
-                  >
-                    List Your Property
-                  </motion.button>
-                </Link>
               </motion.div>
 
               {/* Stats */}
@@ -216,7 +207,7 @@ export function LandingPage() {
                       <stat.icon className="w-5 h-5 text-button-primary" />
                     </div>
                     <div>
-                      <span className="text-2xl font-bold text-gray-900 block">{stat.value}</span>
+                      <span className="text-2xl font-bold text-gray-900 dark:text-white block">{stat.value}</span>
                       <span className="text-sm text-gray-400">{stat.label}</span>
                     </div>
                   </motion.div>
@@ -254,12 +245,12 @@ export function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           SEARCH
       ══════════════════════════════════════════════════════════ */}
-      <section className="py-8 bg-gray-50">
+      <section className="py-8 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white rounded-3xl p-8 md:p-12 border border-gray-200 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="bg-white dark:bg-gray-900 rounded-3xl p-8 md:p-12 border border-gray-200 dark:border-gray-700 shadow-sm">
             <div className="text-center mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-3">Find Your Perfect Home</h2>
-              <p className="text-gray-500">Search from hundreds of verified properties across Nepal</p>
+              <h2 className="text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-3">Find Your Perfect Home</h2>
+              <p className="text-gray-500 dark:text-gray-400">Search from hundreds of verified properties across Nepal</p>
             </div>
             <SearchFilters />
           </motion.div>
@@ -269,13 +260,13 @@ export function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           POPULAR PROPERTIES
       ══════════════════════════════════════════════════════════ */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="flex flex-col md:flex-row md:items-end justify-between mb-12">
             <div>
               <motion.div initial={{ width: 0 }} whileInView={{ width: 60 }} viewport={{ once: true }} className="h-1 bg-button-primary rounded-full mb-4" />
-              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">Popular Properties</h2>
-              <p className="text-gray-500 text-lg max-w-lg">Explore our most sought-after listings in Nepal's major cities</p>
+              <h2 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-3">Popular Properties</h2>
+              <p className="text-gray-500 dark:text-gray-400 text-lg max-w-lg">Explore our most sought-after listings in Nepal's major cities</p>
             </div>
             <motion.div whileHover={{ x: 5 }} className="mt-6 md:mt-0">
               <Button variant="outline" onClick={handleViewAllProperties} className="group border-2">
@@ -326,16 +317,16 @@ export function LandingPage() {
       {isAuthenticated && (
         <>
           {/* Premium Properties */}
-          <section className="py-24 bg-gray-50">
+          <section className="py-24 bg-gray-50 dark:bg-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12">
                 <div className="flex items-center gap-3 mb-2">
-                  <h2 className="text-4xl font-bold text-gray-900">Premium Properties</h2>
+                  <h2 className="text-4xl font-bold text-gray-900 dark:text-white">Premium Properties</h2>
                   <motion.span animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }} className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-sm font-bold rounded-full">
                     <CrownIcon className="w-4 h-4" /> Exclusive
                   </motion.span>
                 </div>
-                <p className="text-gray-500 text-lg">Luxury homes and high-end apartments for discerning renters</p>
+                <p className="text-gray-500 dark:text-gray-400 text-lg">Luxury homes and high-end apartments for discerning renters</p>
               </motion.div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {premiumImages.map((property, index) => (
@@ -348,11 +339,11 @@ export function LandingPage() {
           </section>
 
           {/* High Demand */}
-          <section className="py-24 bg-white">
+          <section className="py-24 bg-white dark:bg-gray-900">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-10">
                 <div className="flex items-center gap-3">
-                  <h2 className="text-4xl font-bold text-gray-900">High Demand Property of the Week</h2>
+                  <h2 className="text-4xl font-bold text-gray-900 dark:text-white">High Demand Property of the Week</h2>
                   <TrendingUpIcon className="w-8 h-8 text-button-primary" />
                 </div>
               </motion.div>
@@ -364,9 +355,9 @@ export function LandingPage() {
                   <h3 className="text-3xl font-bold text-gray-900 mb-4">{highDemandProperty.title}</h3>
                   <p className="text-gray-500 leading-relaxed mb-6">{highDemandProperty.description}</p>
                   <div className="flex flex-wrap gap-4 mb-8">
-                    <div className="flex items-center gap-2 text-gray-600"><MapPinIcon className="w-5 h-5 text-button-primary" /><span>{highDemandProperty.location}</span></div>
-                    <div className="flex items-center gap-2 text-gray-600"><BedDoubleIcon className="w-5 h-5 text-button-primary" /><span>{highDemandProperty.bedrooms} Bedrooms</span></div>
-                    <div className="flex items-center gap-2 text-gray-600"><BathIcon className="w-5 h-5 text-button-primary" /><span>{highDemandProperty.bathrooms} Bathrooms</span></div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300"><MapPinIcon className="w-5 h-5 text-button-primary" /><span>{highDemandProperty.location}</span></div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300"><BedDoubleIcon className="w-5 h-5 text-button-primary" /><span>{highDemandProperty.bedrooms} Bedrooms</span></div>
+                    <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300"><BathIcon className="w-5 h-5 text-button-primary" /><span>{highDemandProperty.bathrooms} Bathrooms</span></div>
                   </div>
                   <div className="flex items-center gap-6">
                     <div><p className="text-sm text-gray-400">Monthly Rent</p><p className="text-4xl font-bold text-button-primary">रू {highDemandProperty.rent.toLocaleString()}</p></div>
@@ -381,7 +372,7 @@ export function LandingPage() {
           </section>
 
           {/* Popular Cities */}
-          <section className="py-24 bg-gray-50">
+          <section className="py-24 bg-gray-50 dark:bg-gray-800">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
               <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="mb-12">
                 <h2 className="text-4xl font-bold text-gray-900 mb-2">Popular Cities</h2>
@@ -406,7 +397,7 @@ export function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           FAQs
       ══════════════════════════════════════════════════════════ */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
             <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }} className="lg:sticky lg:top-32 lg:self-start">
@@ -427,7 +418,7 @@ export function LandingPage() {
       {/* ══════════════════════════════════════════════════════════
           TESTIMONIALS
       ══════════════════════════════════════════════════════════ */}
-      <section className="py-24 bg-gray-50">
+      <section className="py-24 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3">What Our Users Say</h2>
@@ -448,7 +439,7 @@ export function LandingPage() {
                     <p className="text-gray-600 leading-relaxed flex-1 mb-6">"{testimonial.comment}"</p>
                     <div className="flex items-center gap-3 pt-4 border-t border-gray-100">
                       {(testimonial as any).avatar ? (<img src={(testimonial as any).avatar} alt={testimonial.name} className="w-12 h-12 rounded-full object-cover" />) : (<div className="w-12 h-12 bg-gradient-to-br from-button-primary to-primary rounded-full flex items-center justify-center text-white font-bold">{testimonial.name.split(' ').map(n => n[0]).join('')}</div>)}
-                      <div><p className="font-semibold text-gray-900">{testimonial.name}</p><p className="text-sm text-gray-400">{testimonial.role}</p></div>
+                      <div><p className="font-semibold text-gray-900 dark:text-white">{testimonial.name}</p><p className="text-sm text-gray-400">{testimonial.role}</p></div>
                     </div>
                   </motion.div>
                 ))}

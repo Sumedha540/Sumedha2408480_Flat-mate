@@ -165,7 +165,7 @@ export function AboutPage() {
              (removed: background color, user rating,
               happy users, verified badges)
       ══════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-20 bg-white">
+      <section className="relative min-h-screen flex items-center overflow-hidden pt-20 bg-white dark:bg-gray-900">
         {/* Subtle light green ambient — not dark */}
         <motion.div animate={{ scale:[1,1.2,1], opacity:[0.03,0.08,0.03] }} transition={{ duration:12, repeat:Infinity }}
           className="absolute top-0 right-0 w-[700px] h-[700px] bg-button-primary rounded-full blur-[160px] pointer-events-none" />
@@ -215,7 +215,7 @@ export function AboutPage() {
                 className="flex gap-8 pt-8 border-t border-gray-100">
                 {[{ v:'500+', l:'Properties' }, { v:'1K+', l:'Tenants' }, { v:'10+', l:'Cities' }].map(s => (
                   <div key={s.l}>
-                    <p className="text-3xl font-black text-gray-900">{s.v}</p>
+                    <p className="text-3xl font-black text-gray-900 dark:text-white">{s.v}</p>
                     <p className="text-gray-400 text-sm">{s.l}</p>
                   </div>
                 ))}
@@ -307,7 +307,7 @@ export function AboutPage() {
           3. CORE FEATURES — 4 cards around center image
              (inspired by reference image 3)
       ══════════════════════════════════════════════ */}
-      <section className="py-28 bg-white">
+      <section className="py-28 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
             badge="What We Offer"
@@ -375,7 +375,7 @@ export function AboutPage() {
           4. MILESTONES — horizontal scrolling cards
              (inspired by reference image 4 bottom)
       ══════════════════════════════════════════════ */}
-      <section className="py-28 bg-white">
+      <section className="py-28 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
             <div>
@@ -420,7 +420,7 @@ export function AboutPage() {
       {/* ══════════════════════════════════════════════
           6. SUBSCRIPTION PLANS
       ══════════════════════════════════════════════ */}
-      <section className="py-28 bg-gray-50">
+      <section className="py-28 bg-gray-50 dark:bg-gray-800">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
             badge="Pricing Plans"
@@ -485,7 +485,7 @@ export function AboutPage() {
       {/* ══════════════════════════════════════════════
           7. TEAM
       ══════════════════════════════════════════════ */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading badge="The Team" title="Meet Our Team" desc="Passionate individuals revolutionizing the rental market in Nepal, one listing at a time." />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
@@ -554,8 +554,8 @@ export function AboutPage() {
                 <div className="space-y-2">
                   {[{ d:'Sun – Fri', t:'9:00 AM – 6:00 PM' }, { d:'Saturday', t:'10:00 AM – 4:00 PM' }, { d:'Public Holidays', t:'Closed' }].map(h => (
                     <div key={h.d} className="flex justify-between text-sm">
-                      <span className="text-gray-500">{h.d}</span>
-                      <span className="font-semibold text-gray-900">{h.t}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{h.d}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{h.t}</span>
                     </div>
                   ))}
                 </div>

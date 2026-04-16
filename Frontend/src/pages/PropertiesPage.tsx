@@ -313,10 +313,10 @@ export function PropertiesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background-light pb-16">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 pb-16 transition-colors duration-300">
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-white via-background-light to-white border-b border-gray-100 overflow-hidden pt-28 pb-16">
+      <section className="relative bg-gradient-to-br from-white dark:from-gray-900 via-background-light dark:via-gray-800 to-white dark:to-gray-900 border-b border-gray-100 dark:border-gray-800 overflow-hidden pt-28 pb-16">
         <motion.div animate={{ scale:[1,1.2,1], rotate:[0,90,0] }} transition={{ duration:20, repeat:Infinity, ease:'linear' }} className="absolute top-0 right-0 w-96 h-96 bg-button-primary/5 rounded-full blur-3xl pointer-events-none" />
         <motion.div animate={{ scale:[1.2,1,1.2], rotate:[90,0,90] }} transition={{ duration:15, repeat:Infinity, ease:'linear' }} className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -337,7 +337,7 @@ export function PropertiesPage() {
                 {[{value:'500+',label:'Properties'},{value:'1000+',label:'Happy Tenants'},{value:'50+',label:'Locations'}].map((s,i) => (
                   <motion.div key={s.label} initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale:1 }} transition={{ delay:0.7+i*0.1 }}>
                     <p className="text-2xl font-bold text-primary">{s.value}</p>
-                    <p className="text-sm text-gray-600">{s.label}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{s.label}</p>
                   </motion.div>
                 ))}
               </motion.div>
@@ -350,7 +350,7 @@ export function PropertiesPage() {
               <motion.div initial={{ opacity:0, y:30, scale:0.8 }} animate={{ opacity:1, y:0, scale:1 }} transition={{ delay:0.8, type:'spring', stiffness:200 }} className="absolute -bottom-5 -left-5 bg-white p-4 rounded-2xl shadow-2xl border border-gray-100">
                 <div className="flex items-center gap-3">
                   <div className="bg-green-100 p-2.5 rounded-xl"><MapIcon className="w-5 h-5 text-green-600" /></div>
-                  <div><p className="font-bold text-gray-900">500+ Locations</p><p className="text-xs text-gray-500">Across Nepal</p></div>
+                  <div><p className="font-bold text-gray-900 dark:text-white">500+ Locations</p><p className="text-xs text-gray-500 dark:text-gray-400">Across Nepal</p></div>
                 </div>
               </motion.div>
             </motion.div>
@@ -425,10 +425,10 @@ export function PropertiesPage() {
           {hasFilters && (
             <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }} className="mb-8 flex flex-wrap items-center gap-2 p-4 bg-button-primary/5 border border-button-primary/20 rounded-2xl">
               <span className="text-sm font-semibold text-button-primary mr-1">Filters:</span>
-              {location !== 'All Locations' && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700"><MapPinIcon className="w-3.5 h-3.5 text-button-primary"/>{location}</span>}
-              {propType  !== 'All Types'     && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700"><HomeIcon className="w-3.5 h-3.5 text-button-primary"/>{propType}</span>}
-              {bedrooms  !== 'Any Bedrooms'  && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700"><BedDoubleIcon className="w-3.5 h-3.5 text-button-primary"/>{bedrooms}</span>}
-              {priceRange !== 'Any Price'    && <span className="px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700">{priceRange}</span>}
+              {location !== 'All Locations' && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700 dark:text-gray-200"><MapPinIcon className="w-3.5 h-3.5 text-button-primary"/>{location}</span>}
+              {propType  !== 'All Types'     && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700 dark:text-gray-200"><HomeIcon className="w-3.5 h-3.5 text-button-primary"/>{propType}</span>}
+              {bedrooms  !== 'Any Bedrooms'  && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700 dark:text-gray-200"><BedDoubleIcon className="w-3.5 h-3.5 text-button-primary"/>{bedrooms}</span>}
+              {priceRange !== 'Any Price'    && <span className="px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700 dark:text-gray-200">{priceRange}</span>}
               <button onClick={clearAll} className="ml-auto flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors"><XIcon className="w-4 h-4"/>Clear all</button>
             </motion.div>
           )}
