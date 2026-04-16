@@ -490,7 +490,7 @@ export function FindRoommatePage() {
               <div className="space-y-3">
                 {[{ label:'Active Users', value:'2,500+' },{ label:'Successful Matches', value:'1,200+' },{ label:'Verified Profiles', value:'85%' }].map(s => (
                   <div key={s.label} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">{s.label}</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-300">{s.label}</span>
                     <span className="font-bold text-button-primary">{s.value}</span>
                   </div>
                 ))}

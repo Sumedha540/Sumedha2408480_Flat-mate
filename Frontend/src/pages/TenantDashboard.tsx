@@ -267,10 +267,10 @@ function ProfileSettingsPanel() {
 
   return (
     <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}>
-      <h2 className="text-xl font-bold text-primary mb-6">Profile Settings</h2>
+      <h2 className="text-xl font-bold text-primary dark:text-white mb-6">Profile Settings</h2>
 
       {/* Avatar */}
-      <div className="flex items-center gap-5 mb-8 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+      <div className="flex items-center gap-5 mb-8 p-5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
         <div className="relative">
           {profilePhoto ? (
             <img src={profilePhoto} alt="Profile" className="w-20 h-20 rounded-full object-cover" />
@@ -293,8 +293,8 @@ function ProfileSettingsPanel() {
           />
         </div>
         <div>
-          <p className="font-bold text-gray-900">{user?.name}</p>
-          <p className="text-sm text-gray-500 capitalize">{user?.role}</p>
+          <p className="font-bold text-gray-900 dark:text-white">{user?.name}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{user?.role}</p>
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="text-xs text-button-primary font-semibold mt-1 hover:underline">
@@ -314,7 +314,12 @@ function ProfileSettingsPanel() {
                     window.dispatchEvent(new Event('profilePhotoUpdated'))
                   }
                 } catch {}
-                toast.info('Photo removed')
+                toast('Photo removed', {
+                  style: {
+                    background: '#D1D5DB',
+                    color: '#374151',
+                  },
+                })
               }}
               className="text-xs text-red-500 font-semibold mt-1 ml-3 hover:underline">
               Remove Photo
@@ -327,7 +332,7 @@ function ProfileSettingsPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Name Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Full Name *</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Full Name *</label>
           <div className="relative">
             <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -338,8 +343,8 @@ function ProfileSettingsPanel() {
                 setForm({...form, name: e.target.value})
                 if (errors.name) setErrors({...errors, name: ''})
               }}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                errors.name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -347,7 +352,7 @@ function ProfileSettingsPanel() {
 
         {/* Email Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email *</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email *</label>
           <div className="relative">
             <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -358,8 +363,8 @@ function ProfileSettingsPanel() {
                 setForm({...form, email: e.target.value})
                 if (errors.email) setErrors({...errors, email: ''})
               }}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -367,7 +372,7 @@ function ProfileSettingsPanel() {
 
         {/* Phone Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Phone (10 digits)</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Phone (10 digits)</label>
           <div className="relative">
             <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -377,8 +382,8 @@ function ProfileSettingsPanel() {
               maxLength={10}
               inputMode="numeric"
               onChange={e => handlePhoneChange(e.target.value)}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
@@ -389,7 +394,7 @@ function ProfileSettingsPanel() {
 
         {/* Address Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Address *</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Address *</label>
           <div className="relative">
             <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -400,8 +405,8 @@ function ProfileSettingsPanel() {
                 setForm({...form, address: e.target.value})
                 if (errors.address) setErrors({...errors, address: ''})
               }}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.address ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                errors.address ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
@@ -409,11 +414,11 @@ function ProfileSettingsPanel() {
       </div>
 
       <div className="mb-6">
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Bio</label>
+        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Bio</label>
         <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})}
           placeholder="Tell others about yourself..."
           rows={3}
-          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary resize-none transition-all" />
+          className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl text-sm focus:outline-none focus:border-button-primary resize-none transition-all" />
       </div>
 
       {/* Security section */}
@@ -427,19 +432,19 @@ function ProfileSettingsPanel() {
       </div>
 
       {/* Display Preferences */}
-      <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl mb-6">
+      <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl mb-6">
         <div className="flex items-center gap-2 mb-3">
           <SunIcon className="w-4 h-4 text-button-primary"/>
-          <p className="font-semibold text-gray-800 text-sm">Display Preferences</p>
+          <p className="font-semibold text-gray-800 dark:text-white text-sm">Display Preferences</p>
         </div>
-        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200">
+        <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
               <MoonIcon className="w-4 h-4 text-button-primary"/>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900">Dark Mode</p>
-              <p className="text-xs text-gray-500">Switch to dark color scheme</p>
+              <p className="text-sm font-medium text-gray-900 dark:text-white">Dark Mode</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Switch to dark color scheme</p>
             </div>
           </div>
           <motion.button 
@@ -547,6 +552,35 @@ export function TenantDashboard() {
   const [userNotifs, setUserNotifs] = useState<any[]>(() => {
     try { return JSON.parse(localStorage.getItem(`fm_notifs_${user?.name || 'user'}`) || '[]') } catch { return [] }
   })
+
+  // ── Bookings from localStorage ──
+  const [bookings, setBookings] = useState<any[]>(() => {
+    try { 
+      const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
+      // Filter bookings for current user by email or name
+      return allBookings.filter((b: any) => {
+        const emailMatch = user?.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
+        const nameMatch = user?.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
+        return emailMatch || nameMatch
+      })
+    } catch { return [] }
+  })
+
+  // Auto-refresh bookings every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
+        const userBookings = allBookings.filter((b: any) => {
+          const emailMatch = user?.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
+          const nameMatch = user?.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
+          return emailMatch || nameMatch
+        })
+        setBookings(userBookings)
+      } catch {}
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [user?.email, user?.name])
 
   // Reload from storage when tab becomes active
   useEffect(() => {
@@ -773,20 +807,20 @@ export function TenantDashboard() {
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}>
             <div className="flex items-center justify-between mb-6">
               <div>
-                <h2 className="text-xl font-bold text-primary">Saved Properties</h2>
-                <p className="text-gray-500 text-sm">{favorites.length} saved {favorites.length === 1 ? 'property' : 'properties'}</p>
+                <h2 className="text-xl font-bold text-primary dark:text-white">Saved Properties</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">{favorites.length} saved {favorites.length === 1 ? 'property' : 'properties'}</p>
               </div>
               {favorites.length > 0 && (
                 <button onClick={() => { clearFavorites(); toast.success('All favorites cleared') }}
-                  className="flex items-center gap-1.5 px-3 py-2 border border-red-200 text-red-500 text-sm font-semibold rounded-xl hover:bg-red-50 transition-all">
+                  className="flex items-center gap-1.5 px-3 py-2 border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 text-sm font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
                   <TrashIcon className="w-4 h-4" /> Clear All
                 </button>
               )}
             </div>
             {favorites.length === 0 ? (
-              <div className="text-center py-16 bg-gray-50 rounded-2xl border border-gray-100">
-                <HeartIcon className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-400">No saved properties yet. Heart any property to save it here.</p>
+              <div className="text-center py-16 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <HeartIcon className="w-12 h-12 text-gray-200 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400 dark:text-gray-500">No saved properties yet. Heart any property to save it here.</p>
                 <button onClick={() => navigate('/properties')} className="mt-4 px-6 py-2.5 bg-button-primary text-white text-sm font-bold rounded-full">Browse Properties</button>
               </div>
             ) : (
@@ -800,20 +834,58 @@ export function TenantDashboard() {
       case 'bookings':
         return (
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}>
-            <h2 className="text-xl font-bold text-primary mb-6">My Bookings</h2>
-            <div className="space-y-3">
-              {mockBookings.map(b => (
-                <div key={b.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
-                  <img src={b.image} alt={b.property} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 text-sm">{b.property}</p>
-                    <p className="text-gray-500 text-xs">{b.location}</p>
-                    <p className="text-gray-400 text-xs">Owner: {b.ownerName} · Visit: {b.date}</p>
+            <h2 className="text-xl font-bold text-primary dark:text-white mb-6">My Bookings</h2>
+            {bookings.length === 0 ? (
+              <div className="text-center py-16 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <CalendarIcon className="w-12 h-12 text-gray-200 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400 dark:text-gray-500">No bookings yet. Book a property to see it here.</p>
+                <button onClick={() => navigate('/properties')} className="mt-4 px-6 py-2.5 bg-button-primary text-white text-sm font-bold rounded-full">Browse Properties</button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {bookings.map((b, index) => {
+                  // Alternate colors matching the stat cards: soft pink, soft blue, soft lavender, soft yellow
+                  const colors = [
+                    'bg-gradient-to-br from-pink-50 to-pink-100',
+                    'bg-gradient-to-br from-blue-50 to-blue-100',
+                    'bg-gradient-to-br from-purple-50 to-purple-100',
+                    'bg-gradient-to-br from-yellow-50 to-yellow-100'
+                  ]
+                  const textColors = [
+                    'text-pink-500',
+                    'text-blue-500',
+                    'text-purple-500',
+                    'text-yellow-600'
+                  ]
+                  const colorClass = colors[index % 4]
+                  const textClass = textColors[index % 4]
+                  
+                  return (
+                <div key={b.receiptId || b.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
+                  <div className={`w-16 h-16 rounded-xl ${colorClass} flex items-center justify-center ${textClass} font-black text-xl flex-shrink-0`}>
+                    {b.propertyTitle?.charAt(0) || 'P'}
                   </div>
-                  <StatusBadge status={b.status} />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-gray-900 dark:text-white text-sm">{b.propertyTitle}</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">Rent: NPR {b.rent?.toLocaleString()}</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-xs">Owner: {b.ownerName} · Move-in: {b.moveInDate}</p>
+                    <p className="text-gray-400 dark:text-gray-500 text-xs font-mono">Receipt: {b.receiptId}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <StatusBadge status={b.status === 'confirmed' ? 'approved' : b.status === 'pending-cash' ? 'submitted' : b.status} />
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
+                      b.paymentType === 'full' ? 'bg-green-100 text-green-700' : 
+                      b.paymentType === 'advance' ? 'bg-blue-100 text-blue-700' : 
+                      'bg-amber-100 text-amber-700'
+                    }`}>
+                      {b.paymentType === 'advance' ? 'Half (30%)' : b.paymentType === 'full' ? 'Full' : 'Cash'}
+                    </span>
+                  </div>
                 </div>
-              ))}
+                  )
+                })}
             </div>
+            )}
           </motion.div>
         )
 
@@ -1005,23 +1077,23 @@ export function TenantDashboard() {
         const allNotifsDisplay = [...mockNotifications, ...allNotifs.map(n => ({ id:n.id, title:n.title, message:n.message, time:n.time, type:n.type }))]
         return (
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}>
-            <h2 className="text-xl font-bold text-primary mb-6">Notifications</h2>
+            <h2 className="text-xl font-bold text-primary dark:text-white mb-6">Notifications</h2>
             {allNotifsDisplay.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
-                <BellIcon className="w-12 h-12 text-gray-200 mx-auto mb-3" />
-                <p className="text-gray-400">No notifications yet.</p>
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+                <BellIcon className="w-12 h-12 text-gray-200 dark:text-gray-600 mx-auto mb-3" />
+                <p className="text-gray-400 dark:text-gray-500">No notifications yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {allNotifsDisplay.map(n => (
-                  <div key={n.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex gap-4">
+                  <div key={n.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm flex gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${n.type==='success' ? 'bg-green-100' : n.type==='warning' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
                       {n.type==='success' ? <CheckCircleIcon className="w-5 h-5 text-green-600" /> : n.type==='warning' ? <ClockIcon className="w-5 h-5 text-yellow-600" /> : <BellIcon className="w-5 h-5 text-blue-600" />}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900 text-sm">{n.title}</p>
-                      <p className="text-gray-500 text-xs">{n.message}</p>
-                      <p className="text-gray-400 text-xs mt-0.5">{n.time}</p>
+                      <p className="font-bold text-gray-900 dark:text-white text-sm">{n.title}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs">{n.message}</p>
+                      <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{n.time}</p>
                     </div>
                   </div>
                 ))}
@@ -1039,18 +1111,18 @@ export function TenantDashboard() {
             {/* Stats */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { icon: HeartIcon,          value: favorites.length, label:'Saved Properties',  color:'bg-pink-50 text-pink-500' },
-                { icon: CalendarIcon,        value: mockBookings.length, label:'Active Bookings', color:'bg-blue-50 text-blue-500' },
-                { icon: MessageCircleIcon,   value: 0,  label:'Unread Messages',  color:'bg-purple-50 text-purple-500' },
-                { icon: SearchIcon,          value: 12, label:'Properties Viewed', color:'bg-green-50 text-green-500' },
+                { icon: HeartIcon,          value: favorites.length, label:'Saved Properties',  color:'bg-pink-100 text-pink-500' },
+                { icon: CalendarIcon,        value: bookings.length, label:'Active Bookings', color:'bg-blue-100 text-blue-500' },
+                { icon: MessageCircleIcon,   value: 0,  label:'Unread Messages',  color:'bg-purple-100 text-purple-500' },
+                { icon: SearchIcon,          value: 12, label:'Properties Viewed', color:'bg-yellow-100 text-yellow-600' },
               ].map((stat, i) => (
                 <motion.div key={stat.label} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.08 }}
-                  whileHover={{ y:-4 }} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm cursor-pointer">
+                  whileHover={{ y:-4 }} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-700 shadow-sm cursor-pointer">
                   <div className={`w-11 h-11 ${stat.color} rounded-xl flex items-center justify-center mb-3`}>
                     <stat.icon className="w-5 h-5" />
                   </div>
-                  <p className="text-2xl font-black text-gray-900">{stat.value}</p>
-                  <p className="text-xs text-gray-500">{stat.label}</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white">{stat.value}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
@@ -1058,25 +1130,55 @@ export function TenantDashboard() {
             {/* Recent bookings */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-900">Recent Bookings</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white">Recent Bookings</h3>
                 <button onClick={() => setActiveTab('bookings')} className="text-button-primary text-xs font-semibold hover:underline">View All</button>
               </div>
-              <div className="space-y-2">
-                {mockBookings.slice(0,2).map(b => (
-                  <div key={b.id} className="bg-white rounded-xl p-3 border border-gray-100 flex gap-3 items-center">
-                    <img src={b.image} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" alt="" />
-                    <div className="flex-1 min-w-0"><p className="font-bold text-sm text-gray-900 truncate">{b.property}</p><p className="text-xs text-gray-500">{b.location}</p></div>
-                    <StatusBadge status={b.status} />
-                  </div>
-                ))}
-              </div>
+              {bookings.length === 0 ? (
+                <div className="bg-gray-50 dark:bg-gray-800 rounded-xl p-6 text-center border border-gray-100 dark:border-gray-700">
+                  <CalendarIcon className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm">No bookings yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {bookings.slice(0,2).map((b, index) => {
+                    // Alternate colors matching the stat cards: soft pink, soft blue, soft lavender, soft yellow
+                    const colors = [
+                      'bg-gradient-to-br from-pink-50 to-pink-100',
+                      'bg-gradient-to-br from-blue-50 to-blue-100',
+                      'bg-gradient-to-br from-purple-50 to-purple-100',
+                      'bg-gradient-to-br from-yellow-50 to-yellow-100'
+                    ]
+                    const textColors = [
+                      'text-pink-500',
+                      'text-blue-500',
+                      'text-purple-500',
+                      'text-yellow-600'
+                    ]
+                    const colorClass = colors[index % 4]
+                    const textClass = textColors[index % 4]
+                    
+                    return (
+                    <div key={b.receiptId || b.id} className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-700 flex gap-3 items-center">
+                      <div className={`w-12 h-12 rounded-lg ${colorClass} flex items-center justify-center ${textClass} font-black flex-shrink-0`}>
+                        {b.propertyTitle?.charAt(0) || 'P'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{b.propertyTitle}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">NPR {b.rent?.toLocaleString()} · {b.moveInDate}</p>
+                      </div>
+                      <StatusBadge status={b.status === 'confirmed' ? 'approved' : b.status === 'pending-cash' ? 'submitted' : b.status} />
+                    </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Saved properties preview */}
             {favorites.length > 0 && (
               <div>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-gray-900">Saved Properties</h3>
+                  <h3 className="font-bold text-gray-900 dark:text-white">Saved Properties</h3>
                   <button onClick={() => setActiveTab('saved')} className="text-button-primary text-xs font-semibold hover:underline">View All</button>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -1090,22 +1192,22 @@ export function TenantDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-background-light">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 transition-colors duration-300">
       <div className="flex">
 
         {/* ── SIDEBAR ── */}
-        <aside className="w-64 bg-white border-r border-gray-100 min-h-screen sticky top-0 hidden lg:flex flex-col">
+        <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 min-h-screen sticky top-0 hidden lg:flex flex-col">
           <div className="p-6 flex flex-col h-full">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 mb-8">
               <div className="w-9 h-9 bg-gradient-to-br from-button-primary to-primary rounded-xl flex items-center justify-center">
                 <HomeIcon className="w-5 h-5 text-white" />
               </div>
-              <span className="text-primary font-black text-lg">Flat-Mate</span>
+              <span className="text-primary dark:text-white font-black text-lg">Flat-Mate</span>
             </Link>
 
             {/* User avatar */}
-            <div className="flex items-center gap-3 mb-7 p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex items-center gap-3 mb-7 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-100 dark:border-gray-600">
               {profilePhoto ? (
                 <img src={profilePhoto} alt="Profile" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
               ) : (
@@ -1114,7 +1216,7 @@ export function TenantDashboard() {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-bold text-gray-900 text-sm truncate">{user?.name || 'User'}</p>
+                <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{user?.name || 'User'}</p>
                 <p className="text-xs text-gray-400 capitalize">{user?.role || 'tenant'}</p>
               </div>
             </div>
@@ -1129,7 +1231,7 @@ export function TenantDashboard() {
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                       activeTab === tab.id
                         ? 'bg-button-primary/10 text-button-primary font-bold'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}>
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     {tab.label}
@@ -1139,7 +1241,7 @@ export function TenantDashboard() {
             </nav>
 
             {/* Back nav + Logout */}
-            <div className="pt-6 border-t border-gray-100 space-y-1">
+            <div className="pt-6 border-t border-gray-100 dark:border-gray-700 space-y-1">
               <Link to="/properties">
                 <motion.div whileHover={{ x:3 }}
                   className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
@@ -1164,13 +1266,13 @@ export function TenantDashboard() {
         <div className="flex-1 flex flex-col min-h-screen">
 
           {/* Top bar */}
-          <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+          <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
             {/* Breadcrumb */}
             <div className="flex items-center gap-2">
-              <button onClick={() => setMobileMenuOpen(v => !v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 border border-gray-200 mr-2">
-                <MenuIcon className="w-5 h-5 text-gray-600" />
+              <button onClick={() => setMobileMenuOpen(v => !v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 mr-2">
+                <MenuIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
               </button>
-              <nav className="text-sm flex items-center gap-2 text-gray-500">
+              <nav className="text-sm flex items-center gap-2 text-gray-500 dark:text-gray-400">
                 <Link to="/" className="hover:text-primary transition-colors">Home</Link>
                 <span>›</span>
                 {fromPage === 'find-roommate' ? (
@@ -1187,10 +1289,10 @@ export function TenantDashboard() {
             <div className="flex items-center gap-3">
               <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs font-semibold text-gray-600 hover:text-primary hover:border-button-primary/40 transition-all">
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-primary hover:border-button-primary/40 transition-all">
                 <ArrowLeftIcon className="w-3.5 h-3.5" /> Back
               </motion.button>
-              <span className="hidden sm:block text-sm font-semibold text-gray-700">Welcome, {user?.name?.split(' ')[0]}!</span>
+              <span className="hidden sm:block text-sm font-semibold text-gray-700 dark:text-gray-200">Welcome, {user?.name?.split(' ')[0]}!</span>
             </div>
           </header>
 
@@ -1198,7 +1300,7 @@ export function TenantDashboard() {
           <AnimatePresence>
             {mobileMenuOpen && (
               <motion.div initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }} exit={{ height:0, opacity:0 }}
-                className="lg:hidden bg-white border-b border-gray-100 overflow-hidden">
+                className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-hidden">
                 <div className="px-4 py-3 flex flex-wrap gap-2">
                   {tabs.map(tab => {
                     const Icon = tab.icon
