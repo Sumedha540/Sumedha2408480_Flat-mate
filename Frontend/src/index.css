@@ -38,8 +38,158 @@ input[type="time"],
 input[type="datetime-local"],
 input[type="month"],
 input[type="week"] {
-  accent-color: #2F7D5F;
+  accent-color: #2F7D5F !important;
   color-scheme: light;
+}
+
+/* Force green color for date picker calendar */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(37%) sepia(51%) saturate(1068%) hue-rotate(115deg) brightness(95%) contrast(88%) !important;
+  cursor: pointer;
+}
+
+/* Additional styling for booking date input */
+.booking-date-input {
+  accent-color: #2F7D5F !important;
+}
+
+.booking-date-input::-webkit-calendar-picker-indicator {
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%232F7D5F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>') !important;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+}
+
+.booking-date-input::-webkit-datetime-edit-fields-wrapper {
+  color: #374151 !important;
+}
+
+.booking-date-input::-webkit-datetime-edit-text {
+  color: #6B7280 !important;
+}
+
+/* React DatePicker GREEN Theme - Website Color #2F7D5F */
+.react-datepicker {
+  font-family: 'Inter', system-ui, sans-serif !important;
+  border: 2px solid #2F7D5F !important;
+  border-radius: 16px !important;
+  box-shadow: 0 10px 40px rgba(47, 125, 95, 0.15) !important;
+}
+
+.react-datepicker__header {
+  background-color: #2F7D5F !important;
+  border-bottom: none !important;
+  border-radius: 14px 14px 0 0 !important;
+  padding-top: 12px !important;
+}
+
+.react-datepicker__current-month,
+.react-datepicker__day-name {
+  color: white !important;
+  font-weight: 700 !important;
+}
+
+.react-datepicker__day-name {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+}
+
+.react-datepicker__navigation {
+  top: 12px !important;
+}
+
+.react-datepicker__navigation-icon::before {
+  border-color: white !important;
+  border-width: 2px 2px 0 0 !important;
+}
+
+.react-datepicker__navigation:hover *::before {
+  border-color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.react-datepicker__day {
+  color: #374151 !important;
+  font-weight: 500 !important;
+  border-radius: 8px !important;
+  margin: 2px !important;
+  transition: all 0.2s ease !important;
+}
+
+.react-datepicker__day:hover {
+  background-color: #D1FAE5 !important;
+  color: #2F7D5F !important;
+  font-weight: 700 !important;
+}
+
+.react-datepicker__day--selected,
+.react-datepicker__day--keyboard-selected {
+  background-color: #2F7D5F !important;
+  color: white !important;
+  font-weight: 700 !important;
+  box-shadow: 0 2px 8px rgba(47, 125, 95, 0.3) !important;
+}
+
+.react-datepicker__day--selected:hover,
+.react-datepicker__day--keyboard-selected:hover {
+  background-color: #25684E !important;
+}
+
+.react-datepicker__day--today {
+  font-weight: 700 !important;
+  color: #2F7D5F !important;
+  border: 2px solid #2F7D5F !important;
+  background-color: #F0FDF4 !important;
+}
+
+.react-datepicker__day--disabled {
+  color: #D1D5DB !important;
+  cursor: not-allowed !important;
+}
+
+.react-datepicker__day--disabled:hover {
+  background-color: transparent !important;
+}
+
+.react-datepicker__month {
+  margin: 8px !important;
+}
+
+.react-datepicker__triangle {
+  display: none !important;
+}
+
+/* Green calendar custom class */
+.green-calendar .react-datepicker__day--selected {
+  background-color: #2F7D5F !important;
+  color: white !important;
+}
+
+.green-calendar .react-datepicker__day--keyboard-selected {
+  background-color: #2F7D5F !important;
+  color: white !important;
+}
+
+/* Status Badge - GREEN for Confirmed */
+.status-badge-confirmed {
+  background-color: #D1FAE5 !important;
+  color: #2F7D5F !important;
+  border: 1px solid #2F7D5F !important;
+}
+
+.status-badge-confirmed svg {
+  color: #2F7D5F !important;
+}
+
+/* Status Badge - RED for Rejected */
+.status-badge-rejected {
+  background-color: #FEE2E2 !important;
+  color: #DC2626 !important;
+  border: 1px solid #DC2626 !important;
+}
+
+.status-badge-rejected svg {
+  color: #DC2626 !important;
 }
 
 /* Smooth animations for interactive elements */

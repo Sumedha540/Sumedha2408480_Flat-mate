@@ -554,45 +554,169 @@ export function TenantDashboard() {
   })
 
   // ── Bookings from localStorage ──
-  const [bookings, setBookings] = useState<any[]>(() => {
-    try { 
-      const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-      // Filter bookings for current user by email or name
-      return allBookings.filter((b: any) => {
-        const emailMatch = user?.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
-        const nameMatch = user?.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
-        return emailMatch || nameMatch
-      })
-    } catch { return [] }
-  })
+  const [bookings, setBookings] = useState<any[]>([])
 
-  // Auto-refresh bookings every 5 seconds
+  // Load bookings on mount and when user changes
   useEffect(() => {
-    const interval = setInterval(() => {
-      try {
+    const loadBookings = () => {
+      console.log('🔄 Loading bookings for user:', user?.email, user?.name)
+      
+      try { 
         const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-        const userBookings = allBookings.filter((b: any) => {
-          const emailMatch = user?.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
-          const nameMatch = user?.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
+        console.log('📦 Total bookings in localStorage:', allBookings.length)
+        
+        // Remove specific unwanted bookings by receipt ID
+        const unwantedReceipts = ['KH-MO2QO1EF-J7TL', 'KH-MO2I8FBG-2EEH', 'KH-MNVG5G4L-R9Z1']
+        
+        // Remove old sample bookings and unwanted bookings
+        const cleanedBookings = allBookings.filter((b: any) => 
+          !b.receiptId?.startsWith('BK-SAMPLE') && !unwantedReceipts.includes(b.receiptId)
+        )
+        console.log('🧹 Cleaned bookings:', cleanedBookings.length)
+        
+        // Add ONE sample rejected booking if not already added
+        const hasRejected = cleanedBookings.some((b: any) => b.status === 'rejected' && b.customerEmail === user?.email)
+        if (!hasRejected && user?.email) {
+          const sampleRejected = {
+            propertyId: 'sample-rej-1',
+            propertyTitle: 'Luxury Villa in Budhanilkantha',
+            ownerName: 'Rajesh Maharjan',
+            rent: 45000,
+            paymentType: 'full',
+            amount: 45000,
+            customerName: user.name || 'User',
+            customerEmail: user.email,
+            customerPhone: '9800000000',
+            moveInDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            receiptId: `BK-REJ-${Date.now().toString(36).toUpperCase()}`,
+            status: 'rejected',
+            rejectionReason: 'Property already booked for the selected dates',
+            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            bookedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&auto=format&fit=crop'
+          }
+          cleanedBookings.unshift(sampleRejected)
+        }
+        
+        // Save cleaned bookings back
+        localStorage.setItem('fm_bookings', JSON.stringify(cleanedBookings))
+        
+        // Filter bookings for current user by email or name
+        const userBookings = cleanedBookings.filter((b: any) => {
+          if (!user) return false
+          const emailMatch = user.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
+          const nameMatch = user.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
+          console.log(`🔍 Checking booking: ${b.propertyTitle}`, {
+            bookingEmail: b.customerEmail,
+            userEmail: user.email,
+            emailMatch,
+            bookingName: b.customerName,
+            userName: user.name,
+            nameMatch
+          })
           return emailMatch || nameMatch
         })
+        
+        console.log('👤 User bookings found:', userBookings.length)
+        
+        // Sort by creation date (newest first)
+        userBookings.sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || a.bookedAt || 0).getTime()
+          const dateB = new Date(b.createdAt || b.bookedAt || 0).getTime()
+          return dateB - dateA
+        })
+        
+        console.log('✅ Setting bookings:', userBookings)
+        setBookings(userBookings)
+      } catch (err) {
+        console.error('❌ Error loading bookings:', err)
+        setBookings([])
+      }
+    }
+    
+    if (user) {
+      loadBookings()
+    }
+  }, [user?.email, user?.name])
+
+  // Auto-refresh bookings every 3 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!user) return
+      
+      try {
+        const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
+        
+        // Remove specific unwanted bookings by receipt ID
+        const unwantedReceipts = ['KH-MO2QO1EF-J7TL', 'KH-MO2I8FBG-2EEH', 'KH-MNVG5G4L-R9Z1']
+        
+        // Remove sample bookings and unwanted bookings
+        const cleanedBookings = allBookings.filter((b: any) => 
+          !b.receiptId?.startsWith('BK-SAMPLE') && !unwantedReceipts.includes(b.receiptId)
+        )
+        
+        const userBookings = cleanedBookings.filter((b: any) => {
+          const emailMatch = user.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
+          const nameMatch = user.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
+          return emailMatch || nameMatch
+        })
+        
+        // Sort by creation date (newest first)
+        userBookings.sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || a.bookedAt || 0).getTime()
+          const dateB = new Date(b.createdAt || b.bookedAt || 0).getTime()
+          return dateB - dateA
+        })
+        
         setBookings(userBookings)
       } catch {}
-    }, 5000)
+    }, 3000)
     return () => clearInterval(interval)
   }, [user?.email, user?.name])
 
-  // Reload from storage when tab becomes active
+  // Reload from storage when tab becomes active or storage changes
   useEffect(() => {
     const reload = () => {
+      if (!user) return
+      
       try {
+        const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
+        const unwantedReceipts = ['KH-MO2QO1EF-J7TL', 'KH-MO2I8FBG-2EEH', 'KH-MNVG5G4L-R9Z1']
+        const cleanedBookings = allBookings.filter((b: any) => 
+          !b.receiptId?.startsWith('BK-SAMPLE') && !unwantedReceipts.includes(b.receiptId)
+        )
+        
+        const userBookings = cleanedBookings.filter((b: any) => {
+          const emailMatch = user.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
+          const nameMatch = user.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
+          return emailMatch || nameMatch
+        })
+        
+        // Sort by creation date (newest first)
+        userBookings.sort((a: any, b: any) => {
+          const dateA = new Date(a.createdAt || a.bookedAt || 0).getTime()
+          const dateB = new Date(b.createdAt || b.bookedAt || 0).getTime()
+          return dateB - dateA
+        })
+        
+        setBookings(userBookings)
+        
         setRequirements(JSON.parse(localStorage.getItem('fm_requirements') || '[]'))
         setUserNotifs(JSON.parse(localStorage.getItem(`fm_notifs_${user?.name || 'user'}`) || '[]'))
       } catch {}
     }
+    
     window.addEventListener('focus', reload)
-    return () => window.removeEventListener('focus', reload)
-  }, [user?.name])
+    window.addEventListener('storage', reload)
+    // Custom event for immediate updates
+    window.addEventListener('bookingAdded', reload)
+    
+    return () => {
+      window.removeEventListener('focus', reload)
+      window.removeEventListener('storage', reload)
+      window.removeEventListener('bookingAdded', reload)
+    }
+  }, [user?.name, user?.email])
 
   const toggleLike = (id: string) => {
     const userName = user?.name || 'You'
@@ -861,25 +985,27 @@ export function TenantDashboard() {
                   const textClass = textColors[index % 4]
                   
                   return (
-                <div key={b.receiptId || b.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm flex items-center gap-4">
-                  <div className={`w-16 h-16 rounded-xl ${colorClass} flex items-center justify-center ${textClass} font-black text-xl flex-shrink-0`}>
-                    {b.propertyTitle?.charAt(0) || 'P'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 dark:text-white text-sm">{b.propertyTitle}</p>
-                    <p className="text-gray-500 dark:text-gray-400 text-xs">Rent: NPR {b.rent?.toLocaleString()}</p>
-                    <p className="text-gray-400 dark:text-gray-500 text-xs">Owner: {b.ownerName} · Move-in: {b.moveInDate}</p>
-                    <p className="text-gray-400 dark:text-gray-500 text-xs font-mono">Receipt: {b.receiptId}</p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <StatusBadge status={b.status === 'confirmed' ? 'approved' : b.status === 'pending-cash' ? 'submitted' : b.status} />
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${
-                      b.paymentType === 'full' ? 'bg-green-100 text-green-700' : 
-                      b.paymentType === 'advance' ? 'bg-blue-100 text-blue-700' : 
-                      'bg-amber-100 text-amber-700'
-                    }`}>
-                      {b.paymentType === 'advance' ? 'Half (30%)' : b.paymentType === 'full' ? 'Full' : 'Cash'}
-                    </span>
+                <div key={b.receiptId || b.id} className={`bg-white dark:bg-gray-800 rounded-2xl p-4 border shadow-sm ${b.status === 'rejected' ? 'border-red-200 dark:border-red-800' : 'border-gray-100 dark:border-gray-700'}`}>
+                  <div className="flex items-start gap-4">
+                    <div className={`w-16 h-16 rounded-xl ${colorClass} flex items-center justify-center ${textClass} font-black text-xl flex-shrink-0`}>
+                      {b.propertyTitle?.charAt(0) || 'P'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-gray-900 dark:text-white text-sm">{b.propertyTitle}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs">Rent: NPR {b.rent?.toLocaleString()}</p>
+                      <p className="text-gray-400 dark:text-gray-500 text-xs">Owner: {b.ownerName} · Move-in: {b.moveInDate}</p>
+                      <p className="text-gray-400 dark:text-gray-500 text-xs font-mono">Receipt: {b.receiptId}</p>
+                      {b.status === 'rejected' && b.rejectionReason && (
+                        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                          <p className="text-xs text-red-700 dark:text-red-400 font-semibold">
+                            <span className="font-bold">Rejected: </span>{b.rejectionReason}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-shrink-0">
+                      <StatusBadge status={b.status || 'pending-cash'} />
+                    </div>
                   </div>
                 </div>
                   )
@@ -1166,7 +1292,7 @@ export function TenantDashboard() {
                         <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{b.propertyTitle}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">NPR {b.rent?.toLocaleString()} · {b.moveInDate}</p>
                       </div>
-                      <StatusBadge status={b.status === 'confirmed' ? 'approved' : b.status === 'pending-cash' ? 'submitted' : b.status} />
+                      <StatusBadge status={b.status || 'submitted'} />
                     </div>
                     )
                   })}

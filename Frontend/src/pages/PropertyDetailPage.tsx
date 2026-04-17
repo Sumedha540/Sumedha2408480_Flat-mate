@@ -75,6 +75,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import {
   MapPinIcon, BedDoubleIcon, BathIcon, UtensilsIcon, HomeIcon,
   PhoneIcon, MailIcon, EyeIcon, MessageCircleIcon, ChevronLeftIcon,
@@ -611,6 +613,7 @@ export function PropertyDetailPage() {
   const [receiptId,      setReceiptId]      = useState('')
   const [orderTime,      setOrderTime]      = useState('')
   const [bookingData,    setBookingData]    = useState({ fullName: '', phone: '', email: '', moveInDate: '', confirmedWithOwner: '' })
+  const [selectedDate,   setSelectedDate]   = useState<Date | null>(null)
 
   const advanceAmount = property ? Math.round(property.rent * 0.3) : 0
   const fullAmount    = property ? property.rent : 0
@@ -686,17 +689,62 @@ export function PropertyDetailPage() {
   }, [id, navigate])
 
   // ── Booking handlers ───────────────────────────────────────────────────────
-  const openBooking = () => { setBookingOpen(true); setBookingStep('form'); setBookingData({ fullName: '', phone: '', email: '', moveInDate: '', confirmedWithOwner: '' }); setReceiptId(''); setPaymentType('full') }
+  const openBooking = () => { 
+    // Get current user from auth context
+    const currentUser = JSON.parse(localStorage.getItem('flatmate_user') || '{}')
+    
+    setBookingOpen(true); 
+    setBookingStep('form'); 
+    // Pre-fill form with logged-in user's data
+    setBookingData({ 
+      fullName: currentUser.name || '', 
+      phone: '', 
+      email: currentUser.email || '', 
+      moveInDate: '', 
+      confirmedWithOwner: '' 
+    }); 
+    setSelectedDate(null);
+    setReceiptId(''); 
+    setPaymentType('full') 
+  }
 
   const saveToLocalStorage = (record: any) => {
-    setLS('fm_bookings', [record, ...ls('fm_bookings')])
+    console.log('💾 Saving booking to localStorage:', record)
+    console.log('📧 Booking email:', record.customerEmail)
+    console.log('👤 Customer name:', record.customerName)
+    
+    const currentBookings = ls('fm_bookings')
+    console.log('📋 Current bookings count:', currentBookings.length)
+    
+    setLS('fm_bookings', [record, ...currentBookings])
+    
+    const updatedBookings = ls('fm_bookings')
+    console.log('✅ Updated bookings count:', updatedBookings.length)
+    console.log('📦 First booking:', updatedBookings[0])
+    
     setLS('fm_admin_notifs', [{ id: `an_${Date.now()}`, type: 'booking', title: 'New Booking', msg: `${record.customerName} booked ${record.propertyTitle}`, time: 'Just now', read: false }, ...ls('fm_admin_notifs')])
     setLS('fm_owner_notifs', [{ id: `on_${Date.now()}`, title: 'Booking Received', msg: `${record.customerName} booked ${record.propertyTitle}`, time: 'Just now', type: 'info', read: false }, ...ls('fm_owner_notifs')])
+    
+    // Dispatch custom event to notify dashboard
+    console.log('📢 Dispatching bookingAdded event')
+    window.dispatchEvent(new Event('bookingAdded'))
+    window.dispatchEvent(new Event('storage'))
+    
+    // Force immediate reload by directly calling a global function if dashboard is open
+    setTimeout(() => {
+      console.log('🔄 Triggering delayed reload')
+      window.dispatchEvent(new Event('bookingAdded'))
+    }, 100)
   }
 
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!bookingData.fullName || !bookingData.phone || !bookingData.email || !bookingData.moveInDate) { toast.error('Please fill all fields'); return }
+    if (!bookingData.fullName || !bookingData.phone || !bookingData.email || !selectedDate) { 
+      toast.error('Please fill all fields including move-in date'); 
+      return 
+    }
+    // Update bookingData with the selected date
+    setBookingData({ ...bookingData, moveInDate: selectedDate.toISOString().split('T')[0] })
     setBookingStep('payment-type')
   }
 
@@ -708,7 +756,23 @@ export function PropertyDetailPage() {
       const rid = `BK-${Date.now().toString(36).toUpperCase()}`
       const now = new Date().toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, day: '2-digit', month: 'long', year: 'numeric' })
       setReceiptId(rid); setOrderTime(now)
-      const record = { propertyId: property.id, propertyTitle: property.title, ownerName: property.ownerName, rent: property.rent, paymentType: 'cash', amount: 0, customerName: bookingData.fullName, customerEmail: bookingData.email, customerPhone: bookingData.phone, moveInDate: bookingData.moveInDate, receiptId: rid, status: 'pending-cash', createdAt: new Date().toISOString() }
+      const record = { 
+        propertyId: property.id, 
+        propertyTitle: property.title, 
+        ownerName: property.ownerName, 
+        rent: property.rent, 
+        paymentType: 'cash', 
+        amount: 0, 
+        customerName: bookingData.fullName, 
+        customerEmail: bookingData.email, 
+        customerPhone: bookingData.phone, 
+        moveInDate: bookingData.moveInDate, 
+        receiptId: rid, 
+        status: 'confirmed', 
+        createdAt: new Date().toISOString(),
+        bookedAt: new Date().toISOString(),
+        image: property.image || property.images?.[0] || IMGS[0]
+      }
       saveToLocalStorage(record)
       await fetch('/api/bookings/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
       setBookingStep('success'); 
@@ -728,7 +792,23 @@ export function PropertyDetailPage() {
       const data = await res.json()
       if (data.success) {
         setReceiptId(data.receiptId); setOrderTime(data.orderTime)
-        const record = { propertyId: property.id, propertyTitle: property.title, ownerName: property.ownerName, rent: property.rent, paymentType, amount: payAmount, customerName: bookingData.fullName, customerEmail: bookingData.email, customerPhone: bookingData.phone, moveInDate: bookingData.moveInDate, receiptId: data.receiptId, status: 'confirmed', createdAt: new Date().toISOString() }
+        const record = { 
+          propertyId: property.id, 
+          propertyTitle: property.title, 
+          ownerName: property.ownerName, 
+          rent: property.rent, 
+          paymentType, 
+          amount: payAmount, 
+          customerName: bookingData.fullName, 
+          customerEmail: bookingData.email, 
+          customerPhone: bookingData.phone, 
+          moveInDate: bookingData.moveInDate, 
+          receiptId: data.receiptId, 
+          status: 'confirmed', 
+          createdAt: new Date().toISOString(),
+          bookedAt: new Date().toISOString(),
+          image: property.image || property.images?.[0] || IMGS[0]
+        }
         saveToLocalStorage(record)
         await fetch('/api/bookings/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
         setBookingStep('success'); 
@@ -1047,40 +1127,30 @@ export function PropertyDetailPage() {
                           type="email" 
                           placeholder="you@example.com" 
                           value={bookingData.email} 
-                          onChange={e => setBookingData({ ...bookingData, email: e.target.value })} 
-                          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all" 
+                          readOnly
+                          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none bg-gray-50 cursor-not-allowed" 
                         />
+                        <p className="text-gray-500 text-xs mt-1">Using your account email</p>
                       </div>
 
-                      {/* Expected Move-in Date with green calendar icon */}
+                      {/* Expected Move-in Date with GREEN calendar */}
                       <div>
                         <label className="block text-xs font-semibold text-gray-600 mb-1.5">Expected Move-in</label>
-                        <input 
-                          required 
-                          type="date" 
-                          value={bookingData.moveInDate} 
-                          onChange={e => setBookingData({ ...bookingData, moveInDate: e.target.value })} 
-                          min={new Date().toISOString().split('T')[0]}
-                          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all booking-date-input" 
-                          style={{ colorScheme: 'light' }}
+                        <DatePicker
+                          selected={selectedDate}
+                          onChange={(date: Date | null) => {
+                            setSelectedDate(date)
+                            if (date) {
+                              setBookingData({ ...bookingData, moveInDate: date.toISOString().split('T')[0] })
+                            }
+                          }}
+                          minDate={new Date()}
+                          dateFormat="MMMM d, yyyy"
+                          placeholderText="Select move-in date"
+                          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all"
+                          calendarClassName="green-calendar"
+                          required
                         />
-                        <style>{`
-                          .booking-date-input {
-                            accent-color: #2F7D5F;
-                          }
-                          .booking-date-input::-webkit-calendar-picker-indicator {
-                            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%232F7D5F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
-                            cursor: pointer;
-                            width: 20px;
-                            height: 20px;
-                          }
-                          .booking-date-input::-webkit-datetime-edit-fields-wrapper {
-                            color: #374151;
-                          }
-                          .booking-date-input::-webkit-datetime-edit-text {
-                            color: #6B7280;
-                          }
-                        `}</style>
                       </div>
 
                       <motion.button type="submit" whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-full py-3 bg-button-primary text-white font-bold rounded-xl text-sm hover:bg-button-primary/90 transition-all">Continue to Payment Options</motion.button>
