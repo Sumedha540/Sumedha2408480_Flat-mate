@@ -1003,8 +1003,33 @@ export function TenantDashboard() {
                         </div>
                       )}
                     </div>
-                    <div className="flex-shrink-0">
-                      <StatusBadge status={b.status || 'pending-cash'} />
+                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                      {/* Status Badge - GREEN for confirmed */}
+                      <span 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-bold rounded-full"
+                        style={{
+                          backgroundColor: b.status === 'confirmed' ? '#D1FAE5' : b.status === 'rejected' ? '#FEE2E2' : '#FEF3C7',
+                          color: b.status === 'confirmed' ? '#2F7D5F' : b.status === 'rejected' ? '#DC2626' : '#92400E',
+                          border: `2px solid ${b.status === 'confirmed' ? '#2F7D5F' : b.status === 'rejected' ? '#DC2626' : '#F59E0B'}`
+                        }}
+                      >
+                        {b.status === 'confirmed' ? '✓ Confirmed' : b.status === 'rejected' ? '✗ Rejected' : '⏱ Pending'}
+                      </span>
+                      {/* Payment Type Badge */}
+                      {b.paymentType && (
+                        <span 
+                          className="text-xs font-semibold px-2 py-1 rounded-full"
+                          style={{
+                            backgroundColor: '#F3F4F6',
+                            color: '#374151'
+                          }}
+                        >
+                          {b.paymentType === 'cash' ? '💵 Cash on Arrival' : 
+                           b.paymentType === 'advance' ? '💳 Advance 30%' : 
+                           b.paymentType === 'full' ? '💳 Full Payment' : 
+                           b.paymentType}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1292,7 +1317,25 @@ export function TenantDashboard() {
                         <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{b.propertyTitle}</p>
                         <p className="text-xs text-gray-500 dark:text-gray-400">NPR {b.rent?.toLocaleString()} · {b.moveInDate}</p>
                       </div>
-                      <StatusBadge status={b.status || 'submitted'} />
+                      <div className="flex flex-col items-end gap-1">
+                        {/* Status Badge - GREEN for confirmed */}
+                        <span 
+                          className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-bold rounded-full whitespace-nowrap"
+                          style={{
+                            backgroundColor: b.status === 'confirmed' ? '#D1FAE5' : b.status === 'rejected' ? '#FEE2E2' : '#FEF3C7',
+                            color: b.status === 'confirmed' ? '#2F7D5F' : b.status === 'rejected' ? '#DC2626' : '#92400E',
+                            border: `2px solid ${b.status === 'confirmed' ? '#2F7D5F' : b.status === 'rejected' ? '#DC2626' : '#F59E0B'}`
+                          }}
+                        >
+                          {b.status === 'confirmed' ? '✓ Confirmed' : b.status === 'rejected' ? '✗ Rejected' : '⏱ Pending'}
+                        </span>
+                        {/* Payment Type */}
+                        {b.paymentType && (
+                          <span className="text-[10px] font-semibold text-gray-500 dark:text-gray-400">
+                            {b.paymentType === 'cash' ? 'Cash' : b.paymentType === 'advance' ? 'Advance 30%' : 'Full Payment'}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     )
                   })}
