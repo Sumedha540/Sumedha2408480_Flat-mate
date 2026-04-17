@@ -75,6 +75,8 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 import {
   MapPinIcon, BedDoubleIcon, BathIcon, UtensilsIcon, HomeIcon,
   PhoneIcon, MailIcon, EyeIcon, MessageCircleIcon, ChevronLeftIcon,
@@ -101,6 +103,12 @@ const IMGS = [
   'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=1200&auto=format&fit=crop',
   'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1556912173-46c336c7fd55?w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=1200&auto=format&fit=crop',
+  'https://images.unsplash.com/photo-1600573472591-ee6b68d14c68?w=1200&auto=format&fit=crop',
 ]
 
 const TITLE_BY_TYPE: Record<string, string[]> = {
@@ -280,8 +288,8 @@ const GENERATED_PROPERTIES = (() => {
     const lngOffset = ((idx % 17) - 8) * 0.002
     return {
       id:           `prop-${idx + 1}`,
-      image:        IMGS[idx % 6],
-      images:       [IMGS[idx % 6], IMGS[(idx + 1) % 6], IMGS[(idx + 2) % 6], IMGS[(idx + 3) % 6]],
+      image:        IMGS[idx % 12],
+      images:       [IMGS[idx % 12], IMGS[(idx + 1) % 12], IMGS[(idx + 2) % 12], IMGS[(idx + 3) % 12]],
       title:        `${titles[idx % titles.length]} in ${loc}`,
       location:     loc,
       type,
@@ -502,25 +510,25 @@ function ReviewSection({ propertyId, propertyTitle }: { propertyId: string; prop
         <h2 className="text-lg font-black text-primary">Reviews <span className="text-gray-400 font-normal text-sm">({reviews.length})</span></h2>
         {avgRating && <div className="flex items-center gap-1 bg-yellow-50 border border-yellow-100 px-3 py-1 rounded-full"><StarIcon className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500" /><span className="text-xs font-bold text-yellow-700">{avgRating} avg</span></div>}
       </div>
-      <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm mb-5">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 shadow-sm mb-5">
         <h3 className="font-bold text-gray-900 text-sm mb-4">Write a Review</h3>
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="flex items-center gap-1">
-            <span className="text-xs text-gray-500 font-medium mr-1">Rating:</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium mr-1">Rating:</span>
             {[1, 2, 3, 4, 5].map(star => <button key={star} type="button" onClick={() => setNewRating(star)}><StarIcon className={`w-6 h-6 transition-colors ${star <= newRating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200 hover:text-yellow-300'}`} /></button>)}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Your Name *</label>
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Your Name *</label>
               <input required value={name} onChange={e => setName(e.target.value)} placeholder="Ram Thapa" className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all" />
             </div>
             <div>
-              <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Email Address *</label>
+              <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Email Address *</label>
               <input required type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all" />
             </div>
           </div>
           <div>
-            <label className="block text-[11px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Your Review *</label>
+            <label className="block text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1">Your Review *</label>
             <textarea value={newComment} onChange={e => setNewComment(e.target.value)} placeholder="Share your honest experience..." rows={3} required className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary resize-none transition-all" />
           </div>
           <motion.button type="submit" disabled={loading || !newComment.trim() || !name.trim() || !email.trim()} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
@@ -530,12 +538,12 @@ function ReviewSection({ propertyId, propertyTitle }: { propertyId: string; prop
         </form>
       </div>
       {reviews.length === 0 ? (
-        <div className="bg-white rounded-2xl p-8 text-center border border-gray-100"><StarIcon className="w-10 h-10 text-gray-200 mx-auto mb-2" /><p className="text-gray-400 text-sm">No reviews yet. Be the first to leave a review!</p></div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 text-center border border-gray-100"><StarIcon className="w-10 h-10 text-gray-200 mx-auto mb-2" /><p className="text-gray-400 text-sm">No reviews yet. Be the first to leave a review!</p></div>
       ) : (
         <div className="space-y-3">
           <AnimatePresence>
             {reviews.map(r => (
-              <motion.div key={r._id || r.date} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
+              <motion.div key={r._id || r.date} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, x: -20 }} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 shadow-sm">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 bg-button-primary/10 rounded-full flex items-center justify-center text-button-primary font-black text-sm flex-shrink-0">{r.name.charAt(0).toUpperCase()}</div>
                   <div className="flex-1 min-w-0">
@@ -560,13 +568,13 @@ function ReviewSection({ propertyId, propertyTitle }: { propertyId: string; prop
                         <textarea value={editComment} onChange={e => setEditComment(e.target.value)} rows={2} className="w-full px-3 py-2 border-2 border-button-primary/30 rounded-xl text-sm focus:outline-none focus:border-button-primary resize-none transition-all" />
                         <div className="flex gap-2">
                           <button onClick={() => handleEditSave(r._id)} className="px-4 py-1.5 bg-button-primary text-white text-xs font-bold rounded-full hover:bg-button-primary/90 transition-all">Save Changes</button>
-                          <button onClick={() => setEditingId(null)} className="px-4 py-1.5 border border-gray-200 text-gray-600 text-xs font-semibold rounded-full hover:border-gray-300 transition-all">Cancel</button>
+                          <button onClick={() => setEditingId(null)} className="px-4 py-1.5 border border-gray-200 text-gray-600 dark:text-gray-300 text-xs font-semibold rounded-full hover:border-gray-300 transition-all">Cancel</button>
                         </div>
                       </div>
                     ) : (
                       <>
                         <div className="flex gap-0.5 mb-2">{[1, 2, 3, 4, 5].map(s => <StarIcon key={s} className={`w-3.5 h-3.5 ${s <= r.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />)}</div>
-                        <p className="text-gray-600 text-sm leading-relaxed">{r.comment}</p>
+                        <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{r.comment}</p>
                       </>
                     )}
                   </div>
@@ -708,7 +716,23 @@ export function PropertyDetailPage() {
       const rid = `BK-${Date.now().toString(36).toUpperCase()}`
       const now = new Date().toLocaleString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, day: '2-digit', month: 'long', year: 'numeric' })
       setReceiptId(rid); setOrderTime(now)
-      const record = { propertyId: property.id, propertyTitle: property.title, ownerName: property.ownerName, rent: property.rent, paymentType: 'cash', amount: 0, customerName: bookingData.fullName, customerEmail: bookingData.email, customerPhone: bookingData.phone, moveInDate: bookingData.moveInDate, receiptId: rid, status: 'pending-cash', createdAt: new Date().toISOString() }
+      const record = { 
+        propertyId: property.id, 
+        propertyTitle: property.title, 
+        ownerName: property.ownerName, 
+        rent: property.rent, 
+        paymentType: 'cash', 
+        amount: 0, 
+        customerName: bookingData.fullName, 
+        customerEmail: bookingData.email, 
+        customerPhone: bookingData.phone, 
+        moveInDate: bookingData.moveInDate, 
+        receiptId: rid, 
+        status: 'pending-cash', 
+        createdAt: new Date().toISOString(),
+        image: property.images?.[0] || property.image || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&auto=format&fit=crop',
+        bookedAt: new Date().toISOString()
+      }
       saveToLocalStorage(record)
       await fetch('/api/bookings/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
       setBookingStep('success'); 
@@ -728,7 +752,23 @@ export function PropertyDetailPage() {
       const data = await res.json()
       if (data.success) {
         setReceiptId(data.receiptId); setOrderTime(data.orderTime)
-        const record = { propertyId: property.id, propertyTitle: property.title, ownerName: property.ownerName, rent: property.rent, paymentType, amount: payAmount, customerName: bookingData.fullName, customerEmail: bookingData.email, customerPhone: bookingData.phone, moveInDate: bookingData.moveInDate, receiptId: data.receiptId, status: 'confirmed', createdAt: new Date().toISOString() }
+        const record = { 
+          propertyId: property.id, 
+          propertyTitle: property.title, 
+          ownerName: property.ownerName, 
+          rent: property.rent, 
+          paymentType, 
+          amount: payAmount, 
+          customerName: bookingData.fullName, 
+          customerEmail: bookingData.email, 
+          customerPhone: bookingData.phone, 
+          moveInDate: bookingData.moveInDate, 
+          receiptId: data.receiptId, 
+          status: 'confirmed', 
+          createdAt: new Date().toISOString(),
+          image: property.images?.[0] || property.image || 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&auto=format&fit=crop',
+          bookedAt: new Date().toISOString()
+        }
         saveToLocalStorage(record)
         await fetch('/api/bookings/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
         setBookingStep('success'); 
@@ -778,7 +818,7 @@ export function PropertyDetailPage() {
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen bg-background-light text-primary pb-20">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 text-primary dark:text-gray-100 pb-20 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28">
 
         {/* Breadcrumb + save */}
@@ -794,7 +834,7 @@ export function PropertyDetailPage() {
           </nav>
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
             onClick={() => { toggleFavorite({ id: property.id, image: property.image, title: property.title, location: property.location, rent: property.rent, bedrooms: property.bedrooms, bathrooms: property.bathrooms, ownerName: property.ownerName, views: property.views, isPremium: property.isPremium }); toast.success(saved ? 'Removed from favorites' : 'Saved to favorites!') }}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all ${saved ? 'bg-pink-500 border-pink-500 text-white' : 'bg-white border-pink-200 text-pink-600 hover:bg-pink-50 hover:border-pink-400'}`}>
+            className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all ${saved ? 'bg-pink-500 border-pink-500 text-white' : 'bg-white dark:bg-gray-800 border-pink-200 text-pink-600 hover:bg-pink-50 hover:border-pink-400'}`}>
             <HeartIcon className={`w-4 h-4 ${saved ? 'fill-white' : ''}`} />
             {saved ? 'Saved' : 'Save'}
           </motion.button>
@@ -806,7 +846,7 @@ export function PropertyDetailPage() {
             <div className="flex items-center gap-2 mb-2 flex-wrap">
               <span className="px-2.5 py-1 bg-button-primary/10 text-button-primary text-xs font-bold rounded-full">Available</span>
               {property.isPremium && <span className="px-2.5 py-1 bg-yellow-400 text-white text-xs font-bold rounded-full">Premium</span>}
-              <span className="text-gray-500 text-sm flex items-center gap-1"><MapPinIcon className="w-3.5 h-3.5" />{property.neighborhood}, {property.location}</span>
+              <span className="text-gray-500 dark:text-gray-400 text-sm flex items-center gap-1"><MapPinIcon className="w-3.5 h-3.5" />{property.neighborhood}, {property.location}</span>
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-primary">{property.title}</h1>
           </motion.div>
@@ -842,7 +882,7 @@ export function PropertyDetailPage() {
               <motion.img key={activeImg} initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} src={property.images[activeImg]} alt="" className="max-h-[85vh] max-w-[85vw] rounded-xl object-contain" onClick={e => e.stopPropagation()} />
               <button onClick={e => { e.stopPropagation(); setActiveImg(Math.min(property.images.length - 1, activeImg + 1)) }} className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/15 rounded-full flex items-center justify-center text-white hover:bg-white/25 z-10"><ChevronRightIcon className="w-5 h-5" /></button>
               <div className="absolute bottom-4 flex gap-2">
-                {property.images.map((_: string, i: number) => <button key={i} onClick={e => { e.stopPropagation(); setActiveImg(i) }} className={`w-2 h-2 rounded-full transition-all ${activeImg === i ? 'bg-white w-5' : 'bg-white/40'}`} />)}
+                {property.images.map((_: string, i: number) => <button key={i} onClick={e => { e.stopPropagation(); setActiveImg(i) }} className={`w-2 h-2 rounded-full transition-all ${activeImg === i ? 'bg-white dark:bg-gray-800 w-5' : 'bg-white/40'}`} />)}
               </div>
             </motion.div>
           )}
@@ -855,7 +895,7 @@ export function PropertyDetailPage() {
             {/* About */}
             <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
               <h2 className="text-lg font-black text-primary mb-3">About this property</h2>
-              <p className="text-gray-600 leading-relaxed text-sm">{property.description}</p>
+              <p className="text-gray-600 dark:text-gray-300 leading-relaxed text-sm">{property.description}</p>
             </motion.section>
 
             {/* Property details grid */}
@@ -871,8 +911,8 @@ export function PropertyDetailPage() {
                   { label: 'Parking', value: property.parking, icon: CheckCircleIcon },
                   { label: 'Furnishing', value: property.furnishing, icon: HomeIcon },
                 ].map(d => (
-                  <div key={d.label} className="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3">
-                    <div className="p-1.5 bg-gray-50 rounded-lg"><d.icon className="w-4 h-4 text-gray-400" /></div>
+                  <div key={d.label} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-100 shadow-sm flex items-start gap-3">
+                    <div className="p-1.5 bg-gray-50 dark:bg-gray-700 rounded-lg"><d.icon className="w-4 h-4 text-gray-400" /></div>
                     <div><p className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider mb-0.5">{d.label}</p><p className="font-semibold text-gray-900 text-sm">{d.value}</p></div>
                   </div>
                 ))}
@@ -890,7 +930,7 @@ export function PropertyDetailPage() {
                   { icon: HomeIcon,      label: 'Type',      value: property.type },
                   { icon: MapPinIcon,    label: 'Area',      value: property.area },
                 ].map(a => (
-                  <div key={a.label} className="bg-white rounded-xl p-3 text-center border border-gray-100 shadow-sm hover:border-button-primary/30 transition-colors">
+                  <div key={a.label} className="bg-white dark:bg-gray-800 rounded-xl p-3 text-center border border-gray-100 shadow-sm hover:border-button-primary/30 transition-colors">
                     <div className="w-9 h-9 bg-button-primary/10 rounded-full flex items-center justify-center mx-auto mb-2"><a.icon className="w-5 h-5 text-button-primary" /></div>
                     <p className="text-[10px] text-gray-400 uppercase tracking-wider mb-0.5">{a.label}</p>
                     <p className="font-bold text-gray-900 text-xs">{a.value}</p>
@@ -902,7 +942,7 @@ export function PropertyDetailPage() {
             {/* Map */}
             <motion.section initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 }}>
               <h2 className="text-lg font-black text-primary mb-4">Location</h2>
-              <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm" style={{ isolation: 'isolate' }}>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden border border-gray-100 shadow-sm" style={{ isolation: 'isolate' }}>
                 <div className="h-64 relative" style={{ zIndex: 0 }}>
                   <PropertyMap lat={property.lat} lng={property.lng} title={property.title} address={`${property.chowk}, ${property.location}`} />
                 </div>
@@ -931,7 +971,7 @@ export function PropertyDetailPage() {
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={openBooking} className="w-full mb-3 py-3 bg-button-primary text-white font-bold rounded-xl text-sm hover:bg-button-primary/90 transition-all shadow-md flex items-center justify-center gap-2">
                   <CalendarIcon className="w-4 h-4" /> Book Now
                 </motion.button>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate(`/dashboard/tenant?tab=messages&userName=${encodeURIComponent(property.ownerName)}&propertyTitle=${encodeURIComponent(property.title)}`)} className="w-full py-3 bg-white border-2 border-button-primary/30 hover:border-button-primary text-button-primary font-bold rounded-xl text-sm transition-all hover:bg-button-primary/5 flex items-center justify-center gap-2">
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate(`/dashboard/tenant?tab=messages&userName=${encodeURIComponent(property.ownerName)}&propertyTitle=${encodeURIComponent(property.title)}`)} className="w-full py-3 bg-white dark:bg-gray-800 border-2 border-button-primary/30 hover:border-button-primary text-button-primary font-bold rounded-xl text-sm transition-all hover:bg-button-primary/5 flex items-center justify-center gap-2">
                   <MessageCircleIcon className="w-4 h-4" /> Chat with Owner
                 </motion.button>
                 <p className="text-center text-xs text-gray-400 mt-3 flex items-center justify-center gap-1"><ShieldCheckIcon className="w-3.5 h-3.5" /> Secured by Flat-Mate</p>
@@ -944,12 +984,12 @@ export function PropertyDetailPage() {
                   <div><p className="font-bold text-gray-900 text-sm flex items-center gap-1">{property.ownerName}<CheckCircleIcon className="w-3.5 h-3.5 text-green-500" /></p><p className="text-xs text-gray-500">Verified Owner</p></div>
                 </div>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl text-xs text-gray-700">
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl text-xs text-gray-700">
                     <PhoneIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                     <span>{showPhone ? property.ownerPhone : '••••• •••••'}</span>
                     <button onClick={() => setShowPhone(v => !v)} className="ml-auto text-button-primary font-semibold text-[10px]">{showPhone ? 'Hide' : 'Reveal'}</button>
                   </div>
-                  <div className="flex items-center gap-2 p-3 bg-gray-50 rounded-xl text-xs text-gray-700">
+                  <div className="flex items-center gap-2 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl text-xs text-gray-700">
                     <MailIcon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
                     <span className="truncate">{property.ownerEmail}</span>
                   </div>
@@ -964,8 +1004,8 @@ export function PropertyDetailPage() {
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-black text-primary">Similar Properties</h2>
             <div className="flex gap-2">
-              <button onClick={() => setRecIdx(Math.max(0, recIdx - 1))} disabled={recIdx === 0} className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><ChevronLeftIcon className="w-4 h-4 text-gray-600" /></button>
-              <button onClick={() => setRecIdx(Math.min(Math.ceil(recommended.length / recPerPage) - 1, recIdx + 1))} disabled={recIdx >= Math.ceil(recommended.length / recPerPage) - 1} className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><ChevronRightIcon className="w-4 h-4 text-gray-600" /></button>
+              <button onClick={() => setRecIdx(Math.max(0, recIdx - 1))} disabled={recIdx === 0} className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 dark:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><ChevronLeftIcon className="w-4 h-4 text-gray-600" /></button>
+              <button onClick={() => setRecIdx(Math.min(Math.ceil(recommended.length / recPerPage) - 1, recIdx + 1))} disabled={recIdx >= Math.ceil(recommended.length / recPerPage) - 1} className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center hover:bg-gray-50 dark:bg-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"><ChevronRightIcon className="w-4 h-4 text-gray-600" /></button>
             </div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -984,7 +1024,7 @@ export function PropertyDetailPage() {
       <AnimatePresence>
         {bookingOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={e => e.target === e.currentTarget && bookingStep !== 'success' && setBookingOpen(false)}>
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }} className="bg-white rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} transition={{ type: 'spring', stiffness: 320, damping: 30 }} className="bg-white dark:bg-gray-800 rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl max-h-[90vh] overflow-y-auto">
               <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100 bg-gray-50/50">
                 <h2 className="text-base font-black text-primary">
                   {bookingStep === 'form' && 'Book Property'}
@@ -1005,7 +1045,7 @@ export function PropertyDetailPage() {
                       
                       {/* Full Name */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Full Name</label>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Full Name</label>
                         <input 
                           required 
                           type="text" 
@@ -1018,7 +1058,7 @@ export function PropertyDetailPage() {
 
                       {/* Phone Number with 10 digit limit */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Phone Number</label>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Phone Number</label>
                         <input 
                           required 
                           type="tel" 
@@ -1031,12 +1071,12 @@ export function PropertyDetailPage() {
                           maxLength={10}
                           className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all" 
                         />
-                        <p className="text-gray-500 text-xs mt-1">{bookingData.phone.length}/10 digits</p>
+                        <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{bookingData.phone.length}/10 digits</p>
                       </div>
 
                       {/* Email */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Email Address</label>
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Email Address</label>
                         <input 
                           required 
                           type="email" 
@@ -1047,33 +1087,145 @@ export function PropertyDetailPage() {
                         />
                       </div>
 
-                      {/* Expected Move-in Date with green calendar icon */}
+                      {/* Expected Move-in Date with GREEN calendar */}
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5">Expected Move-in</label>
-                        <input 
-                          required 
-                          type="date" 
-                          value={bookingData.moveInDate} 
-                          onChange={e => setBookingData({ ...bookingData, moveInDate: e.target.value })} 
-                          min={new Date().toISOString().split('T')[0]}
-                          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all booking-date-input" 
-                          style={{ colorScheme: 'light' }}
+                        <label className="block text-xs font-semibold text-gray-600 dark:text-gray-300 mb-1.5">Expected Move-in</label>
+                        <DatePicker
+                          selected={bookingData.moveInDate ? new Date(bookingData.moveInDate) : null}
+                          onChange={(date: Date | null) => {
+                            if (date) {
+                              setBookingData({ ...bookingData, moveInDate: date.toISOString().split('T')[0] })
+                            }
+                          }}
+                          minDate={new Date()}
+                          dateFormat="MM/dd/yyyy"
+                          placeholderText="Select move-in date"
+                          required
+                          className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all"
+                          calendarClassName="green-calendar-popup"
+                          wrapperClassName="w-full"
                         />
                         <style>{`
-                          .booking-date-input {
-                            accent-color: #2F7D5F;
+                          /* GREEN Calendar Popup Styling */
+                          .green-calendar-popup {
+                            font-family: 'Inter', sans-serif;
+                            border: 2px solid #2F7D5F !important;
+                            border-radius: 16px !important;
+                            box-shadow: 0 10px 40px rgba(47, 125, 95, 0.15) !important;
                           }
-                          .booking-date-input::-webkit-calendar-picker-indicator {
-                            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="%232F7D5F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>');
-                            cursor: pointer;
-                            width: 20px;
-                            height: 20px;
+                          
+                          /* Header with month/year - GREEN */
+                          .react-datepicker__header {
+                            background-color: #2F7D5F !important;
+                            border-bottom: none !important;
+                            border-radius: 14px 14px 0 0 !important;
+                            padding: 16px 10px 10px !important;
                           }
-                          .booking-date-input::-webkit-datetime-edit-fields-wrapper {
-                            color: #374151;
+                          
+                          /* Month/Year text - WHITE */
+                          .react-datepicker__current-month {
+                            color: white !important;
+                            font-weight: 700 !important;
+                            font-size: 16px !important;
+                            margin-bottom: 8px !important;
                           }
-                          .booking-date-input::-webkit-datetime-edit-text {
-                            color: #6B7280;
+                          
+                          /* Day names (Su Mo Tu...) - WHITE */
+                          .react-datepicker__day-name {
+                            color: white !important;
+                            font-weight: 600 !important;
+                            font-size: 13px !important;
+                            width: 36px !important;
+                            line-height: 36px !important;
+                            margin: 2px !important;
+                          }
+                          
+                          /* Navigation arrows - WHITE */
+                          .react-datepicker__navigation-icon::before {
+                            border-color: white !important;
+                            border-width: 2px 2px 0 0 !important;
+                          }
+                          
+                          .react-datepicker__navigation:hover *::before {
+                            border-color: #D7EDE4 !important;
+                          }
+                          
+                          /* Calendar body */
+                          .react-datepicker__month {
+                            margin: 12px !important;
+                          }
+                          
+                          /* Individual day cells */
+                          .react-datepicker__day {
+                            width: 36px !important;
+                            line-height: 36px !important;
+                            margin: 2px !important;
+                            border-radius: 8px !important;
+                            color: #374151 !important;
+                            font-weight: 500 !important;
+                            font-size: 14px !important;
+                            transition: all 0.2s !important;
+                          }
+                          
+                          /* Hover state - LIGHT GREEN */
+                          .react-datepicker__day:hover {
+                            background-color: #D7EDE4 !important;
+                            color: #2F7D5F !important;
+                            font-weight: 700 !important;
+                          }
+                          
+                          /* SELECTED date - GREEN BACKGROUND */
+                          .react-datepicker__day--selected,
+                          .react-datepicker__day--keyboard-selected {
+                            background-color: #2F7D5F !important;
+                            color: white !important;
+                            font-weight: 700 !important;
+                            box-shadow: 0 4px 12px rgba(47, 125, 95, 0.3) !important;
+                          }
+                          
+                          .react-datepicker__day--selected:hover {
+                            background-color: #25684E !important;
+                          }
+                          
+                          /* Today - GREEN BORDER */
+                          .react-datepicker__day--today {
+                            border: 2px solid #2F7D5F !important;
+                            font-weight: 700 !important;
+                            color: #2F7D5F !important;
+                          }
+                          
+                          /* Disabled/outside month days */
+                          .react-datepicker__day--disabled,
+                          .react-datepicker__day--outside-month {
+                            color: #D1D5DB !important;
+                            cursor: not-allowed !important;
+                          }
+                          
+                          .react-datepicker__day--disabled:hover {
+                            background-color: transparent !important;
+                          }
+                          
+                          /* "Today" and "Clear" buttons - GREEN */
+                          .react-datepicker__today-button {
+                            background-color: #2F7D5F !important;
+                            color: white !important;
+                            border-top: 1px solid #D7EDE4 !important;
+                            padding: 12px !important;
+                            font-weight: 700 !important;
+                            border-radius: 0 0 14px 14px !important;
+                          }
+                          
+                          .react-datepicker__today-button:hover {
+                            background-color: #25684E !important;
+                          }
+                          
+                          /* Input field icon */
+                          .react-datepicker-wrapper {
+                            width: 100%;
+                          }
+                          
+                          .react-datepicker__input-container {
+                            width: 100%;
                           }
                         `}</style>
                       </div>
@@ -1092,7 +1244,7 @@ export function PropertyDetailPage() {
                           {opt.tag && <span className={`absolute -top-2.5 left-4 text-[10px] font-black text-white ${opt.tagColor} px-2 py-0.5 rounded-full`}>{opt.tag}</span>}
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-3">
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${paymentType === opt.id ? 'border-button-primary bg-button-primary' : 'border-gray-300'}`}>{paymentType === opt.id && <div className="w-2 h-2 bg-white rounded-full" />}</div>
+                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${paymentType === opt.id ? 'border-button-primary bg-button-primary' : 'border-gray-300'}`}>{paymentType === opt.id && <div className="w-2 h-2 bg-white dark:bg-gray-800 rounded-full" />}</div>
                               <div><p className="font-bold text-gray-900 text-sm">{opt.label}</p><p className="text-xs text-gray-500">{opt.desc}</p></div>
                             </div>
                             <div className="text-right"><p className="font-black text-gray-900 text-sm">{opt.amount > 0 ? `रू ${opt.amount.toLocaleString()}` : 'Free'}</p>{opt.id !== 'cash' && <p className="text-[10px] text-gray-400">via Khalti</p>}</div>
@@ -1107,7 +1259,7 @@ export function PropertyDetailPage() {
                   )}
                   {bookingStep === 'payment' && (
                     <motion.div key="payment" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-5">
-                      <div className="bg-gray-50 rounded-2xl p-5 space-y-2.5 text-sm">
+                      <div className="bg-gray-50 dark:bg-gray-700 rounded-2xl p-5 space-y-2.5 text-sm">
                         <div className="flex justify-between"><span className="text-gray-500">Property</span><span className="font-semibold truncate max-w-[180px]">{property.title}</span></div>
                         <div className="flex justify-between text-base font-black pt-2 border-t border-gray-200"><span>Total</span><span className="text-button-primary">रू {payAmount.toLocaleString()}</span></div>
                       </div>
@@ -1128,11 +1280,11 @@ export function PropertyDetailPage() {
                     <motion.div key="success" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} className="text-center py-2">
                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.15, type: 'spring', stiffness: 260 }} className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircleIcon className="w-8 h-8 text-green-600" /></motion.div>
                       <h3 className="text-lg font-black text-gray-900 mb-1">Booking Confirmed!</h3>
-                      <p className="text-gray-500 text-sm mb-1">Your booking for <span className="font-semibold">{property.title}</span> is confirmed.</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm mb-1">Your booking for <span className="font-semibold">{property.title}</span> is confirmed.</p>
                       <p className="text-xs text-gray-400 font-mono mb-6">Receipt: {receiptId}</p>
                       <div className="flex flex-col gap-3">
                         <motion.button onClick={downloadReceipt} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} className="w-full py-3 bg-button-primary text-white font-bold rounded-xl flex items-center justify-center gap-2 text-sm hover:bg-button-primary/90 transition-all"><DownloadIcon className="w-4 h-4" /> Download Receipt</motion.button>
-                        <button onClick={() => setBookingOpen(false)} className="w-full py-3 border-2 border-gray-200 text-gray-600 font-semibold rounded-xl text-sm hover:border-gray-300 transition-all">Close</button>
+                        <button onClick={() => setBookingOpen(false)} className="w-full py-3 border-2 border-gray-200 text-gray-600 dark:text-gray-300 font-semibold rounded-xl text-sm hover:border-gray-300 transition-all">Close</button>
                       </div>
                     </motion.div>
                   )}

@@ -124,7 +124,7 @@ function CustomSelect({
   return (
     <div className="flex-1 min-w-[150px]" ref={ref}>
       {/* Label — same font as subtitle "Search from hundreds..." */}
-      <label className="block text-sm text-gray-500 font-normal mb-2">
+      <label className="block text-sm text-gray-500 dark:text-gray-400 font-normal mb-2">
         {label}
       </label>
       {/* Trigger */}
@@ -133,11 +133,10 @@ function CustomSelect({
         onClick={() => setOpen(v => !v)}
         className={`w-full flex items-center gap-2.5 pl-4 pr-3.5 py-3.5 rounded-xl border-2 text-base font-medium text-left transition-all
           ${open
-            ? 'border-button-primary bg-button-primary/10 ring-2 ring-button-primary/20'
-            : 'border-button-primary/25 bg-button-primary/6 hover:border-button-primary/50 hover:bg-button-primary/10'
+            ? 'border-button-primary bg-button-primary/10 dark:bg-button-primary/15 ring-2 ring-button-primary/20'
+            : 'border-button-primary/25 bg-button-primary/6 dark:bg-button-primary/10 hover:border-button-primary/50 hover:bg-button-primary/10 dark:hover:bg-button-primary/15'
           }
-          ${isDefault ? 'text-gray-500' : 'text-gray-900'}`}
-        style={{ backgroundColor: open ? 'rgba(45,106,79,0.08)' : 'rgba(45,106,79,0.04)' }}
+          ${isDefault ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white'}`}
       >
         {icon && <span className="text-button-primary flex-shrink-0">{icon}</span>}
         <span className="flex-1 truncate">{value}</span>
@@ -154,7 +153,7 @@ function CustomSelect({
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -6, scale: 0.97 }}
             transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute z-50 mt-1.5 min-w-full w-max bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden py-1.5"
+            className="absolute z-50 mt-1.5 min-w-full w-max bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-600 rounded-2xl shadow-2xl overflow-hidden py-1.5"
             style={{ minWidth: '100%' }}
           >
             {options.map(opt => {
@@ -167,7 +166,7 @@ function CustomSelect({
                   className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm font-medium transition-colors
                     ${selected
                       ? 'bg-button-primary text-white'
-                      : 'text-gray-700 hover:bg-button-primary/10 hover:text-button-primary'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-button-primary/10 hover:text-button-primary'
                     }`}
                 >
                   {selected
@@ -313,10 +312,10 @@ export function PropertiesPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background-light pb-16">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 pb-16 transition-colors duration-300">
 
       {/* ── HERO ──────────────────────────────────────────────────────────── */}
-      <section className="relative bg-gradient-to-br from-white via-background-light to-white border-b border-gray-100 overflow-hidden pt-28 pb-16">
+      <section className="relative bg-gradient-to-br from-white dark:from-gray-900 via-background-light dark:via-gray-800 to-white dark:to-gray-900 border-b border-gray-100 dark:border-gray-700 overflow-hidden pt-28 pb-16 transition-colors duration-300">
         <motion.div animate={{ scale:[1,1.2,1], rotate:[0,90,0] }} transition={{ duration:20, repeat:Infinity, ease:'linear' }} className="absolute top-0 right-0 w-96 h-96 bg-button-primary/5 rounded-full blur-3xl pointer-events-none" />
         <motion.div animate={{ scale:[1.2,1,1.2], rotate:[90,0,90] }} transition={{ duration:15, repeat:Infinity, ease:'linear' }} className="absolute bottom-0 left-0 w-96 h-96 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -330,14 +329,14 @@ export function PropertiesPage() {
                 <span className="text-primary">Discover Your Next</span><br />
                 <span className="bg-gradient-to-r from-button-primary to-primary bg-clip-text text-transparent">Dream Home</span>
               </motion.h1>
-              <motion.p initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.4 }} className="text-lg text-gray-600 mb-8 leading-relaxed">
+              <motion.p initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.4 }} className="text-lg text-gray-600 dark:text-gray-300 mb-8 leading-relaxed">
                 Explore the widest range of verified properties in Nepal.
               </motion.p>
               <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.6 }} className="flex gap-8">
                 {[{value:'500+',label:'Properties'},{value:'1000+',label:'Happy Tenants'},{value:'50+',label:'Locations'}].map((s,i) => (
                   <motion.div key={s.label} initial={{ opacity:0, scale:0.8 }} animate={{ opacity:1, scale:1 }} transition={{ delay:0.7+i*0.1 }}>
-                    <p className="text-2xl font-bold text-primary">{s.value}</p>
-                    <p className="text-sm text-gray-600">{s.label}</p>
+                    <p className="text-2xl font-bold text-primary dark:text-button-primary">{s.value}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{s.label}</p>
                   </motion.div>
                 ))}
               </motion.div>
@@ -347,10 +346,10 @@ export function PropertiesPage() {
                 <motion.img initial={{ scale:1.2 }} animate={{ scale:1 }} transition={{ duration:1.2 }} src="https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&auto=format&fit=crop" alt="Modern Home" className="w-full h-[420px] object-cover" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
               </div>
-              <motion.div initial={{ opacity:0, y:30, scale:0.8 }} animate={{ opacity:1, y:0, scale:1 }} transition={{ delay:0.8, type:'spring', stiffness:200 }} className="absolute -bottom-5 -left-5 bg-white p-4 rounded-2xl shadow-2xl border border-gray-100">
+              <motion.div initial={{ opacity:0, y:30, scale:0.8 }} animate={{ opacity:1, y:0, scale:1 }} transition={{ delay:0.8, type:'spring', stiffness:200 }} className="absolute -bottom-5 -left-5 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-600">
                 <div className="flex items-center gap-3">
-                  <div className="bg-green-100 p-2.5 rounded-xl"><MapIcon className="w-5 h-5 text-green-600" /></div>
-                  <div><p className="font-bold text-gray-900">500+ Locations</p><p className="text-xs text-gray-500">Across Nepal</p></div>
+                  <div className="bg-green-100 dark:bg-green-900/30 p-2.5 rounded-xl"><MapIcon className="w-5 h-5 text-green-600 dark:text-green-400" /></div>
+                  <div><p className="font-bold text-gray-900 dark:text-white">500+ Locations</p><p className="text-xs text-gray-500 dark:text-gray-400">Across Nepal</p></div>
                 </div>
               </motion.div>
             </motion.div>
@@ -359,12 +358,12 @@ export function PropertiesPage() {
       </section>
 
       {/* ── SEARCH BAR ────────────────────────────────────────────────────── */}
-      <section className="py-8 bg-white shadow-sm">
+      <section className="py-8 bg-white dark:bg-gray-800 shadow-sm transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }} className="text-center mb-6">
-            <h2 className="text-2xl font-bold text-primary">Find Your Perfect Home</h2>
+            <h2 className="text-2xl font-bold text-primary dark:text-button-primary">Find Your Perfect Home</h2>
             {/* Subtitle — same font as label text below */}
-            <p className="text-sm text-gray-500 font-normal mt-1">
+            <p className="text-sm text-gray-500 dark:text-gray-400 font-normal mt-1">
               Search from hundreds of verified properties across Nepal
             </p>
           </motion.div>
@@ -423,13 +422,13 @@ export function PropertiesPage() {
         {/* ── ACTIVE FILTER PILLS ──────────────────────────────────────────── */}
         <AnimatePresence>
           {hasFilters && (
-            <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }} className="mb-8 flex flex-wrap items-center gap-2 p-4 bg-button-primary/5 border border-button-primary/20 rounded-2xl">
+            <motion.div initial={{ opacity:0, y:-10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }} className="mb-8 flex flex-wrap items-center gap-2 p-4 bg-button-primary/5 dark:bg-button-primary/10 border border-button-primary/20 dark:border-button-primary/30 rounded-2xl">
               <span className="text-sm font-semibold text-button-primary mr-1">Filters:</span>
-              {location !== 'All Locations' && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700"><MapPinIcon className="w-3.5 h-3.5 text-button-primary"/>{location}</span>}
-              {propType  !== 'All Types'     && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700"><HomeIcon className="w-3.5 h-3.5 text-button-primary"/>{propType}</span>}
-              {bedrooms  !== 'Any Bedrooms'  && <span className="flex items-center gap-1.5 px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700"><BedDoubleIcon className="w-3.5 h-3.5 text-button-primary"/>{bedrooms}</span>}
-              {priceRange !== 'Any Price'    && <span className="px-3 py-1 bg-white border border-button-primary/30 rounded-full text-sm font-medium text-gray-700">{priceRange}</span>}
-              <button onClick={clearAll} className="ml-auto flex items-center gap-1.5 text-sm text-gray-400 hover:text-red-500 transition-colors"><XIcon className="w-4 h-4"/>Clear all</button>
+              {location !== 'All Locations' && <span className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-gray-800 border border-button-primary/30 dark:border-button-primary/40 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300"><MapPinIcon className="w-3.5 h-3.5 text-button-primary"/>{location}</span>}
+              {propType  !== 'All Types'     && <span className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-gray-800 border border-button-primary/30 dark:border-button-primary/40 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300"><HomeIcon className="w-3.5 h-3.5 text-button-primary"/>{propType}</span>}
+              {bedrooms  !== 'Any Bedrooms'  && <span className="flex items-center gap-1.5 px-3 py-1 bg-white dark:bg-gray-800 border border-button-primary/30 dark:border-button-primary/40 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300"><BedDoubleIcon className="w-3.5 h-3.5 text-button-primary"/>{bedrooms}</span>}
+              {priceRange !== 'Any Price'    && <span className="px-3 py-1 bg-white dark:bg-gray-800 border border-button-primary/30 dark:border-button-primary/40 rounded-full text-sm font-medium text-gray-700 dark:text-gray-300">{priceRange}</span>}
+              <button onClick={clearAll} className="ml-auto flex items-center gap-1.5 text-sm text-gray-400 dark:text-gray-500 hover:text-red-500 transition-colors"><XIcon className="w-4 h-4"/>Clear all</button>
             </motion.div>
           )}
         </AnimatePresence>
@@ -455,7 +454,7 @@ export function PropertiesPage() {
                   className={`flex items-center gap-2 px-4 py-2.5 rounded-full border text-sm font-semibold transition-all ${
                     activeCategory === cat.id
                       ? 'bg-button-primary text-white border-button-primary shadow-md'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-button-primary/50 hover:text-primary'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-button-primary/50 hover:text-primary'
                   }`}
                 >
                   <Icon className="w-4 h-4"/>
@@ -471,7 +470,7 @@ export function PropertiesPage() {
         {!hasFilters && activeCategory === 'all' && (
           <section className="mb-14">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-primary">Most Liked Properties</h2>
+              <h2 className="text-2xl font-bold text-primary dark:text-button-primary">Most Liked Properties</h2>
               <Button variant="ghost" size="sm">View All</Button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -488,25 +487,25 @@ export function PropertiesPage() {
         {!hasFilters && activeCategory === 'all' && (
           <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-14">
             <motion.div whileHover={{ y:-5 }}>
-              <Card className="p-6 bg-gradient-to-br from-blue-50 to-white border-blue-100">
+              <Card className="p-6 bg-gradient-to-br from-blue-50 dark:from-blue-900/20 to-white dark:to-gray-800 border-blue-100 dark:border-blue-800">
                 <div className="flex items-start gap-4">
-                  <div className="bg-blue-100 p-3 rounded-lg flex-shrink-0"><InfoIcon className="w-6 h-6 text-blue-600"/></div>
+                  <div className="bg-blue-100 dark:bg-blue-900/40 p-3 rounded-lg flex-shrink-0"><InfoIcon className="w-6 h-6 text-blue-600 dark:text-blue-400"/></div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Renting Guide</h3>
-                    <p className="text-gray-600 mb-4 text-sm">New to renting? Check out our comprehensive guide on rental agreements and tenant rights.</p>
-                    <Link to="/renting-guide"><Button variant="outline" className="text-blue-600 border-blue-200 hover:bg-blue-50">Read Guide</Button></Link>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Renting Guide</h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">New to renting? Check out our comprehensive guide on rental agreements and tenant rights.</p>
+                    <Link to="/renting-guide"><Button variant="outline" className="text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/30">Read Guide</Button></Link>
                   </div>
                 </div>
               </Card>
             </motion.div>
             <motion.div whileHover={{ y:-5 }}>
-              <Card className="p-6 bg-gradient-to-br from-yellow-50 to-white border-yellow-100">
+              <Card className="p-6 bg-gradient-to-br from-yellow-50 dark:from-yellow-900/20 to-white dark:to-gray-800 border-yellow-100 dark:border-yellow-800">
                 <div className="flex items-start gap-4">
-                  <div className="bg-yellow-100 p-3 rounded-lg flex-shrink-0"><LightbulbIcon className="w-6 h-6 text-yellow-600"/></div>
+                  <div className="bg-yellow-100 dark:bg-yellow-900/40 p-3 rounded-lg flex-shrink-0"><LightbulbIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400"/></div>
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2">Safety Tips</h3>
-                    <p className="text-gray-600 mb-4 text-sm">Stay safe while house hunting. Learn how to spot scams and verify owners.</p>
-                    <Link to="/property-safety-tips"><Button variant="outline" className="text-button-primary border-button-primary hover:bg-button-primary/10">View Tips</Button></Link>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">Safety Tips</h3>
+                    <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm">Stay safe while house hunting. Learn how to spot scams and verify owners.</p>
+                    <Link to="/property-safety-tips"><Button variant="outline" className="text-button-primary dark:text-button-primary border-button-primary dark:border-button-primary hover:bg-button-primary/10 dark:hover:bg-button-primary/20">View Tips</Button></Link>
                   </div>
                 </div>
               </Card>
@@ -518,10 +517,10 @@ export function PropertiesPage() {
         <section>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
             <div>
-              <h2 className="text-2xl font-bold text-primary mb-1">
+              <h2 className="text-2xl font-bold text-primary dark:text-button-primary mb-1">
                 {hasFilters || activeCategory !== 'all' ? 'Search Results' : 'Featured Properties'}
               </h2>
-              <p className="text-gray-500 text-sm">
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
                 Showing {Math.min(displayCount, sorted.length)} of {sorted.length} properties
               </p>
             </div>
@@ -529,8 +528,7 @@ export function PropertiesPage() {
               {/* Sort */}
               <div className="relative">
                 <button onClick={() => setShowSortMenu(v => !v)}
-                  className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-button-primary/20 rounded-xl text-sm font-semibold text-gray-700 hover:border-button-primary/50 transition-all"
-                  style={{ backgroundColor:'rgba(45,106,79,0.04)' }}
+                  className="flex items-center gap-2 px-4 py-2.5 bg-button-primary/5 dark:bg-button-primary/10 border-2 border-button-primary/20 dark:border-button-primary/30 rounded-xl text-sm font-semibold text-gray-700 dark:text-gray-300 hover:border-button-primary/50 transition-all"
                 >
                   <FilterIcon className="w-4 h-4 text-button-primary"/>
                   {SORT_OPTIONS.find(s => s.value === sortBy)?.label}
@@ -541,12 +539,12 @@ export function PropertiesPage() {
                     <>
                       <div className="fixed inset-0 z-10" onClick={() => setShowSortMenu(false)}/>
                       <motion.div initial={{ opacity:0, y:-8, scale:0.95 }} animate={{ opacity:1, y:0, scale:1 }} exit={{ opacity:0, y:-8, scale:0.95 }} transition={{ duration:0.15 }}
-                        className="absolute right-0 top-full mt-1.5 w-52 bg-white border border-gray-100 rounded-2xl shadow-xl z-20 overflow-hidden py-1.5"
+                        className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-600 rounded-2xl shadow-xl z-20 overflow-hidden py-1.5"
                       >
                         {SORT_OPTIONS.map(opt => (
                           <button key={opt.value} onClick={() => { setSortBy(opt.value); setShowSortMenu(false) }}
                             className={`w-full px-4 py-2.5 text-left text-sm transition-colors flex items-center gap-2 ${
-                              sortBy === opt.value ? 'bg-button-primary/10 text-button-primary font-bold' : 'text-gray-700 hover:bg-button-primary/8 hover:text-button-primary'
+                              sortBy === opt.value ? 'bg-button-primary/10 text-button-primary font-bold' : 'text-gray-700 dark:text-gray-300 hover:bg-button-primary/8 hover:text-button-primary'
                             }`}
                           >
                             {sortBy === opt.value && <span className="w-1.5 h-1.5 bg-button-primary rounded-full"/>}
@@ -559,11 +557,11 @@ export function PropertiesPage() {
                 </AnimatePresence>
               </div>
               {/* View toggle */}
-              <div className="flex items-center border-2 border-button-primary/20 rounded-xl overflow-hidden" style={{ backgroundColor:'rgba(45,106,79,0.04)' }}>
-                <button onClick={() => setViewMode('grid')} className={`p-2.5 transition-colors ${viewMode==='grid' ? 'bg-button-primary text-white' : 'text-button-primary hover:bg-button-primary/10'}`}>
+              <div className="flex items-center border-2 border-button-primary/20 dark:border-button-primary/30 rounded-xl overflow-hidden bg-button-primary/5 dark:bg-button-primary/10">
+                <button onClick={() => setViewMode('grid')} className={`p-2.5 transition-colors ${viewMode==='grid' ? 'bg-button-primary text-white' : 'text-button-primary hover:bg-button-primary/10 dark:hover:bg-button-primary/20'}`}>
                   <GridIcon className="w-4 h-4"/>
                 </button>
-                <button onClick={() => setViewMode('list')} className={`p-2.5 transition-colors ${viewMode==='list' ? 'bg-button-primary text-white' : 'text-button-primary hover:bg-button-primary/10'}`}>
+                <button onClick={() => setViewMode('list')} className={`p-2.5 transition-colors ${viewMode==='list' ? 'bg-button-primary text-white' : 'text-button-primary hover:bg-button-primary/10 dark:hover:bg-button-primary/20'}`}>
                   <ListIcon className="w-4 h-4"/>
                 </button>
               </div>
@@ -582,7 +580,7 @@ export function PropertiesPage() {
             <div className="text-center">
               <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.98 }}
                 onClick={() => setDisplayCount(prev => Math.min(prev+9, sorted.length))}
-                className="px-8 py-3.5 bg-white border-2 border-button-primary/30 hover:border-button-primary text-button-primary font-semibold rounded-full transition-all hover:bg-button-primary/5"
+                className="px-8 py-3.5 bg-white dark:bg-gray-800 border-2 border-button-primary/30 dark:border-button-primary/40 hover:border-button-primary text-button-primary font-semibold rounded-full transition-all hover:bg-button-primary/5 dark:hover:bg-button-primary/10"
               >
                 Load More Properties
               </motion.button>

@@ -70,9 +70,10 @@ export function App() {
               position="top-right"
               toastOptions={{
                 style: { background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '12px' },
+                className: 'dark:!bg-gray-800 dark:!text-white dark:!border-gray-600',
               }}
             />
-            <div className="min-h-screen flex flex-col">
+            <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
               <Routes>
 
                 {/* ── Full-screen (no header/footer) ── */}

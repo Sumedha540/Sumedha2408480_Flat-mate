@@ -95,7 +95,7 @@ function FAQItem({ question, answer }: { question: string; answer: string }) {
 }
 export function RentingGuidePage() {
   return (
-    <main className="min-h-screen bg-background-light">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 transition-colors duration-300">
       {/* Hero Section */}
       <section className="bg-white pt-20 pb-16 border-b border-gray-100">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">

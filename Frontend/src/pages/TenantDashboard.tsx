@@ -59,12 +59,6 @@ import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '..
 import { toast } from 'sonner'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
-const mockBookings = [
-  { id:'1', property:'Modern 2BHK Apartment', location:'Thamel, Kathmandu', date:'2024-01-15', status:'approved', image:'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&auto=format&fit=crop', ownerName:'Ram Thapa' },
-  { id:'2', property:'Spacious 3BHK Flat',    location:'Bhaktapur',          date:'2024-01-18', status:'submitted', image:'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&auto=format&fit=crop', ownerName:'Bikash Shrestha' },
-  { id:'3', property:'Cozy Studio Room',      location:'Patan, Lalitpur',    date:'2024-01-20', status:'rejected', image:'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&auto=format&fit=crop', ownerName:'Sita Sharma' },
-]
-
 const mockNotifications = [
   { id:'1', title:'Booking Approved',    message:'Your booking for Modern 2BHK Apartment has been approved!', time:'1 hour ago',  type:'success' },
   { id:'2', title:'New Property Match',  message:'A new property matching your preferences is available.',    time:'3 hours ago', type:'info' },
@@ -270,7 +264,7 @@ function ProfileSettingsPanel() {
       <h2 className="text-xl font-bold text-primary mb-6">Profile Settings</h2>
 
       {/* Avatar */}
-      <div className="flex items-center gap-5 mb-8 p-5 bg-gray-50 rounded-2xl border border-gray-100">
+      <div className="flex items-center gap-5 mb-8 p-5 bg-gray-50 dark:bg-gray-700 rounded-2xl border border-gray-100">
         <div className="relative">
           {profilePhoto ? (
             <img src={profilePhoto} alt="Profile" className="w-20 h-20 rounded-full object-cover" />
@@ -294,7 +288,7 @@ function ProfileSettingsPanel() {
         </div>
         <div>
           <p className="font-bold text-gray-900">{user?.name}</p>
-          <p className="text-sm text-gray-500 capitalize">{user?.role}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{user?.role}</p>
           <button 
             onClick={() => fileInputRef.current?.click()}
             className="text-xs text-button-primary font-semibold mt-1 hover:underline">
@@ -327,7 +321,7 @@ function ProfileSettingsPanel() {
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
         {/* Name Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Full Name *</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Full Name *</label>
           <div className="relative">
             <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -339,7 +333,7 @@ function ProfileSettingsPanel() {
                 if (errors.name) setErrors({...errors, name: ''})
               }}
               className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+                errors.name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
@@ -347,7 +341,7 @@ function ProfileSettingsPanel() {
 
         {/* Email Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Email *</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email *</label>
           <div className="relative">
             <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -359,7 +353,7 @@ function ProfileSettingsPanel() {
                 if (errors.email) setErrors({...errors, email: ''})
               }}
               className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+                errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
@@ -367,7 +361,7 @@ function ProfileSettingsPanel() {
 
         {/* Phone Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Phone (10 digits)</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Phone (10 digits)</label>
           <div className="relative">
             <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -378,7 +372,7 @@ function ProfileSettingsPanel() {
               inputMode="numeric"
               onChange={e => handlePhoneChange(e.target.value)}
               className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+                errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
@@ -389,7 +383,7 @@ function ProfileSettingsPanel() {
 
         {/* Address Field */}
         <div>
-          <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Address *</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Address *</label>
           <div className="relative">
             <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             <input 
@@ -401,7 +395,7 @@ function ProfileSettingsPanel() {
                 if (errors.address) setErrors({...errors, address: ''})
               }}
               className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all ${
-                errors.address ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
+                errors.address ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
               }`} />
           </div>
           {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
@@ -409,11 +403,11 @@ function ProfileSettingsPanel() {
       </div>
 
       <div className="mb-6">
-        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Bio</label>
+        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Bio</label>
         <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})}
           placeholder="Tell others about yourself..."
           rows={3}
-          className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary resize-none transition-all" />
+          className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:border-button-primary resize-none transition-all" />
       </div>
 
       {/* Security section */}
@@ -427,12 +421,12 @@ function ProfileSettingsPanel() {
       </div>
 
       {/* Display Preferences */}
-      <div className="p-4 bg-gray-50 border border-gray-100 rounded-2xl mb-6">
+      <div className="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-100 dark:border-gray-600 rounded-2xl mb-6">
         <div className="flex items-center gap-2 mb-3">
           <SunIcon className="w-4 h-4 text-button-primary"/>
-          <p className="font-semibold text-gray-800 text-sm">Display Preferences</p>
+          <p className="font-semibold text-gray-800 dark:text-white text-sm">Display Preferences</p>
         </div>
-        <div className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200">
+        <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
               <MoonIcon className="w-4 h-4 text-button-primary"/>
@@ -468,7 +462,7 @@ function ProfileSettingsPanel() {
             <motion.div 
               animate={{ x: isDark ? 24 : 2 }}
               transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-              className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
+              className="absolute top-1 w-4 h-4 bg-white dark:bg-gray-800 rounded-full shadow-sm" />
           </motion.button>
         </div>
       </div>
@@ -487,6 +481,101 @@ export function TenantDashboard() {
   const navigate = useNavigate()
   const { user, logout } = useAuth()
   const { favorites, clearAll: clearFavorites } = useFavorites()
+
+  // Load bookings from localStorage
+  const [bookings, setBookings] = useState<any[]>([])
+  
+  useEffect(() => {
+    const loadBookings = () => {
+      try {
+        const stored = localStorage.getItem('fm_bookings')
+        if (stored) {
+          const allBookings = JSON.parse(stored)
+          // Filter bookings for current user by email
+          const userBookings = allBookings.filter((b: any) => 
+            b.customerEmail === user?.email
+          )
+          setBookings(userBookings)
+        }
+      } catch (error) {
+        console.error('Error loading bookings:', error)
+        setBookings([])
+      }
+    }
+    
+    loadBookings()
+    
+    // Reload bookings when window gains focus (in case user booked in another tab)
+    const handleFocus = () => loadBookings()
+    window.addEventListener('focus', handleFocus)
+    
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [user?.email])
+
+  // Add sample rejected bookings (one-time initialization)
+  useEffect(() => {
+    if (!user?.email) return;
+    
+    const sampleKey = `fm_sample_rejected_added_${user.email}`;
+    const alreadyAdded = localStorage.getItem(sampleKey);
+    
+    if (!alreadyAdded) {
+      try {
+        const stored = localStorage.getItem('fm_bookings') || '[]';
+        const allBookings = JSON.parse(stored);
+        
+        // Add 2 sample rejected bookings
+        const sampleRejected = [
+          {
+            propertyId: 'sample-rej-1',
+            propertyTitle: 'Luxury Villa in Budhanilkantha',
+            ownerName: 'Rajesh Maharjan',
+            rent: 45000,
+            paymentType: 'full',
+            amount: 45000,
+            customerName: user.name || 'User',
+            customerEmail: user.email,
+            customerPhone: '9800000000',
+            moveInDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            receiptId: `BK-SAMPLE-REJ-1`,
+            status: 'rejected',
+            rejectionReason: 'Property already booked for the selected dates',
+            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            bookedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+            image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&auto=format&fit=crop'
+          },
+          {
+            propertyId: 'sample-rej-2',
+            propertyTitle: 'Modern Penthouse in Lazimpat',
+            ownerName: 'Sunita Tamang',
+            rent: 55000,
+            paymentType: 'advance',
+            amount: 16500,
+            customerName: user.name || 'User',
+            customerEmail: user.email,
+            customerPhone: '9800000000',
+            moveInDate: new Date(Date.now() + 20 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            receiptId: `BK-SAMPLE-REJ-2`,
+            status: 'rejected',
+            rejectionReason: 'Incomplete documentation provided',
+            createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            bookedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+            image: 'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=400&auto=format&fit=crop'
+          }
+        ];
+        
+        const updatedBookings = [...sampleRejected, ...allBookings];
+        localStorage.setItem('fm_bookings', JSON.stringify(updatedBookings));
+        localStorage.setItem(sampleKey, 'true');
+        
+        // Reload bookings to show the new samples
+        const userBookings = updatedBookings.filter((b: any) => b.customerEmail === user.email);
+        setBookings(userBookings);
+      } catch (error) {
+        console.error('Error adding sample rejected bookings:', error);
+      }
+    }
+  }, [user?.email, user?.name]);
 
   // Load profile photo from localStorage
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
@@ -774,7 +863,7 @@ export function TenantDashboard() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-xl font-bold text-primary">Saved Properties</h2>
-                <p className="text-gray-500 text-sm">{favorites.length} saved {favorites.length === 1 ? 'property' : 'properties'}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm">{favorites.length} saved {favorites.length === 1 ? 'property' : 'properties'}</p>
               </div>
               {favorites.length > 0 && (
                 <button onClick={() => { clearFavorites(); toast.success('All favorites cleared') }}
@@ -784,7 +873,7 @@ export function TenantDashboard() {
               )}
             </div>
             {favorites.length === 0 ? (
-              <div className="text-center py-16 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="text-center py-16 bg-gray-50 dark:bg-gray-700 rounded-2xl border border-gray-100">
                 <HeartIcon className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                 <p className="text-gray-400">No saved properties yet. Heart any property to save it here.</p>
                 <button onClick={() => navigate('/properties')} className="mt-4 px-6 py-2.5 bg-button-primary text-white text-sm font-bold rounded-full">Browse Properties</button>
@@ -800,20 +889,84 @@ export function TenantDashboard() {
       case 'bookings':
         return (
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}>
-            <h2 className="text-xl font-bold text-primary mb-6">My Bookings</h2>
-            <div className="space-y-3">
-              {mockBookings.map(b => (
-                <div key={b.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex items-center gap-4">
-                  <img src={b.image} alt={b.property} className="w-16 h-16 rounded-xl object-cover flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-gray-900 text-sm">{b.property}</p>
-                    <p className="text-gray-500 text-xs">{b.location}</p>
-                    <p className="text-gray-400 text-xs">Owner: {b.ownerName} · Visit: {b.date}</p>
-                  </div>
-                  <StatusBadge status={b.status} />
-                </div>
-              ))}
-            </div>
+            <h2 className="text-xl font-bold text-primary dark:text-button-primary mb-6">My Bookings</h2>
+            {bookings.length === 0 ? (
+              <div className="text-center py-16 bg-gray-50 dark:bg-gray-700 rounded-2xl border border-gray-100 dark:border-gray-600">
+                <CalendarIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400 mb-2 font-semibold">No bookings yet</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 mb-4">Book a property to see it here</p>
+                <button onClick={() => navigate('/properties')} className="px-6 py-2.5 bg-button-primary text-white text-sm font-bold rounded-full hover:bg-button-primary/90 transition-all">
+                  Browse Properties
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {bookings.map((b, index) => {
+                  const paymentLabel = b.paymentType === 'cash' ? 'Cash on Arrival' : 
+                                      b.paymentType === 'advance' ? 'Advance (30%)' : 
+                                      b.paymentType === 'full' ? 'Full Payment' : 'Paid';
+                  const bookedDate = b.bookedAt ? new Date(b.bookedAt).toLocaleDateString() : 
+                                    b.createdAt ? new Date(b.createdAt).toLocaleDateString() : 'N/A';
+                  
+                  // Diverse fallback images
+                  const fallbackImages = [
+                    'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1556912173-46c336c7fd55?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=400&auto=format&fit=crop',
+                    'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&auto=format&fit=crop',
+                  ];
+                  
+                  // Use booking image or fallback based on index for variety
+                  const bookingImage = b.image || fallbackImages[index % fallbackImages.length];
+                  const isRejected = b.status === 'rejected';
+                  
+                  return (
+                    <div key={b.receiptId} className={`bg-white dark:bg-gray-800 rounded-2xl p-4 border shadow-sm ${isRejected ? 'border-red-200 dark:border-red-800' : 'border-gray-100 dark:border-gray-600'}`}>
+                      <div className="flex items-start gap-4">
+                        <img 
+                          src={bookingImage} 
+                          alt={b.propertyTitle} 
+                          className="w-20 h-20 rounded-xl object-cover flex-shrink-0" 
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-gray-900 dark:text-white text-base mb-1">{b.propertyTitle}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300 mb-1">Owner: {b.ownerName}</p>
+                          <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+                            <span>Move-in: {new Date(b.moveInDate).toLocaleDateString()}</span>
+                            <span>•</span>
+                            <span>Booked: {bookedDate}</span>
+                          </div>
+                          {isRejected && b.rejectionReason && (
+                            <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                              <p className="text-xs text-red-700 dark:text-red-400 font-semibold">
+                                <span className="font-bold">Reason: </span>{b.rejectionReason}
+                              </p>
+                            </div>
+                          )}
+                          {!isRejected && (
+                            <div className="flex items-center gap-2 mt-2">
+                              <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-md">
+                                {paymentLabel}
+                              </span>
+                              <span className="text-sm font-bold text-button-primary">रू {b.rent?.toLocaleString() || b.amount?.toLocaleString()}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-shrink-0">
+                          <StatusBadge status={b.status || 'pending-cash'} />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </motion.div>
         )
 
@@ -826,17 +979,17 @@ export function TenantDashboard() {
 
         return (
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} className="h-[calc(100vh-12rem)]">
-            <div className="grid grid-cols-12 h-full bg-white shadow-xl rounded-2xl overflow-hidden border border-gray-100">
+            <div className="grid grid-cols-12 h-full bg-white dark:bg-gray-800 shadow-xl rounded-2xl overflow-hidden border border-gray-100">
               
               {/* SIDEBAR */}
-              <div className={`col-span-12 md:col-span-4 border-r border-gray-100 flex flex-col ${selectedConv ? 'hidden md:flex' : 'flex'}`}>
+              <div className={`col-span-12 md:col-span-4 border-r border-gray-100 dark:border-gray-600 flex flex-col ${selectedConv ? 'hidden md:flex' : 'flex'}`}>
                 <div className="p-4 border-b border-gray-100">
-                  <h2 className="text-2xl font-black text-gray-900 mb-4">Messages</h2>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-4">Messages</h2>
                   <div className="relative">
                     <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input type="text" placeholder="Search owners or properties..." value={searchQuery}
                       onChange={e => setSearchQuery(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-button-primary/30 transition-all" />
+                      className="w-full pl-10 pr-4 py-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-button-primary/30 transition-all" />
                   </div>
                 </div>
 
@@ -851,20 +1004,20 @@ export function TenantDashboard() {
                       return (
                       <motion.button key={conv.id} initial={{ opacity:0, x:-16 }} animate={{ opacity:1, x:0 }}
                         transition={{ delay: idx*0.05 }} onClick={() => setSelectedConv(conv)}
-                        className={`w-full p-4 flex items-start gap-3 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 ${selectedConv?.id === conv.id ? 'bg-button-primary/5 border-l-2 border-l-button-primary' : ''}`}>
+                        className={`w-full p-4 flex items-start gap-3 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 dark:bg-gray-700 ${selectedConv?.id === conv.id ? 'bg-button-primary/5 border-l-2 border-l-button-primary' : ''}`}>
                         <div className="relative flex-shrink-0">
                           <AvatarCircle name={displayName} />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between mb-0.5">
-                            <h3 className="font-bold text-gray-900 truncate text-sm">{displayName}</h3>
+                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-sm">{displayName}</h3>
                             <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{formatTime(new Date(conv.lastUpdated))}</span>
                           </div>
                           {conv.propertyTitle && (
                             <p className="text-xs text-button-primary font-medium truncate mb-0.5">{conv.propertyTitle}</p>
                           )}
                           <div className="flex items-center justify-between">
-                            <p className="text-xs text-gray-500 truncate flex-1">{lastMsg ? (lastMsg.text || 'Media message') : 'Start a conversation'}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">{lastMsg ? (lastMsg.text || 'Media message') : 'Start a conversation'}</p>
                             {unreadCount > 0 && (
                               <span className="ml-2 w-5 h-5 bg-button-primary text-white text-xs rounded-full flex items-center justify-center flex-shrink-0 font-bold">
                                 {unreadCount}
@@ -883,17 +1036,17 @@ export function TenantDashboard() {
                 {selectedConv ? (
                   <>
                     {/* Chat header */}
-                    <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-white">
+                    <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-600 flex items-center justify-between bg-white dark:bg-gray-800">
                       <div className="flex items-center gap-3">
                         <button onClick={() => setSelectedConv(null)}
-                          className="md:hidden p-1 text-gray-400 hover:text-gray-600 transition-colors">
+                          className="md:hidden p-1 text-gray-400 hover:text-gray-600 dark:text-gray-300 transition-colors">
                           <ArrowLeftIcon className="w-5 h-5" />
                         </button>
                         <div className="relative">
                           <AvatarCircle name={user?.role === 'tenant' ? selectedConv.ownerName : selectedConv.tenantName} size="sm" />
                         </div>
                         <div>
-                          <h2 className="font-black text-gray-900 text-sm">{user?.role === 'tenant' ? selectedConv.ownerName : selectedConv.tenantName}</h2>
+                          <h2 className="font-black text-gray-900 dark:text-white text-sm">{user?.role === 'tenant' ? selectedConv.ownerName : selectedConv.tenantName}</h2>
                           {selectedConv.propertyTitle && (
                             <p className="text-xs text-button-primary font-medium">{selectedConv.propertyTitle}</p>
                           )}
@@ -901,10 +1054,10 @@ export function TenantDashboard() {
                       </div>
 
                       <div className="flex items-center gap-1">
-                        <motion.button whileHover={{ scale:1.1 }} whileTap={{ scale:0.9 }} onClick={() => toast.info('Calling...')} className="p-2.5 text-gray-500 hover:text-button-primary hover:bg-button-primary/10 rounded-full">
+                        <motion.button whileHover={{ scale:1.1 }} whileTap={{ scale:0.9 }} onClick={() => toast.info('Calling...')} className="p-2.5 text-gray-500 dark:text-gray-400 hover:text-button-primary hover:bg-button-primary/10 rounded-full">
                           <PhoneIcon className="w-5 h-5" />
                         </motion.button>
-                        <motion.button whileHover={{ scale:1.1 }} whileTap={{ scale:0.9 }} onClick={() => setShowInfo(!showInfo)} className={`p-2.5 rounded-full ${showInfo ? 'text-button-primary bg-button-primary/10' : 'text-gray-500 hover:text-button-primary hover:bg-button-primary/10'}`}>
+                        <motion.button whileHover={{ scale:1.1 }} whileTap={{ scale:0.9 }} onClick={() => setShowInfo(!showInfo)} className={`p-2.5 rounded-full ${showInfo ? 'text-button-primary bg-button-primary/10' : 'text-gray-500 dark:text-gray-400 hover:text-button-primary hover:bg-button-primary/10'}`}>
                           <InfoIcon className="w-5 h-5" />
                         </motion.button>
                       </div>
@@ -926,7 +1079,7 @@ export function TenantDashboard() {
                     </AnimatePresence>
 
                     {/* Messages */}
-                    <div className="overflow-y-auto p-5 bg-gray-50 space-y-3 flex-1">
+                    <div className="overflow-y-auto p-5 bg-gray-50 dark:bg-gray-700 space-y-3 flex-1">
                       <AnimatePresence initial={false}>
                         {selectedConv.messages.map(msg => {
                           const isOwn = msg.senderName === user?.name;
@@ -939,7 +1092,7 @@ export function TenantDashboard() {
                                 <AvatarCircle name={msg.senderName} size="sm" />
                               </div>
                             )}
-                            <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl shadow-sm ${isOwn ? 'bg-button-primary text-white rounded-br-sm' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-100'}`}>
+                            <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl shadow-sm ${isOwn ? 'bg-button-primary text-white rounded-br-sm' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-sm border border-gray-100'}`}>
                               {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
                               {msg.image && <img src={msg.image} alt="Shared" className="rounded-xl max-w-full h-auto mt-2" />}
                               {msg.video && <video src={msg.video} controls className="rounded-xl max-w-full mt-2" />}
@@ -958,7 +1111,7 @@ export function TenantDashboard() {
                     </div>
 
                     {/* Input - Fixed at bottom */}
-                    <div className="p-4 border-t border-gray-100 bg-white flex-shrink-0">
+                    <div className="p-4 border-t border-gray-100 dark:border-gray-600 bg-white dark:bg-gray-800 flex-shrink-0">
                       <div className="flex items-center gap-2 mb-3">
                         {[
                           { icon: ImageIcon,  label: 'image',  title:'Send image' },
@@ -977,7 +1130,7 @@ export function TenantDashboard() {
                           onChange={e => setMessage(e.target.value)}
                           onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
                           placeholder={`Message ${user?.role === 'tenant' ? selectedConv.ownerName : selectedConv.tenantName}...`}
-                          className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-button-primary focus:bg-white transition-all" />
+                          className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600 rounded-2xl text-sm focus:outline-none focus:border-button-primary focus:bg-white dark:focus:bg-gray-600 transition-all text-gray-900 dark:text-white" />
                         <motion.button whileHover={{ scale:1.1 }} whileTap={{ scale:0.9 }}
                           onClick={handleSend} disabled={!message.trim()}
                           className="p-3 bg-button-primary text-white rounded-2xl hover:bg-button-primary/90 transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-md">
@@ -990,7 +1143,7 @@ export function TenantDashboard() {
                   <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="flex-1 flex items-center justify-center text-center p-8">
                     <div>
                       <MessageCircleIcon className="w-20 h-20 text-gray-200 mx-auto mb-4" />
-                      <h3 className="text-xl font-bold text-gray-700 mb-2">Select a conversation</h3>
+                      <h3 className="text-xl font-bold text-gray-700 dark:text-gray-200 mb-2">Select a conversation</h3>
                       <p className="text-gray-400 text-sm">Choose a conversation from the list to start messaging</p>
                     </div>
                   </motion.div>
@@ -1007,20 +1160,20 @@ export function TenantDashboard() {
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}>
             <h2 className="text-xl font-bold text-primary mb-6">Notifications</h2>
             {allNotifsDisplay.length === 0 ? (
-              <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-100">
+              <div className="text-center py-12 bg-gray-50 dark:bg-gray-700 rounded-2xl border border-gray-100">
                 <BellIcon className="w-12 h-12 text-gray-200 mx-auto mb-3" />
                 <p className="text-gray-400">No notifications yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
                 {allNotifsDisplay.map(n => (
-                  <div key={n.id} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm flex gap-4">
+                  <div key={n.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-600 shadow-sm flex gap-4">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${n.type==='success' ? 'bg-green-100' : n.type==='warning' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
                       {n.type==='success' ? <CheckCircleIcon className="w-5 h-5 text-green-600" /> : n.type==='warning' ? <ClockIcon className="w-5 h-5 text-yellow-600" /> : <BellIcon className="w-5 h-5 text-blue-600" />}
                     </div>
                     <div>
-                      <p className="font-bold text-gray-900 text-sm">{n.title}</p>
-                      <p className="text-gray-500 text-xs">{n.message}</p>
+                      <p className="font-bold text-gray-900 dark:text-white text-sm">{n.title}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs">{n.message}</p>
                       <p className="text-gray-400 text-xs mt-0.5">{n.time}</p>
                     </div>
                   </div>
@@ -1040,12 +1193,12 @@ export function TenantDashboard() {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               {[
                 { icon: HeartIcon,          value: favorites.length, label:'Saved Properties',  color:'bg-pink-50 text-pink-500' },
-                { icon: CalendarIcon,        value: mockBookings.length, label:'Active Bookings', color:'bg-blue-50 text-blue-500' },
+                { icon: CalendarIcon,        value: bookings.length, label:'Active Bookings', color:'bg-blue-50 text-blue-500' },
                 { icon: MessageCircleIcon,   value: 0,  label:'Unread Messages',  color:'bg-purple-50 text-purple-500' },
                 { icon: SearchIcon,          value: 12, label:'Properties Viewed', color:'bg-green-50 text-green-500' },
               ].map((stat, i) => (
                 <motion.div key={stat.label} initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:i*0.08 }}
-                  whileHover={{ y:-4 }} className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm cursor-pointer">
+                  whileHover={{ y:-4 }} className="bg-white dark:bg-gray-800 rounded-2xl p-5 border border-gray-100 dark:border-gray-600 shadow-sm cursor-pointer">
                   <div className={`w-11 h-11 ${stat.color} rounded-xl flex items-center justify-center mb-3`}>
                     <stat.icon className="w-5 h-5" />
                   </div>
@@ -1058,18 +1211,50 @@ export function TenantDashboard() {
             {/* Recent bookings */}
             <div>
               <div className="flex items-center justify-between mb-4">
-                <h3 className="font-bold text-gray-900">Recent Bookings</h3>
+                <h3 className="font-bold text-gray-900 dark:text-white">Recent Bookings</h3>
                 <button onClick={() => setActiveTab('bookings')} className="text-button-primary text-xs font-semibold hover:underline">View All</button>
               </div>
-              <div className="space-y-2">
-                {mockBookings.slice(0,2).map(b => (
-                  <div key={b.id} className="bg-white rounded-xl p-3 border border-gray-100 flex gap-3 items-center">
-                    <img src={b.image} className="w-12 h-12 rounded-lg object-cover flex-shrink-0" alt="" />
-                    <div className="flex-1 min-w-0"><p className="font-bold text-sm text-gray-900 truncate">{b.property}</p><p className="text-xs text-gray-500">{b.location}</p></div>
-                    <StatusBadge status={b.status} />
-                  </div>
-                ))}
-              </div>
+              {bookings.length === 0 ? (
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-6 text-center border border-gray-100 dark:border-gray-600">
+                  <CalendarIcon className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">No bookings yet</p>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {bookings.slice(0,2).map((b, index) => {
+                    const paymentLabel = b.paymentType === 'cash' ? 'Cash' : 
+                                        b.paymentType === 'advance' ? 'Advance' : 
+                                        b.paymentType === 'full' ? 'Full' : 'Paid';
+                    
+                    // Diverse fallback images
+                    const fallbackImages = [
+                      'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&auto=format&fit=crop',
+                      'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&auto=format&fit=crop',
+                      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&auto=format&fit=crop',
+                      'https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&auto=format&fit=crop',
+                      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&auto=format&fit=crop',
+                    ];
+                    
+                    const bookingImage = b.image || fallbackImages[index % fallbackImages.length];
+                    
+                    return (
+                      <div key={b.receiptId} className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-100 dark:border-gray-600 flex gap-3 items-center">
+                        <img 
+                          src={bookingImage} 
+                          className="w-14 h-14 rounded-lg object-cover flex-shrink-0" 
+                          alt="" 
+                        />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{b.propertyTitle}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Move-in: {new Date(b.moveInDate).toLocaleDateString()}</p>
+                          <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold">{paymentLabel}</p>
+                        </div>
+                        <StatusBadge status={b.status || 'pending-cash'} />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Saved properties preview */}
@@ -1090,11 +1275,11 @@ export function TenantDashboard() {
   }
 
   return (
-    <main className="min-h-screen bg-background-light">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900">
       <div className="flex">
 
         {/* ── SIDEBAR ── */}
-        <aside className="w-64 bg-white border-r border-gray-100 min-h-screen sticky top-0 hidden lg:flex flex-col">
+        <aside className="w-64 bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-600 min-h-screen sticky top-0 hidden lg:flex flex-col">
           <div className="p-6 flex flex-col h-full">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 mb-8">
@@ -1105,7 +1290,7 @@ export function TenantDashboard() {
             </Link>
 
             {/* User avatar */}
-            <div className="flex items-center gap-3 mb-7 p-3 bg-gray-50 rounded-xl border border-gray-100">
+            <div className="flex items-center gap-3 mb-7 p-3 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-100">
               {profilePhoto ? (
                 <img src={profilePhoto} alt="Profile" className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
               ) : (
@@ -1114,7 +1299,7 @@ export function TenantDashboard() {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-bold text-gray-900 text-sm truncate">{user?.name || 'User'}</p>
+                <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{user?.name || 'User'}</p>
                 <p className="text-xs text-gray-400 capitalize">{user?.role || 'tenant'}</p>
               </div>
             </div>
@@ -1129,7 +1314,7 @@ export function TenantDashboard() {
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
                       activeTab === tab.id
                         ? 'bg-button-primary/10 text-button-primary font-bold'
-                        : 'text-gray-600 hover:bg-gray-50'
+                        : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50'
                     }`}>
                     <Icon className="w-4 h-4 flex-shrink-0" />
                     {tab.label}
@@ -1139,16 +1324,16 @@ export function TenantDashboard() {
             </nav>
 
             {/* Back nav + Logout */}
-            <div className="pt-6 border-t border-gray-100 space-y-1">
+            <div className="pt-6 border-t border-gray-100 dark:border-gray-600 space-y-1">
               <Link to="/properties">
                 <motion.div whileHover={{ x:3 }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-700 cursor-pointer">
                   <SearchIcon className="w-4 h-4" /> Browse Properties
                 </motion.div>
               </Link>
               <Link to="/">
                 <motion.div whileHover={{ x:3 }}
-                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 hover:bg-gray-50 cursor-pointer">
+                  className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:bg-gray-700 cursor-pointer">
                   <ArrowLeftIcon className="w-4 h-4" /> Back to Home
                 </motion.div>
               </Link>
@@ -1164,10 +1349,10 @@ export function TenantDashboard() {
         <div className="flex-1 flex flex-col min-h-screen">
 
           {/* Top bar */}
-          <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
+          <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-600 px-4 sm:px-6 py-4 flex items-center justify-between sticky top-0 z-30">
             {/* Breadcrumb */}
             <div className="flex items-center gap-2">
-              <button onClick={() => setMobileMenuOpen(v => !v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 border border-gray-200 mr-2">
+              <button onClick={() => setMobileMenuOpen(v => !v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 mr-2">
                 <MenuIcon className="w-5 h-5 text-gray-600" />
               </button>
               <nav className="text-sm flex items-center gap-2 text-gray-500">
@@ -1187,7 +1372,7 @@ export function TenantDashboard() {
             <div className="flex items-center gap-3">
               <motion.button whileHover={{ scale:1.05 }} whileTap={{ scale:0.95 }}
                 onClick={() => navigate(-1)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-full text-xs font-semibold text-gray-600 hover:text-primary hover:border-button-primary/40 transition-all">
+                className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-full text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-primary hover:border-button-primary/40 transition-all">
                 <ArrowLeftIcon className="w-3.5 h-3.5" /> Back
               </motion.button>
               <span className="hidden sm:block text-sm font-semibold text-gray-700">Welcome, {user?.name?.split(' ')[0]}!</span>
@@ -1198,13 +1383,13 @@ export function TenantDashboard() {
           <AnimatePresence>
             {mobileMenuOpen && (
               <motion.div initial={{ height:0, opacity:0 }} animate={{ height:'auto', opacity:1 }} exit={{ height:0, opacity:0 }}
-                className="lg:hidden bg-white border-b border-gray-100 overflow-hidden">
+                className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-600 overflow-hidden">
                 <div className="px-4 py-3 flex flex-wrap gap-2">
                   {tabs.map(tab => {
                     const Icon = tab.icon
                     return (
                       <button key={tab.id} onClick={() => { setActiveTab(tab.id); setMobileMenuOpen(false) }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all ${activeTab===tab.id ? 'bg-button-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all ${activeTab===tab.id ? 'bg-button-primary text-white' : 'bg-gray-100 text-gray-600 dark:text-gray-300 hover:bg-gray-200'}`}>
                         <Icon className="w-3.5 h-3.5" /> {tab.label}
                       </button>
                     )
@@ -1215,7 +1400,7 @@ export function TenantDashboard() {
           </AnimatePresence>
 
           {/* Page content */}
-          <div className="flex-1 p-4 sm:p-6 lg:p-8">
+          <div className="flex-1 p-4 sm:p-6 lg:p-8 bg-background-light dark:bg-gray-900 transition-colors duration-300">
             <AnimatePresence mode="wait">
               <motion.div key={activeTab} initial={{ opacity:0, y:10 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-10 }} transition={{ duration:0.2 }}>
                 {renderContent()}

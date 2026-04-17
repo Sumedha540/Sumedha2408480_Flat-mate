@@ -56,7 +56,7 @@ export function CompatibilityQuizPage() {
     const encoded = encodeURIComponent(JSON.stringify(answers));
     navigate(`/match-suggestions?quiz=${encoded}`);
   };
-  return <main className="min-h-screen bg-background-light py-12 flex items-center justify-center">
+  return <main className="min-h-screen bg-background-light dark:bg-gray-900 py-12 flex items-center justify-center transition-colors duration-300">
       <div className="w-full max-w-2xl px-4">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-gray-500 mb-6">

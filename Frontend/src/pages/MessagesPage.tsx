@@ -178,7 +178,7 @@ export function MessagesPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background-light pt-20 pb-4">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 pt-20 pb-4 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
         {/* Navigation */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3">

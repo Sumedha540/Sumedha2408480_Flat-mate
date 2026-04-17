@@ -44,7 +44,7 @@ export function RoommateProfilePage() {
   // Handle profile not found
   if (!profile) {
     return (
-      <main className="min-h-screen bg-background-light py-8 pt-28">
+      <main className="min-h-screen bg-background-light dark:bg-gray-900 py-8 pt-28 transition-colors duration-300">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card className="p-12 text-center">
             <AlertCircleIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
@@ -67,7 +67,7 @@ export function RoommateProfilePage() {
     )
   }
   return (
-    <main className="min-h-screen bg-background-light py-8 pt-28">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 py-8 pt-28 transition-colors duration-300">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Breadcrumb */}
         <nav className="mb-6 text-sm">

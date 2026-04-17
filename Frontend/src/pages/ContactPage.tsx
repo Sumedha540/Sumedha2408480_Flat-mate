@@ -370,7 +370,7 @@ export function ContactPage() {
       setIsSubmitting(false);
     }
   };
-  return <main className="min-h-screen bg-background-light">
+  return <main className="min-h-screen bg-background-light dark:bg-gray-900 transition-colors duration-300">
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-button-primary via-primary to-button-primary text-white pt-36 pb-20 overflow-hidden">
         {/* Animated Background Pattern */}
@@ -497,14 +497,14 @@ export function ContactPage() {
           y: -5,
           boxShadow: '0 20px 40px rgba(0,0,0,0.1)'
         }}>
-              <Card className="p-6 text-center bg-white shadow-xl border-0 h-full">
+              <Card className="p-6 text-center bg-white dark:bg-gray-800 shadow-xl border-0 h-full">
                 <div className={`w-14 h-14 bg-gradient-to-br ${item.color} rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg`}>
                   <item.icon className="w-7 h-7 text-white" />
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg mb-1">
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-1">
                   {item.title}
                 </h3>
-                <p className="text-sm text-gray-500 mb-2">{item.subtitle}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">{item.subtitle}</p>
                 {item.href ? <a href={item.href} className="text-button-primary font-semibold hover:underline">
                     {item.value}
                   </a> : <p className="text-button-primary font-semibold">
@@ -535,7 +535,7 @@ export function ContactPage() {
                   <h2 className="text-2xl font-bold text-primary">
                     Send us a Message
                   </h2>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600 dark:text-gray-300 text-sm">
                     We'll respond as soon as possible
                   </p>
                 </div>
@@ -596,7 +596,7 @@ export function ContactPage() {
                     required
                     className={errors.phone ? 'border-red-500 focus:border-red-500' : ''}
                   />
-                  <p className="text-gray-500 text-xs mt-1">{formData.phone.length}/10 digits</p>
+                  <p className="text-gray-500 dark:text-gray-400 text-xs mt-1">{formData.phone.length}/10 digits</p>
                   {errors.phone && (
                     <p className="text-red-500 text-xs mt-1 font-semibold">⚠ {errors.phone}</p>
                   )}
@@ -617,7 +617,7 @@ export function ContactPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                     Message
                   </label>
                   <textarea 
@@ -627,7 +627,7 @@ export function ContactPage() {
                     className={`w-full px-4 py-3 rounded-xl border-2 focus:outline-none focus:ring-4 focus:ring-button-primary/10 transition-all resize-none ${
                       errors.message 
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-100' 
-                        : 'border-gray-200 focus:border-button-primary'
+                        : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
                     }`}
                     placeholder="Tell us more about your inquiry..." 
                     required 
@@ -677,10 +677,10 @@ export function ContactPage() {
               </div>
 
               <div className="p-6 bg-white">
-                <h3 className="font-bold text-gray-900 text-lg mb-2">
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2">
                   Our Office
                 </h3>
-                <p className="text-gray-600 mb-4">
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
                   Visit us at our main office in the heart of Kathmandu for
                   in-person consultations.
                 </p>
@@ -714,7 +714,7 @@ export function ContactPage() {
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
-                          className="mt-3 p-3 bg-white rounded-lg border-l-4 border-blue-600"
+                          className="mt-3 p-3 bg-white dark:bg-gray-800 rounded-lg border-l-4 border-blue-600"
                         >
                           <p className="text-blue-900 font-semibold">
                             Distance to our office: <span className="text-lg text-blue-600">{distanceToOffice.toFixed(2)} km</span>
@@ -754,7 +754,7 @@ export function ContactPage() {
                 <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
                   <ClockIcon className="w-6 h-6 text-orange-600" />
                 </div>
-                <h3 className="font-bold text-gray-900 text-lg">
+                <h3 className="font-bold text-gray-900 dark:text-white text-lg">
                   Office Hours
                 </h3>
               </div>
@@ -768,8 +768,8 @@ export function ContactPage() {
               }, {
                 day: 'Sunday',
                 time: 'Closed'
-              }].map((schedule, index) => <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
-                    <span className="text-gray-700 font-medium">
+              }].map((schedule, index) => <div key={index} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-600 last:border-0">
+                    <span className="text-gray-700 dark:text-gray-200 font-medium">
                       {schedule.day}
                     </span>
                     <span className="text-gray-600">{schedule.time}</span>
@@ -779,10 +779,10 @@ export function ContactPage() {
 
             {/* FAQ Link */}
             <Card className="p-6 bg-gradient-to-br from-button-primary/5 to-primary/5 border-button-primary/20 shadow-xl">
-              <h3 className="font-bold text-gray-900 text-lg mb-2">
+              <h3 className="font-bold text-gray-900 dark:text-white text-lg mb-2">
                 Looking for Quick Answers?
               </h3>
-              <p className="text-gray-600 mb-4">
+              <p className="text-gray-600 dark:text-gray-300 mb-4">
                 Check out our FAQ section for instant answers to common
                 questions.
               </p>
@@ -832,7 +832,7 @@ export function ContactPage() {
               <h2 className="text-2xl font-bold text-primary mb-3">
                 Stay Updated
               </h2>
-              <p className="text-gray-600 mb-6">
+              <p className="text-gray-600 dark:text-gray-300 mb-6">
                 Subscribe to our newsletter for the latest property listings,
                 tips, and exclusive offers.
               </p>

@@ -24,7 +24,7 @@ import { Button } from '../components/ui/Button'
 
 export function SafetyTips() {
   return (
-    <main className="min-h-screen bg-background-light pt-24">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 pt-24 transition-colors duration-300">
 
       {/* ── HERO ─────────────────────────────────────────────────────────── */}
       <section className="bg-white pt-12 pb-16 border-b text-center">

@@ -38,8 +38,27 @@ input[type="time"],
 input[type="datetime-local"],
 input[type="month"],
 input[type="week"] {
-  accent-color: #2F7D5F;
-  color-scheme: light;
+  accent-color: #2F7D5F !important;
+  color-scheme: light !important;
+}
+
+/* Force green calendar icon for all date inputs */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(48%) sepia(13%) saturate(3207%) hue-rotate(130deg) brightness(95%) contrast(80%);
+  cursor: pointer;
+}
+
+/* Green text for date values */
+input[type="date"]::-webkit-datetime-edit-month-field,
+input[type="date"]::-webkit-datetime-edit-day-field,
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #2F7D5F;
+  font-weight: 600;
+}
+
+/* Firefox calendar icon */
+input[type="date"]::-moz-calendar-picker-indicator {
+  filter: invert(48%) sepia(13%) saturate(3207%) hue-rotate(130deg) brightness(95%) contrast(80%);
 }
 
 /* Smooth animations for interactive elements */

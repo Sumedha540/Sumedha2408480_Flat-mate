@@ -64,7 +64,7 @@ function CustomSelect({ label, value, options, onChange }: {
   const sel = options.find(o => o.value === value)
   return (
     <div className="relative flex-1 min-w-[130px]" ref={ref}>
-      {label && <label className="block text-sm text-gray-500 font-normal mb-2">{label}</label>}
+      {label && <label className="block text-sm text-gray-500 dark:text-gray-400 font-normal mb-2">{label}</label>}
       <button type="button" onClick={() => setOpen(v => !v)}
         className={`w-full flex items-center gap-2.5 pl-4 pr-3.5 py-3.5 rounded-xl border-2 text-base font-medium text-left transition-all
           ${open ? 'border-button-primary bg-button-primary/10 ring-2 ring-button-primary/20' : 'border-button-primary/25 hover:border-button-primary/50 hover:bg-button-primary/10'}
@@ -79,7 +79,7 @@ function CustomSelect({ label, value, options, onChange }: {
         {open && (
           <motion.div initial={{ opacity:0, y:-6, scale:0.97 }} animate={{ opacity:1, y:0, scale:1 }}
             exit={{ opacity:0, y:-6, scale:0.97 }} transition={{ duration:0.15, ease:[0.16,1,0.3,1] }}
-            className="absolute z-50 mt-1.5 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden py-1.5">
+            className="absolute z-50 mt-1.5 w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-600 rounded-2xl shadow-2xl overflow-hidden py-1.5">
             {options.map(opt => (
               <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false) }}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm font-medium transition-colors
@@ -124,7 +124,7 @@ function ModalSelect({ label, value, options, onChange, error }: {
         {open && (
           <motion.div initial={{ opacity:0, y:-6, scale:0.97 }} animate={{ opacity:1, y:0, scale:1 }}
             exit={{ opacity:0, y:-6, scale:0.97 }} transition={{ duration:0.15 }}
-            className="absolute z-[200] mt-1 w-full bg-white border border-gray-100 rounded-2xl shadow-2xl overflow-hidden py-1.5">
+            className="absolute z-[200] mt-1 w-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-600 rounded-2xl shadow-2xl overflow-hidden py-1.5">
             {options.map(opt => (
               <button key={opt.value} type="button" onClick={() => { onChange(opt.value); setOpen(false) }}
                 className={`w-full flex items-center gap-3 px-4 py-2.5 text-left text-sm font-medium transition-colors
@@ -315,7 +315,7 @@ export function FindRoommatePage() {
   }
 
   return (
-    <main className="min-h-screen bg-background-light pb-12">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 pb-12 transition-colors duration-300">
 
       {/* ── HERO ── */}
       <section className="relative bg-gradient-to-br from-button-primary via-primary to-button-primary text-white pt-36 pb-16 overflow-hidden">
@@ -340,7 +340,7 @@ export function FindRoommatePage() {
               className="text-white/90 text-lg mb-8">Connect with verified people looking for shared accommodation in Nepal. Safe, simple, and secure.</motion.p>
             <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.5 }} className="flex flex-wrap gap-4">
               <button onClick={openQuiz}
-                className="px-6 py-3 bg-white text-primary font-bold rounded-full shadow-xl hover:bg-gray-100 transition-all">
+                className="px-6 py-3 bg-white dark:bg-gray-800 text-primary font-bold rounded-full shadow-xl hover:bg-gray-100 transition-all">
                 Take Compatibility Quiz
               </button>
             </motion.div>
@@ -352,10 +352,10 @@ export function FindRoommatePage() {
 
         {/* ── SEARCH BAR ── */}
         <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.2 }}
-          className="bg-white rounded-xl shadow-xl p-4 md:p-6 mb-8 -mt-8 relative z-10">
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 md:p-6 mb-8 -mt-8 relative z-10">
           <div className="flex flex-col md:flex-row gap-3 items-end">
             <div className="flex-1">
-              <label className="block text-sm text-gray-500 font-normal mb-2">Search</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 font-normal mb-2">Search</label>
               <div className="relative">
                 <SearchIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-button-primary pointer-events-none z-10" />
                 <input type="text" value={searchInput} onChange={e => setSearchInput(e.target.value)}
@@ -446,7 +446,7 @@ export function FindRoommatePage() {
               <div className="text-center py-12">
                 <UsersIcon className="w-16 h-16 text-gray-200 mx-auto mb-4" />
                 <h3 className="text-xl font-semibold text-primary mb-2">No roommates found</h3>
-                <p className="text-gray-500 mb-6">Try adjusting your search filters</p>
+                <p className="text-gray-500 dark:text-gray-400 mb-6">Try adjusting your search filters</p>
                 <button onClick={() => { setSearchInput(''); setSearchTerm(''); setLocationFilter(''); setGenderFilter('') }}
                   className="px-6 py-3 bg-button-primary text-white font-bold rounded-full">Clear Filters</button>
               </div>
@@ -512,7 +512,7 @@ export function FindRoommatePage() {
 
             <motion.div initial={{ opacity:0, scale:0.93, y:24 }} animate={{ opacity:1, scale:1, y:0 }}
               exit={{ opacity:0, scale:0.93 }} transition={{ type:'spring', stiffness:320, damping:28 }}
-              className="relative bg-white rounded-3xl w-full max-w-xl shadow-2xl z-10 overflow-hidden">
+              className="relative bg-white dark:bg-gray-800 rounded-3xl w-full max-w-xl shadow-2xl z-10 overflow-hidden">
 
               <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2">
@@ -570,7 +570,7 @@ export function FindRoommatePage() {
                       <CheckIcon className="w-10 h-10 text-green-600" />
                     </motion.div>
                     <h3 className="text-2xl font-black text-gray-900 mb-2">Quiz Complete! 🎉</h3>
-                    <p className="text-gray-500 mb-6">We've analyzed your preferences. Ready to see compatible roommates below!</p>
+                    <p className="text-gray-500 dark:text-gray-400 mb-6">We've analyzed your preferences. Ready to see compatible roommates below!</p>
                     <div className="flex gap-3 justify-center">
                       <button onClick={() => { resetQuiz(); closeQuiz() }}
                         className="px-5 py-2.5 border-2 border-gray-200 text-gray-600 font-semibold rounded-xl text-sm hover:border-gray-300 transition-all">

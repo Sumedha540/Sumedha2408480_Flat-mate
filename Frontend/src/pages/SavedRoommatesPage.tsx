@@ -222,7 +222,7 @@ export function SavedRoommatesPage() {
   const contactedCount = savedRoommates.filter((r) => r.contacted).length
   const pendingCount = savedRoommates.filter((r) => !r.contacted).length
   return (
-    <main className="min-h-screen bg-background-light pt-24">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 pt-24 transition-colors duration-300">
       {/* Breadcrumb */}
       <div className="bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-3">
         <div className="max-w-7xl mx-auto">

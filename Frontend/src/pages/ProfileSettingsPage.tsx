@@ -136,7 +136,7 @@ export function ProfileSettingsPage() {
   const getRoleLabel = (role: UserRole) => {
     return role.charAt(0).toUpperCase() + role.slice(1);
   };
-  return <main className="min-h-screen bg-background-light py-8">
+  return <main className="min-h-screen bg-background-light dark:bg-gray-900 py-8 transition-colors duration-300">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <motion.div initial={{

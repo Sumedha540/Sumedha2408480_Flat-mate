@@ -158,14 +158,14 @@ export function AboutPage() {
   const [billing, setBilling] = useState<'monthly'|'yearly'>('monthly')
 
   return (
-    <main className="min-h-screen bg-white overflow-hidden">
+    <main className="min-h-screen bg-white dark:bg-gray-900 overflow-hidden transition-colors duration-300">
 
       {/* ══════════════════════════════════════════════
           1. HERO — white background, clean split
              (removed: background color, user rating,
               happy users, verified badges)
       ══════════════════════════════════════════════ */}
-      <section className="relative min-h-screen flex items-center overflow-hidden pt-20 bg-white">
+      <section className="relative min-h-screen flex items-center overflow-hidden pt-20 bg-white dark:bg-gray-900 transition-colors duration-300">
         {/* Subtle light green ambient — not dark */}
         <motion.div animate={{ scale:[1,1.2,1], opacity:[0.03,0.08,0.03] }} transition={{ duration:12, repeat:Infinity }}
           className="absolute top-0 right-0 w-[700px] h-[700px] bg-button-primary rounded-full blur-[160px] pointer-events-none" />
@@ -184,14 +184,14 @@ export function AboutPage() {
               </motion.div>
 
               <motion.h1 initial={{ opacity:0, y:24 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.3 }}
-                className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 leading-[1.04] mb-6">
+                className="text-5xl md:text-6xl lg:text-7xl font-black text-gray-900 dark:text-white leading-[1.04] mb-6">
                 Making<br />
                 <span className="bg-gradient-to-r from-button-primary to-emerald-500 bg-clip-text text-transparent">Home Finding</span><br />
                 Effortless
               </motion.h1>
 
               <motion.p initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }} transition={{ delay:0.45 }}
-                className="text-lg text-gray-500 leading-relaxed mb-10 max-w-lg">
+                className="text-lg text-gray-500 dark:text-gray-400 leading-relaxed mb-10 max-w-lg">
                 We're on a mission to make finding and renting properties in Nepal easier, safer, and more transparent for everyone — from students to families.
               </motion.p>
 
@@ -204,7 +204,7 @@ export function AboutPage() {
                 </Link>
                 <Link to="/contact">
                   <motion.button whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}
-                    className="flex items-center gap-2 px-8 py-4 bg-gray-100 text-gray-800 font-bold rounded-full hover:bg-gray-200 transition-colors text-base">
+                    className="flex items-center gap-2 px-8 py-4 bg-gray-100 text-gray-800 dark:text-white font-bold rounded-full hover:bg-gray-200 transition-colors text-base">
                     Contact Us
                   </motion.button>
                 </Link>
@@ -237,7 +237,7 @@ export function AboutPage() {
                   <ShieldCheckIcon className="w-4 h-4 text-white" />
                 </div>
                 <div>
-                  <p className="font-black text-gray-900 text-sm">100% Verified</p>
+                  <p className="font-black text-gray-900 dark:text-white text-sm">100% Verified</p>
                   <p className="text-gray-400 text-xs">Every listing checked</p>
                 </div>
               </motion.div>
@@ -307,7 +307,7 @@ export function AboutPage() {
           3. CORE FEATURES — 4 cards around center image
              (inspired by reference image 3)
       ══════════════════════════════════════════════ */}
-      <section className="py-28 bg-white">
+      <section className="py-28 bg-white dark:bg-gray-900 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
             badge="What We Offer"
@@ -323,12 +323,12 @@ export function AboutPage() {
                 return (
                   <motion.div key={f.title} initial={{ opacity:0, x:-32 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }}
                     transition={{ delay:i*0.15, ease:[0.16,1,0.3,1] }} whileHover={{ y:-4, boxShadow:'0 12px 32px rgba(0,0,0,0.07)' }}
-                    className="bg-gray-50 rounded-2xl p-7 border border-gray-100 cursor-default transition-all duration-300">
+                    className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-7 border border-gray-100 dark:border-gray-600 cursor-default transition-all duration-300">
                     <div className="w-11 h-11 bg-button-primary rounded-xl flex items-center justify-center mb-4">
                       <Icon className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="font-black text-gray-900 text-base mb-2">{f.title}</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
+                    <h3 className="font-black text-gray-900 dark:text-white text-base mb-2">{f.title}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{f.desc}</p>
                   </motion.div>
                 )
               })}
@@ -357,12 +357,12 @@ export function AboutPage() {
                 return (
                   <motion.div key={f.title} initial={{ opacity:0, x:32 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }}
                     transition={{ delay:i*0.15, ease:[0.16,1,0.3,1] }} whileHover={{ y:-4, boxShadow:'0 12px 32px rgba(0,0,0,0.07)' }}
-                    className="bg-gray-50 rounded-2xl p-7 border border-gray-100 cursor-default transition-all duration-300">
+                    className="bg-gray-50 dark:bg-gray-800 rounded-2xl p-7 border border-gray-100 dark:border-gray-600 cursor-default transition-all duration-300">
                     <div className="w-11 h-11 bg-button-primary rounded-xl flex items-center justify-center mb-4">
                       <Icon className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="font-black text-gray-900 text-base mb-2">{f.title}</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
+                    <h3 className="font-black text-gray-900 dark:text-white text-base mb-2">{f.title}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{f.desc}</p>
                   </motion.div>
                 )
               })}
@@ -375,7 +375,7 @@ export function AboutPage() {
           4. MILESTONES — horizontal scrolling cards
              (inspired by reference image 4 bottom)
       ══════════════════════════════════════════════ */}
-      <section className="py-28 bg-white">
+      <section className="py-28 bg-white dark:bg-gray-900 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-14">
             <div>
@@ -385,12 +385,12 @@ export function AboutPage() {
                 <span className="text-button-primary text-sm font-semibold tracking-widest uppercase">Milestones</span>
               </motion.div>
               <motion.h2 initial={{ opacity:0, y:16 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ delay:0.1 }}
-                className="text-4xl md:text-5xl font-black text-gray-900 leading-tight">
+                className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white leading-tight">
                 Our journey: key milestones<br/>and achievements
               </motion.h2>
             </div>
             <motion.p initial={{ opacity:0, y:12 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }} transition={{ delay:0.2 }}
-              className="text-gray-500 max-w-xs leading-relaxed text-sm md:text-base">
+              className="text-gray-500 dark:text-gray-400 max-w-xs leading-relaxed text-sm md:text-base">
               Discover the significant milestones that have shaped our platform. Each achievement reflects our commitment to excellence.
             </motion.p>
           </div>
@@ -401,15 +401,15 @@ export function AboutPage() {
               return (
                 <motion.div key={m.year} initial={{ opacity:0, y:32 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }}
                   transition={{ delay:i*0.1, ease:[0.16,1,0.3,1] }} whileHover={{ y:-6 }}
-                  className={`relative rounded-2xl p-7 transition-all duration-300 ${m.highlight ? 'bg-button-primary text-white shadow-2xl shadow-button-primary/25' : 'bg-gray-50 border border-gray-100 hover:border-button-primary/30 hover:shadow-lg'}`}>
+                  className={`relative rounded-2xl p-7 transition-all duration-300 ${m.highlight ? 'bg-button-primary text-white shadow-2xl shadow-button-primary/25' : 'bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-600 hover:border-button-primary/30 hover:shadow-lg'}`}>
                   {/* Year top */}
                   <div className={`text-xs font-black uppercase tracking-widest mb-4 ${m.highlight ? 'text-white/60' : 'text-gray-400'}`}>{m.year}</div>
                   {/* Icon */}
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 ${m.highlight ? 'bg-white/20' : 'bg-button-primary'}`}>
                     <Icon className={`w-6 h-6 ${m.highlight ? 'text-white' : 'text-white'}`} />
                   </div>
-                  <h3 className={`font-black text-base mb-2 ${m.highlight ? 'text-white' : 'text-gray-900'}`}>{m.title}</h3>
-                  <p className={`text-sm leading-relaxed ${m.highlight ? 'text-white/70' : 'text-gray-500'}`}>{m.desc}</p>
+                  <h3 className={`font-black text-base mb-2 ${m.highlight ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{m.title}</h3>
+                  <p className={`text-sm leading-relaxed ${m.highlight ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>{m.desc}</p>
                 </motion.div>
               )
             })}
@@ -420,7 +420,7 @@ export function AboutPage() {
       {/* ══════════════════════════════════════════════
           6. SUBSCRIPTION PLANS
       ══════════════════════════════════════════════ */}
-      <section className="py-28 bg-gray-50">
+      <section className="py-28 bg-gray-50 dark:bg-gray-800 transition-colors duration-300">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading
             badge="Pricing Plans"
@@ -428,9 +428,9 @@ export function AboutPage() {
             desc="Unlock the full power of Flat-Mate. No hidden fees, cancel anytime."
           />
           <div className="flex justify-center mb-10">
-            <div className="inline-flex items-center bg-white border border-gray-200 rounded-full p-1.5 shadow-sm">
-              <button onClick={() => setBilling('monthly')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 ${billing==='monthly'?'bg-button-primary text-white shadow-md':'text-gray-500 hover:text-gray-700'}`}>Monthly</button>
-              <button onClick={() => setBilling('yearly')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${billing==='yearly'?'bg-button-primary text-white shadow-md':'text-gray-500 hover:text-gray-700'}`}>
+            <div className="inline-flex items-center bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-full p-1.5 shadow-sm">
+              <button onClick={() => setBilling('monthly')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 ${billing==='monthly'?'bg-button-primary text-white shadow-md':'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>Monthly</button>
+              <button onClick={() => setBilling('yearly')} className={`px-5 py-2 rounded-full text-sm font-bold transition-all duration-300 flex items-center gap-2 ${billing==='yearly'?'bg-button-primary text-white shadow-md':'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
                 Yearly <span className="text-[10px] font-black bg-orange-400 text-white px-2 py-0.5 rounded-full">Save 20%</span>
               </button>
             </div>
@@ -442,28 +442,28 @@ export function AboutPage() {
               return (
                 <motion.div key={plan.id} initial={{ opacity:0, y:32 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }}
                   transition={{ delay:i*0.1 }} whileHover={{ y:-8 }}
-                  className={`relative rounded-3xl p-8 transition-all duration-300 ${plan.highlight?'bg-button-primary shadow-2xl shadow-button-primary/25':'bg-white border-2 border-gray-100 shadow-lg hover:border-button-primary/30'}`}>
+                  className={`relative rounded-3xl p-8 transition-all duration-300 ${plan.highlight?'bg-button-primary shadow-2xl shadow-button-primary/25':'bg-white dark:bg-gray-800 border-2 border-gray-100 dark:border-gray-600 shadow-lg hover:border-button-primary/30'}`}>
                   {plan.badge && <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black px-5 py-1.5 rounded-full shadow-lg uppercase tracking-wide whitespace-nowrap">{plan.badge}</div>}
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${plan.highlight?'bg-white/20':'bg-button-primary/10'}`}>
                     <Icon className={`w-7 h-7 ${plan.highlight?'text-white':'text-button-primary'}`} />
                   </div>
-                  <p className={`font-black text-xl mb-1 ${plan.highlight?'text-white':'text-gray-900'}`}>{plan.name}</p>
-                  <p className={`text-sm mb-5 ${plan.highlight?'text-white/70':'text-gray-500'}`}>{plan.desc}</p>
+                  <p className={`font-black text-xl mb-1 ${plan.highlight?'text-white':'text-gray-900 dark:text-white'}`}>{plan.name}</p>
+                  <p className={`text-sm mb-5 ${plan.highlight?'text-white/70':'text-gray-500 dark:text-gray-400'}`}>{plan.desc}</p>
                   <AnimatePresence mode="wait">
                     <motion.div key={billing} initial={{ opacity:0, y:8 }} animate={{ opacity:1, y:0 }} exit={{ opacity:0, y:-8 }} transition={{ duration:0.2 }}>
                       {price===0
-                        ? <p className={`text-5xl font-black mb-1 ${plan.highlight?'text-white':'text-gray-900'}`}>Free</p>
+                        ? <p className={`text-5xl font-black mb-1 ${plan.highlight?'text-white':'text-gray-900 dark:text-white'}`}>Free</p>
                         : <div className="flex items-end gap-1 mb-1">
-                            <span className={`text-xl font-bold ${plan.highlight?'text-white/70':'text-gray-400'}`}>NPR</span>
-                            <span className={`text-5xl font-black leading-none ${plan.highlight?'text-white':'text-gray-900'}`}>{price.toLocaleString()}</span>
-                            <span className={`text-sm mb-1 ${plan.highlight?'text-white/60':'text-gray-400'}`}>/{billing==='monthly'?'mo':'yr'}</span>
+                            <span className={`text-xl font-bold ${plan.highlight?'text-white/70':'text-gray-400 dark:text-gray-500'}`}>NPR</span>
+                            <span className={`text-5xl font-black leading-none ${plan.highlight?'text-white':'text-gray-900 dark:text-white'}`}>{price.toLocaleString()}</span>
+                            <span className={`text-sm mb-1 ${plan.highlight?'text-white/60':'text-gray-400 dark:text-gray-500'}`}>/{billing==='monthly'?'mo':'yr'}</span>
                           </div>}
                     </motion.div>
                   </AnimatePresence>
-                  <div className={`my-5 h-px ${plan.highlight?'bg-white/20':'bg-gray-100'}`} />
+                  <div className={`my-5 h-px ${plan.highlight?'bg-white/20':'bg-gray-100 dark:bg-gray-700'}`} />
                   <ul className="space-y-3 mb-8">
                     {plan.features.map(f => (
-                      <li key={f} className={`flex items-center gap-3 text-sm font-medium ${plan.highlight?'text-white/90':'text-gray-700'}`}>
+                      <li key={f} className={`flex items-center gap-3 text-sm font-medium ${plan.highlight?'text-white/90':'text-gray-700 dark:text-gray-300'}`}>
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${plan.highlight?'bg-white/25':'bg-button-primary/15'}`}>
                           <CheckIcon className={`w-3 h-3 ${plan.highlight?'text-white':'text-button-primary'}`} />
                         </div>
@@ -485,23 +485,23 @@ export function AboutPage() {
       {/* ══════════════════════════════════════════════
           7. TEAM
       ══════════════════════════════════════════════ */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-white dark:bg-gray-900 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading badge="The Team" title="Meet Our Team" desc="Passionate individuals revolutionizing the rental market in Nepal, one listing at a time." />
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {team.map((member,i) => (
               <motion.div key={i} initial={{ opacity:0, y:30 }} whileInView={{ opacity:1, y:0 }} viewport={{ once:true }}
                 transition={{ delay:i*0.1 }} whileHover={{ y:-8 }}
-                className="group relative bg-gray-50 rounded-3xl p-7 text-center border-2 border-transparent hover:border-button-primary/20 hover:bg-white hover:shadow-xl transition-all duration-300">
+                className="group relative bg-gray-50 dark:bg-gray-800 rounded-3xl p-7 text-center border-2 border-transparent hover:border-button-primary/20 hover:bg-white dark:hover:bg-gray-700 hover:shadow-xl transition-all duration-300">
                 <div className="relative w-28 h-28 mx-auto mb-5">
                   <img src={member.image} alt={member.name} className="w-full h-full object-cover rounded-full border-4 border-white shadow-xl group-hover:scale-105 transition-transform duration-300" />
                   <div className="absolute -bottom-1 -right-1 w-8 h-8 bg-button-primary rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <LinkedinIcon className="w-4 h-4 text-white" />
                   </div>
                 </div>
-                <h3 className="text-lg font-black text-gray-900 mb-1">{member.name}</h3>
+                <h3 className="text-lg font-black text-gray-900 dark:text-white mb-1">{member.name}</h3>
                 <p className="text-button-primary text-sm font-bold mb-3">{member.role}</p>
-                <p className="text-gray-500 text-sm leading-relaxed">{member.bio}</p>
+                <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed">{member.bio}</p>
               </motion.div>
             ))}
           </div>
@@ -511,24 +511,24 @@ export function AboutPage() {
       {/* ══════════════════════════════════════════════
           8. MAP — office geolocation
       ══════════════════════════════════════════════ */}
-      <section className="py-24 bg-gray-50 relative z-0">
+      <section className="py-24 bg-gray-50 dark:bg-gray-800 relative z-0 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <SectionHeading badge="Find Us" title="Visit Our Office" desc="Come meet the team behind Flat-Mate in person. We'd love to hear from you." />
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 items-stretch">
             <motion.div initial={{ opacity:0, x:-30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }}
-              transition={{ duration:0.8 }} className="lg:col-span-3 rounded-3xl overflow-hidden shadow-2xl border border-gray-200 h-[420px] relative z-0">
+              transition={{ duration:0.8 }} className="lg:col-span-3 rounded-3xl overflow-hidden shadow-2xl border border-gray-200 dark:border-gray-600 h-[420px] relative z-0">
               <OfficeMap />
             </motion.div>
             <motion.div initial={{ opacity:0, x:30 }} whileInView={{ opacity:1, x:0 }} viewport={{ once:true }}
               transition={{ duration:0.8, delay:0.2 }} className="lg:col-span-2 flex flex-col gap-5">
-              <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md border border-gray-100">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-button-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
                     <MapPinIcon className="w-6 h-6 text-button-primary" />
                   </div>
                   <div>
-                    <p className="font-black text-gray-900 mb-1">Flat-Mate HQ</p>
-                    <p className="text-gray-600 text-sm leading-relaxed">{OFFICE.address}</p>
+                    <p className="font-black text-gray-900 dark:text-white mb-1">Flat-Mate HQ</p>
+                    <p className="text-gray-600 dark:text-gray-300 text-sm leading-relaxed">{OFFICE.address}</p>
                     <a href={`https://www.google.com/maps/dir/?api=1&destination=${OFFICE.lat},${OFFICE.lng}`}
                       target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 mt-2 text-button-primary text-sm font-bold hover:underline">
@@ -537,25 +537,25 @@ export function AboutPage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md border border-gray-100">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
                     <PhoneIcon className="w-6 h-6 text-blue-600" />
                   </div>
                   <div>
-                    <p className="font-black text-gray-900 mb-1">Contact Us</p>
-                    <a href="tel:+97712345678" className="text-gray-600 text-sm block">+977-1-234-5678</a>
+                    <p className="font-black text-gray-900 dark:text-white mb-1">Contact Us</p>
+                    <a href="tel:+97712345678" className="text-gray-600 dark:text-gray-300 text-sm block">+977-1-234-5678</a>
                     <a href="mailto:hello@flatmate.com.np" className="text-button-primary text-sm font-semibold hover:underline">hello@flatmate.com.np</a>
                   </div>
                 </div>
               </div>
-              <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-                <p className="font-black text-gray-900 mb-3">Office Hours</p>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-md border border-gray-100">
+                <p className="font-black text-gray-900 dark:text-white mb-3">Office Hours</p>
                 <div className="space-y-2">
                   {[{ d:'Sun – Fri', t:'9:00 AM – 6:00 PM' }, { d:'Saturday', t:'10:00 AM – 4:00 PM' }, { d:'Public Holidays', t:'Closed' }].map(h => (
                     <div key={h.d} className="flex justify-between text-sm">
-                      <span className="text-gray-500">{h.d}</span>
-                      <span className="font-semibold text-gray-900">{h.t}</span>
+                      <span className="text-gray-500 dark:text-gray-400">{h.d}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{h.t}</span>
                     </div>
                   ))}
                 </div>
@@ -611,7 +611,7 @@ export function AboutPage() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link to="/properties">
               <motion.button whileHover={{ scale:1.05, boxShadow:'0 16px 40px rgba(0,0,0,0.25)' }} whileTap={{ scale:0.95 }}
-                className="flex items-center gap-2 px-9 py-4 bg-white text-button-primary font-black rounded-full shadow-2xl text-base">
+                className="flex items-center gap-2 px-9 py-4 bg-white dark:bg-gray-800 text-button-primary font-black rounded-full shadow-2xl text-base">
                 Browse Properties <ArrowRightIcon className="w-5 h-5" />
               </motion.button>
             </Link>

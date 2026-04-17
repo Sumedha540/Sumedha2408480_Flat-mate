@@ -38,7 +38,7 @@ const stories = [
 
 export function SuccessStoriesPage() {
   return (
-    <main className="min-h-screen bg-background-light pt-24">
+    <main className="min-h-screen bg-background-light dark:bg-gray-900 pt-24 transition-colors duration-300">
 
       {/* ── HERO — pt-24 clears the fixed header ── */}
       <section className="pt-12 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">

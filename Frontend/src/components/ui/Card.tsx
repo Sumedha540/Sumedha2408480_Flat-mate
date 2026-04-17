@@ -12,7 +12,7 @@ export function Card({
   onClick,
   hoverable = false
 }: CardProps) {
-  const baseStyles = 'bg-white rounded-card shadow-card transition-all duration-300';
+  const baseStyles = 'bg-white dark:bg-gray-800 rounded-card shadow-card transition-all duration-300';
   const hoverStyles = hoverable || onClick ? 'cursor-pointer' : '';
   if (hoverable || onClick) {
     return <motion.div whileHover={{
