@@ -44,7 +44,7 @@
  * - notifs: Stored in localStorage under `fm_owner_notifs`
  */
 
-// src/pages/OwnerDashboard.tsx — PROFESSIONAL REBUILD
+// src/pages/OwnerDashboard.tsx â€” PROFESSIONAL REBUILD
 import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -60,16 +60,20 @@ import {
   BedDoubleIcon, BathIcon, PackageIcon, ArchiveIcon, VolumeXIcon, UserCheckIcon,
   ClockIcon, AlertTriangleIcon, TrendingDownIcon, CheckSquareIcon, RefreshCwIcon,
   ArrowLeftIcon, InfoIcon, CheckCheckIcon, VideoIcon, MicIcon, KeyRoundIcon, GlobeIcon,
+  SunIcon, MoonIcon, BellRingIcon, HistoryIcon, CreditCardIcon, ShieldAlertIcon,
+  CrownIcon, MessageSquareIcon, ZapIcon,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useTheme } from '../contexts/ThemeContext'
 import { toast } from 'sonner'
 import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '../utils/chatStorage'
 import { getProperties, createProperty, updateProperty, deleteProperty, Property } from '../utils/propertyAPI'
+import { OwnerHistorySection } from '../components/OwnerHistorySection'
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ls     = (k: string, fb = '[]') => { try { return JSON.parse(localStorage.getItem(k) || fb) } catch { return JSON.parse(fb) } }
 const setLS  = (k: string, v: any)   => { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} }
-const fmtNPR = (n: number) => `रू ${n.toLocaleString()}`
+const fmtNPR = (n: number) => `NPR ${n.toLocaleString()}`
 const daysSince = (d: string) => {
   const diff = Math.floor((Date.now() - new Date(d).getTime()) / 86400000)
   if (diff === 0) return 'Today'
@@ -77,7 +81,7 @@ const daysSince = (d: string) => {
   return `${diff}d ago`
 }
 
-// ─── Soft pastel tokens ───────────────────────────────────────────────────────
+// â”€â”€â”€ Soft pastel tokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PASTELS = {
   blue:   { bg: 'bg-blue-50',   border: 'border-blue-100',   icon: 'bg-blue-100 text-blue-600',    val: 'text-blue-700'   },
   pink:   { bg: 'bg-pink-50',   border: 'border-pink-100',   icon: 'bg-pink-100 text-pink-600',    val: 'text-pink-700'   },
@@ -87,7 +91,7 @@ const PASTELS = {
   teal:   { bg: 'bg-teal-50',   border: 'border-teal-100',   icon: 'bg-teal-100 text-teal-600',    val: 'text-teal-700'   },
 }
 
-// ─── Mock Data ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Mock Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().split('T')[0]
 
 const INIT_PROPERTIES: any[] = []
@@ -131,7 +135,7 @@ const INIT_NOTIFS = [
   { id: 'n5', title: 'New Review',         msg: 'Anita Thapa left a 5-star review',            time: '3d ago',  ts: Date.now() - 259200000, type: 'success', read: true  },
 ]
 
-// ─── Empty form ───────────────────────────────────────────────────────────────
+// â”€â”€â”€ Empty form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const EMPTY_FORM = { 
   ownerName: '', 
   ownerContact: '', 
@@ -157,7 +161,7 @@ const PROP_TYPES = ['Apartment', 'House', 'Flat', 'Studio', 'Room', 'Villa']
 const FURNISHINGS = ['Unfurnished', 'Semi-furnished', 'Fully furnished']
 const AMENITIES_LIST = ['WiFi', 'Parking', 'Balcony', 'CCTV', 'Generator', 'Water Purifier', 'Gas', 'Laundry', 'Gym', 'Swimming Pool', 'Garden', 'Elevator']
 
-// ─── Chart primitives ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Chart primitives â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AreaChart({ data, h = 80 }: { data: typeof MONTHLY_REV; h?: number }) {
   const maxR = Math.max(...data.map(d => d.revenue))
   const W = 300
@@ -255,7 +259,7 @@ function MiniCalendar() {
   )
 }
 
-// ─── Stat Card ─────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Stat Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function StatCard({ icon: Icon, value, label, trend, pastel, sub, onClick }: any) {
   const p = PASTELS[pastel as keyof typeof PASTELS] || PASTELS.blue
   return (
@@ -272,7 +276,7 @@ function StatCard({ icon: Icon, value, label, trend, pastel, sub, onClick }: any
   )
 }
 
-// ─── Add Property Modal ────────────────────────────────────────────────────────
+// â”€â”€â”€ Add Property Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => void; onAdd: (p: any) => void; editingProperty?: any }) {
   const [form, setForm] = useState(editingProperty || EMPTY_FORM)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -293,8 +297,20 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
 
   const validate = (s: number) => {
     const e: Record<string, string> = {}
-    if (s === 1) { if (!form.title.trim()) e.title = 'Title is required'; if (!form.location.trim()) e.location = 'Location is required' }
-    if (s === 2) { if (!form.rent || isNaN(+form.rent) || +form.rent < 1000) e.rent = 'Enter valid rent (min रू 1,000)'; if (!form.area.trim()) e.area = 'Area is required' }
+    if (s === 1) { 
+      if (!form.title.trim()) {
+        e.title = 'Title is required';
+      } else if (/\d/.test(form.title)) {
+        e.title = 'Property name cannot contain numbers';
+      }
+      
+      if (!form.location.trim()) {
+        e.location = 'Location is required';
+      } else if (/^\d+$/.test(form.location.trim())) {
+        e.location = 'Location cannot be only numbers';
+      }
+    }
+    if (s === 2) { if (!form.rent || isNaN(+form.rent) || +form.rent < 5000) e.rent = 'Enter valid rent (min NPR 5,000)'; if (!form.area.trim()) e.area = 'Area is required' }
     setErrors(e); return Object.keys(e).length === 0
   }
 
@@ -309,6 +325,21 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
       // Get current user info
       const userStr = localStorage.getItem('flatmate_user');
       const currentUser = userStr ? JSON.parse(userStr) : null;
+      
+      // Get user's MongoDB ID from backend
+      let userId = currentUser?.id;
+      if (!userId && currentUser?.email) {
+        try {
+          const userResponse = await fetch(`http://localhost:5000/api/users/email/${encodeURIComponent(currentUser.email)}`);
+          if (userResponse.ok) {
+            const userData = await userResponse.json();
+            userId = userData.user.id || userData.user._id;
+            console.log('Fetched user ID from backend:', userId);
+          }
+        } catch (error) {
+          console.error('Error fetching user ID:', error);
+        }
+      }
       
       const propertyData = { 
         title: form.title, 
@@ -328,7 +359,8 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
         description: form.description, 
         amenities: form.amenities,
         ownerName: currentUser?.name || 'Unknown Owner',
-        ownerId: currentUser?.id || `owner${Date.now()}`,
+        ownerEmail: currentUser?.email || '',
+        ownerId: userId || `owner${Date.now()}`,
         isPremium: form.isPremium || false
       };
       
@@ -359,7 +391,12 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
             propId: created.id 
           }, ...adminNotifs]);
           
-          toast.success('Property submitted for admin review!');
+          toast.success('Property submitted for admin review!', {
+            style: {
+              background: '#2F7D5F',
+              color: 'white',
+            },
+          });
         } else {
           toast.error('Failed to create property');
         }
@@ -417,7 +454,21 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                 {[{ k: 'title', lbl: 'Property Title *', ph: 'e.g. Modern 2BHK in Thamel', type: 'text' }].map(f => (
                   <div key={f.k}>
                     <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{f.lbl}</label>
-                    <input value={(form as any)[f.k]} onChange={e => setForm({ ...form, [f.k]: e.target.value })} placeholder={f.ph} type={f.type}
+                    <input 
+                      value={(form as any)[f.k]} 
+                      onChange={e => {
+                        const value = e.target.value;
+                        // Prevent numbers in property title
+                        if (f.k === 'title' && /\d/.test(value)) {
+                          toast.error('Property name cannot contain numbers', {
+                            style: { background: '#EF4444', color: 'white' }
+                          });
+                          return;
+                        }
+                        setForm({ ...form, [f.k]: value });
+                      }} 
+                      placeholder={f.ph} 
+                      type={f.type}
                       className={`w-full px-3 py-2.5 border-2 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all ${errors[f.k] ? 'border-red-300 bg-red-50' : 'border-gray-200'}`} />
                     {errors[f.k] && <p className="text-red-500 text-[10px] mt-0.5">{errors[f.k]}</p>}
                   </div>
@@ -426,7 +477,21 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                 {/* Location Input */}
                 <div>
                   <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Location *</label>
-                  <input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. Thamel, Kathmandu" type="text"
+                  <input 
+                    value={form.location} 
+                    onChange={e => {
+                      const value = e.target.value;
+                      // Prevent location from being only numbers
+                      if (value.trim() && /^\d+$/.test(value.trim())) {
+                        toast.error('Location cannot be only numbers', {
+                          style: { background: '#EF4444', color: 'white' }
+                        });
+                        return;
+                      }
+                      setForm({ ...form, location: value });
+                    }} 
+                    placeholder="e.g. Thamel, Kathmandu" 
+                    type="text"
                     className={`w-full px-3 py-2.5 border-2 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all ${errors.location ? 'border-red-300 bg-red-50' : 'border-gray-200'}`} />
                   {errors.location && <p className="text-red-500 text-[10px] mt-0.5">{errors.location}</p>}
                 </div>
@@ -538,14 +603,14 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                             
                             // Add OpenStreetMap tiles
                             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                              attribution: '© OpenStreetMap contributors',
+                              attribution: 'Â© OpenStreetMap contributors',
                               maxZoom: 19
                             }).addTo(map);
                             
                             // Custom marker icon
                             const markerIcon = L.divIcon({
                               html: `<div style="width:32px;height:32px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid white;box-shadow:0 4px 12px rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;">
-                                <div style="transform:rotate(45deg);font-size:16px;">📍</div>
+                                <div style="transform:rotate(45deg);font-size:16px;">ðŸ“</div>
                               </div>`,
                               className: '',
                               iconSize: [32, 32],
@@ -566,7 +631,7 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                                 latitude: position.lat, 
                                 longitude: position.lng 
                               }));
-                              toast.success('📍 Location updated by dragging!');
+                              toast.success('ðŸ“ Location updated by dragging!');
                             });
                             
                             // Update marker when clicking on map
@@ -577,7 +642,12 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                                 latitude: e.latlng.lat, 
                                 longitude: e.latlng.lng 
                               }));
-                              toast.success('📍 Location pinned on map!');
+                              toast.success('Location pinned on map!', {
+                                style: {
+                                  background: '#2F7D5F',
+                                  color: 'white',
+                                },
+                              });
                             });
                             
                             // Listen for location changes from GPS button
@@ -596,7 +666,7 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                       }}
                     />
                     <div className="absolute top-2 left-2 bg-white/95 backdrop-blur-sm px-3 py-1.5 rounded-lg shadow-lg text-[10px] font-semibold text-gray-700 z-[1000] border border-gray-200">
-                      💡 Drag the pin or click anywhere to set location
+                      ðŸ’¡ Drag the pin or click anywhere to set location
                     </div>
                   </div>
                   
@@ -604,7 +674,7 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                     <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
                       <CheckCircleIcon className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                       <div className="flex-1">
-                        <p className="text-[11px] text-green-700 font-bold mb-0.5">✓ Location Set Successfully</p>
+                        <p className="text-[11px] text-green-700 font-bold mb-0.5">âœ“ Location Set Successfully</p>
                         <p className="text-[10px] text-green-600">
                           Coordinates: {form.latitude.toFixed(6)}, {form.longitude.toFixed(6)}
                         </p>
@@ -635,7 +705,29 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Monthly Rent *</label>
-                    <div className="relative"><span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">रू</span><input type="number" value={form.rent} onChange={e => setForm({ ...form, rent: e.target.value })} placeholder="25000" className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all ${errors.rent ? 'border-red-300' : 'border-gray-200'}`} /></div>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-semibold">NPR</span>
+                      <input 
+                        type="number" 
+                        min="5000" 
+                        value={form.rent} 
+                        onChange={e => {
+                          // Allow any input while typing, validation happens on blur
+                          setForm({ ...form, rent: e.target.value });
+                        }} 
+                        onBlur={e => {
+                          const value = parseInt(e.target.value);
+                          if (e.target.value && (isNaN(value) || value < 5000)) {
+                            toast.error('Minimum rent must be NPR 5,000', {
+                              style: { background: '#EF4444', color: 'white' }
+                            });
+                            setForm({ ...form, rent: '5000' });
+                          }
+                        }} 
+                        placeholder="25000" 
+                        className={`w-full pl-14 pr-3 py-2.5 border-2 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all ${errors.rent ? 'border-red-300' : 'border-gray-200'}`} 
+                      />
+                    </div>
                     {errors.rent && <p className="text-red-500 text-[10px] mt-0.5">{errors.rent}</p>}
                   </div>
                   <div>
@@ -645,15 +737,81 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Bedrooms</label>
-                    <select value={form.beds} onChange={e => setForm({ ...form, beds: e.target.value })} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary bg-white">
-                      {['1', '2', '3', '4', '5+'].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const dropdown = document.getElementById('bedrooms-dropdown');
+                          if (dropdown) dropdown.classList.toggle('hidden');
+                        }}
+                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary bg-white text-left flex items-center justify-between hover:border-button-primary/50 transition-all"
+                      >
+                        <span>{form.beds}</span>
+                        <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                      </button>
+                      <div
+                        id="bedrooms-dropdown"
+                        className="hidden absolute z-50 mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden"
+                        onMouseLeave={(e) => {
+                          const dropdown = e.currentTarget;
+                          setTimeout(() => dropdown.classList.add('hidden'), 100);
+                        }}
+                      >
+                        {['1', '2', '3', '4', '5+'].map(n => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => {
+                              setForm({ ...form, beds: n });
+                              document.getElementById('bedrooms-dropdown')?.classList.add('hidden');
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm transition-colors text-gray-700 hover:bg-button-primary/10 hover:text-button-primary"
+                          >
+                            {form.beds === n && <CheckIcon className="w-3 h-3 inline mr-2 text-button-primary" />}
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Bathrooms</label>
-                    <select value={form.baths} onChange={e => setForm({ ...form, baths: e.target.value })} className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary bg-white">
-                      {['1', '2', '3', '4+'].map(n => <option key={n} value={n}>{n}</option>)}
-                    </select>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const dropdown = document.getElementById('bathrooms-dropdown');
+                          if (dropdown) dropdown.classList.toggle('hidden');
+                        }}
+                        className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary bg-white text-left flex items-center justify-between hover:border-button-primary/50 transition-all"
+                      >
+                        <span>{form.baths}</span>
+                        <ChevronDownIcon className="w-4 h-4 text-gray-400" />
+                      </button>
+                      <div
+                        id="bathrooms-dropdown"
+                        className="hidden absolute z-50 mt-1 w-full bg-white border border-gray-100 rounded-xl shadow-lg overflow-hidden"
+                        onMouseLeave={(e) => {
+                          const dropdown = e.currentTarget;
+                          setTimeout(() => dropdown.classList.add('hidden'), 100);
+                        }}
+                      >
+                        {['1', '2', '3', '4+'].map(n => (
+                          <button
+                            key={n}
+                            type="button"
+                            onClick={() => {
+                              setForm({ ...form, baths: n });
+                              document.getElementById('bathrooms-dropdown')?.classList.add('hidden');
+                            }}
+                            className="w-full px-3 py-2 text-left text-sm transition-colors text-gray-700 hover:bg-button-primary/10 hover:text-button-primary"
+                          >
+                            {form.baths === n && <CheckIcon className="w-3 h-3 inline mr-2 text-button-primary" />}
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -791,7 +949,7 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
                         ))}
                       </div>
                       <p className="text-[10px] text-gray-400 mt-2">
-                        💡 First image will be used as the main property image
+                        ðŸ’¡ First image will be used as the main property image
                       </p>
                     </div>
                   )}
@@ -799,8 +957,8 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
 
                 <div className="bg-gray-50 rounded-xl p-4 space-y-1.5">
                   <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-2">Summary</p>
-                  {[['Title', form.title], ['Location', form.location], ['Type', form.type], ['Rent', form.rent ? fmtNPR(+form.rent) : '—'], ['Area', form.area], ['Beds/Baths', `${form.beds} / ${form.baths}`], ['Furnishing', form.furnishing], ['Images', `${form.images.length} uploaded`]].map(([l, v]) => (
-                    <div key={l} className="flex justify-between text-xs"><span className="text-gray-400">{l}</span><span className="font-medium text-gray-800 truncate max-w-[60%] text-right">{v || '—'}</span></div>
+                  {[['Title', form.title], ['Location', form.location], ['Type', form.type], ['Rent', form.rent ? fmtNPR(+form.rent) : 'â€”'], ['Area', form.area], ['Beds/Baths', `${form.beds} / ${form.baths}`], ['Furnishing', form.furnishing], ['Images', `${form.images.length} uploaded`]].map(([l, v]) => (
+                    <div key={l} className="flex justify-between text-xs"><span className="text-gray-400">{l}</span><span className="font-medium text-gray-800 truncate max-w-[60%] text-right">{v || 'â€”'}</span></div>
                   ))}
                 </div>
               </motion.div>
@@ -825,7 +983,7 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
   )
 }
 
-// ─── Application Modal ─────────────────────────────────────────────────────────
+// â”€â”€â”€ Application Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function ApplicationModal({ app, onClose, onApprove, onReject }: any) {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
@@ -852,7 +1010,7 @@ function ApplicationModal({ app, onClose, onApprove, onReject }: any) {
   )
 }
 
-// ─── Messenger Component ───────────────────────────────────────────────────────
+// â”€â”€â”€ Messenger Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
   const { user } = useAuth()
   const [convs, setConvs] = useState<Chat[]>([])
@@ -1049,7 +1207,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
   )
 }
 
-// ─── Owner Messenger (same UI as MessagesPage, filtered by ownerName) ─────────
+// â”€â”€â”€ Owner Messenger (same UI as MessagesPage, filtered by ownerName) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: string }) {
   const [conversations, setConversations] = useState<Chat[]>([])
   const [selectedConv, setSelectedConv]   = useState<Chat | null>(null)
@@ -1140,37 +1298,37 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
   )
 
   return (
-    <div className="grid grid-cols-12 h-[600px] bg-white shadow-sm rounded-2xl overflow-hidden border border-gray-100">
+    <div className="grid grid-cols-12 h-[600px] bg-white dark:bg-gray-800 shadow-sm rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
       {/* Sidebar */}
-      <div className={`col-span-12 md:col-span-4 border-r border-gray-100 flex flex-col ${selectedConv ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-gray-100">
-          <h2 className="text-base font-black text-gray-900 mb-3">Messages</h2>
+      <div className={`col-span-12 md:col-span-4 border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 ${selectedConv ? 'hidden md:flex' : 'flex'}`}>
+        <div className="p-4 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-base font-black text-gray-900 dark:text-white mb-3">Messages</h2>
           <div className="relative">
-            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 dark:text-gray-500" />
             <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search tenants or properties..."
-              className="w-full pl-10 pr-3 py-2.5 bg-gray-50 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-button-primary/20 transition-all" />
+              className="w-full pl-10 pr-3 py-2.5 bg-gray-50 dark:bg-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-button-primary/20 transition-all dark:text-white" />
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 ? (
-            <div className="p-8 text-center text-gray-400 text-sm">No conversations yet</div>
+            <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">No conversations yet</div>
           ) : filtered.map((conv, idx) => {
             const unread = conv.messages.filter(m => m.senderRole !== 'owner' && !m.seen).length
             const lastMsg = conv.messages[conv.messages.length - 1]
             return (
               <motion.button key={conv.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: idx * 0.04 }} onClick={() => setSelectedConv(conv)}
-                className={`w-full p-4 flex items-start gap-3 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 ${selectedConv?.id === conv.id ? 'bg-button-primary/5 border-l-2 border-l-button-primary' : ''}`}>
+                className={`w-full p-4 flex items-start gap-3 text-left border-b border-gray-50 dark:border-gray-700 transition-colors hover:bg-gray-50 dark:hover:bg-gray-700/50 ${selectedConv?.id === conv.id ? 'bg-button-primary/5 border-l-2 border-l-button-primary' : ''}`}>
                 <AvatarCircle name={conv.tenantName} />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-0.5">
-                    <h3 className="font-bold text-gray-900 truncate text-sm">{conv.tenantName}</h3>
-                    <span className="text-xs text-gray-400 flex-shrink-0 ml-2">{fmtRelative(conv.lastUpdated)}</span>
+                    <h3 className="font-bold text-gray-900 dark:text-white truncate text-sm">{conv.tenantName}</h3>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0 ml-2">{fmtRelative(conv.lastUpdated)}</span>
                   </div>
                   {conv.propertyTitle && <p className="text-xs text-button-primary font-medium truncate mb-0.5">{conv.propertyTitle}</p>}
                   <div className="flex items-center justify-between">
-                    <p className="text-xs text-gray-500 truncate flex-1">{lastMsg ? (lastMsg.text || 'Media message') : 'Start a conversation'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate flex-1">{lastMsg ? (lastMsg.text || 'Media message') : 'Start a conversation'}</p>
                     {unread > 0 && <span className="ml-2 w-5 h-5 bg-button-primary text-white text-xs rounded-full flex items-center justify-center flex-shrink-0 font-bold">{unread}</span>}
                   </div>
                 </div>
@@ -1181,17 +1339,17 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
       </div>
 
       {/* Chat area */}
-      <div className={`col-span-12 md:col-span-8 flex flex-col ${selectedConv ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`col-span-12 md:col-span-8 flex flex-col bg-white dark:bg-gray-800 ${selectedConv ? 'flex' : 'hidden md:flex'}`}>
         {selectedConv ? (
           <>
-            <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between bg-white">
+            <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
               <div className="flex items-center gap-3">
                 <button onClick={() => setSelectedConv(null)} className="md:hidden p-1 text-gray-400 hover:text-gray-600">
                   <ArrowLeftIcon className="w-5 h-5" />
                 </button>
                 <AvatarCircle name={selectedConv.tenantName} />
                 <div>
-                  <h2 className="font-black text-gray-900 text-sm">{selectedConv.tenantName}</h2>
+                  <h2 className="font-black text-gray-900 dark:text-white text-sm">{selectedConv.tenantName}</h2>
                   {selectedConv.propertyTitle && <p className="text-xs text-button-primary font-medium">{selectedConv.propertyTitle}</p>}
                 </div>
               </div>
@@ -1220,7 +1378,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
               )}
             </AnimatePresence>
 
-            <div className="flex-1 overflow-y-auto p-5 bg-gray-50 space-y-3">
+            <div className="flex-1 overflow-y-auto p-5 bg-gray-50 dark:bg-gray-900 space-y-3">
               <AnimatePresence initial={false}>
                 {selectedConv.messages.map(msg => {
                   const isOwn = msg.senderRole === 'owner'
@@ -1229,7 +1387,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
                       exit={{ opacity: 0, scale: 0.9 }} transition={{ duration: 0.25, type: 'spring', stiffness: 300 }}
                       className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
                       {!isOwn && <div className="mr-2 self-end flex-shrink-0"><AvatarCircle name={selectedConv.tenantName} /></div>}
-                      <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl shadow-sm ${isOwn ? 'bg-button-primary text-white rounded-br-sm' : 'bg-white text-gray-900 rounded-bl-sm border border-gray-100'}`}>
+                      <div className={`max-w-[72%] px-4 py-2.5 rounded-2xl shadow-sm ${isOwn ? 'bg-button-primary text-white rounded-br-sm' : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-bl-sm border border-gray-100 dark:border-gray-700'}`}>
                         {msg.text && <p className="text-sm leading-relaxed">{msg.text}</p>}
                         {msg.image && <img src={msg.image} alt="Shared" className="rounded-xl max-w-full h-auto mt-2" />}
                         {msg.video && <video src={msg.video} controls className="rounded-xl max-w-full mt-2" />}
@@ -1246,7 +1404,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
               <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 border-t border-gray-100 bg-white">
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
               <div className="flex items-center gap-2 mb-3">
                 {[{ icon: ImageIcon, type: 'image' }, { icon: VideoIcon, type: 'video' }, { icon: MicIcon, type: 'audio' }].map(btn => (
                   <motion.button key={btn.type} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -1260,7 +1418,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
                 <input type="text" value={message} onChange={e => setMessage(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && handleSend()}
                   placeholder={`Message ${selectedConv.tenantName}...`}
-                  className="flex-1 px-4 py-3 bg-gray-50 border-2 border-gray-100 rounded-2xl text-sm focus:outline-none focus:border-button-primary focus:bg-white transition-all" />
+                  className="flex-1 px-4 py-3 bg-gray-50 dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600 rounded-2xl text-sm dark:text-white dark:placeholder-gray-400 focus:outline-none focus:border-button-primary dark:focus:bg-gray-700 focus:bg-white transition-all" />
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handleSend} disabled={!message.trim()}
                   className="p-3 bg-button-primary text-white rounded-2xl hover:bg-button-primary/90 transition-all disabled:opacity-40 shadow-md">
                   <SendIcon className="w-5 h-5" />
@@ -1271,9 +1429,9 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
         ) : (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex-1 flex items-center justify-center text-center p-8">
             <div>
-              <MessageCircleIcon className="w-20 h-20 text-gray-200 mx-auto mb-4" />
-              <h3 className="text-lg font-bold text-gray-700 mb-2">Select a conversation</h3>
-              <p className="text-gray-400 text-sm">Choose a conversation from the list to start messaging</p>
+              <MessageCircleIcon className="w-20 h-20 text-gray-200 dark:text-gray-700 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-700 dark:text-gray-300 mb-2">Select a conversation</h3>
+              <p className="text-gray-400 dark:text-gray-500 text-sm">Choose a conversation from the list to start messaging</p>
             </div>
           </motion.div>
         )}
@@ -1282,22 +1440,29 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
   )
 }
 
-// ─── Owner Settings Panel ─────────────────────────────────────────────────────
+// â”€â”€â”€ Owner Settings Panel â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 function OwnerSettingsPanel({ user }: { user: any }) {
+  const { isDark, toggleTheme } = useTheme()
+  const [activeSection, setActiveSection] = useState('profile')
+  const [currentFontSize, setCurrentFontSize] = useState<'small' | 'medium' | 'large'>(() => {
+    return (localStorage.getItem('fm_font_size') || 'medium') as 'small' | 'medium' | 'large'
+  })
   const [profile, setProfile] = useState({
     firstName: user?.name?.split(' ')[0] || '',
     lastName:  user?.name?.split(' ').slice(1).join(' ') || '',
     email:     user?.email || '',
-    phone:     '',
-    location:  '',
-    bio:       '',
   })
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
-  const [passwords, setPasswords] = useState({ current: '', newPass: '', confirm: '' })
-  const [showPw, setShowPw] = useState({ current: false, newPass: false, confirm: false })
-  const [notifPrefs, setNotifPrefs] = useState({ bookings: true, rent: true, inquiries: true, marketing: false })
+  const [notifPrefs, setNotifPrefs] = useState(() => {
+    const saved = localStorage.getItem(`fm_owner_notifications_${user?.email}`)
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch {}
+    }
+    return { bookings: false, approval: false }
+  })
   const [saving, setSaving] = useState(false)
-  const [savingPw, setSavingPw] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const fileInputRef = React.useRef<HTMLInputElement>(null)
 
@@ -1317,19 +1482,6 @@ function OwnerSettingsPanel({ user }: { user: any }) {
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
-  }
-
-  // Validate phone (exactly 10 digits)
-  const validatePhone = (phone: string): boolean => {
-    if (!phone) return true // Phone is optional
-    const digits = phone.replace(/\D/g, '')
-    return digits.length === 10
-  }
-
-  // Validate location
-  const validateLocation = (location: string): boolean => {
-    if (!location) return true // Location is optional
-    return location.trim().length >= 3
   }
 
   // Handle photo upload
@@ -1378,17 +1530,6 @@ function OwnerSettingsPanel({ user }: { user: any }) {
     reader.readAsDataURL(file)
   }
 
-  const handlePhoneChange = (value: string) => {
-    // Only allow digits and limit to 10
-    const digits = value.replace(/\D/g, '').slice(0, 10)
-    setProfile(p => ({ ...p, phone: digits }))
-    
-    // Clear error when user starts typing
-    if (errors.phone) {
-      setErrors({ ...errors, phone: '' })
-    }
-  }
-
   const saveProfile = async () => {
     // Validate all fields
     const newErrors: Record<string, string> = {}
@@ -1407,14 +1548,6 @@ function OwnerSettingsPanel({ user }: { user: any }) {
       newErrors.email = 'Please enter a valid email address'
     }
 
-    if (profile.phone && !validatePhone(profile.phone)) {
-      newErrors.phone = 'Phone number must be exactly 10 digits'
-    }
-
-    if (profile.location && !validateLocation(profile.location)) {
-      newErrors.location = 'Location must be at least 3 characters'
-    }
-
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors)
       toast.error('Please fix the errors before saving')
@@ -1424,27 +1557,121 @@ function OwnerSettingsPanel({ user }: { user: any }) {
     setErrors({})
     setSaving(true)
 
-    // Save to localStorage
     try {
-      const profileData = {
-        profile,
-        photo: profilePhoto,
-        updatedAt: new Date().toISOString()
+      // Get user ID from backend using email
+      const getUserId = async (email: string) => {
+        try {
+          const response = await fetch(`http://localhost:5000/api/users/email/${encodeURIComponent(email)}`)
+          const data = await response.json()
+          if (data.success && data.user) {
+            return data.user.id || data.user._id
+          }
+          return null
+        } catch (error) {
+          console.error('Error fetching user ID:', error)
+          return null
+        }
       }
-      localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(profileData))
+
+      const userId = await getUserId(user?.email)
       
-      // Dispatch custom event to notify other components
-      window.dispatchEvent(new Event('ownerProfileUpdated'))
-      
-      await new Promise(r => setTimeout(r, 600))
-      setSaving(false)
-      toast('Profile updated successfully!', {
-        style: {
-          background: '#2F7D5F',
-          color: 'white',
-        },
-      })
+      if (userId) {
+        // Save to backend database
+        const response = await fetch(`http://localhost:5000/api/users/${userId}/profile`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: profile.firstName.trim(),
+            lastName: profile.lastName.trim(),
+            profilePicture: profilePhoto
+          })
+        })
+
+        const data = await response.json()
+        
+        if (data.success) {
+          // Update localStorage with new name
+          const userStr = localStorage.getItem('flatmate_user')
+          if (userStr) {
+            const currentUser = JSON.parse(userStr)
+            currentUser.name = `${profile.firstName.trim()} ${profile.lastName.trim()}`
+            currentUser.firstName = profile.firstName.trim()
+            currentUser.lastName = profile.lastName.trim()
+            if (profilePhoto) {
+              currentUser.profilePicture = profilePhoto
+            }
+            localStorage.setItem('flatmate_user', JSON.stringify(currentUser))
+          }
+
+          // Save profile data to owner-specific localStorage
+          const profileData = {
+            profile,
+            photo: profilePhoto,
+            updatedAt: new Date().toISOString()
+          }
+          localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(profileData))
+          
+          // Dispatch custom event to notify other components
+          window.dispatchEvent(new Event('ownerProfileUpdated'))
+          window.dispatchEvent(new Event('storage'))
+          
+          setSaving(false)
+          toast('Profile updated successfully!', {
+            style: {
+              background: '#2F7D5F',
+              color: 'white',
+            },
+          })
+
+          // Force re-render by updating the user state
+          setTimeout(() => {
+            window.location.reload()
+          }, 800)
+        } else {
+          setSaving(false)
+          toast.error(data.message || 'Failed to update profile')
+        }
+      } else {
+        // Fallback to localStorage only if backend fails
+        const profileData = {
+          profile,
+          photo: profilePhoto,
+          updatedAt: new Date().toISOString()
+        }
+        localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(profileData))
+        
+        // Update flatmate_user in localStorage
+        const userStr = localStorage.getItem('flatmate_user')
+        if (userStr) {
+          const currentUser = JSON.parse(userStr)
+          currentUser.name = `${profile.firstName.trim()} ${profile.lastName.trim()}`
+          currentUser.firstName = profile.firstName.trim()
+          currentUser.lastName = profile.lastName.trim()
+          if (profilePhoto) {
+            currentUser.profilePicture = profilePhoto
+          }
+          localStorage.setItem('flatmate_user', JSON.stringify(currentUser))
+        }
+        
+        window.dispatchEvent(new Event('ownerProfileUpdated'))
+        window.dispatchEvent(new Event('storage'))
+        
+        setSaving(false)
+        toast('Profile updated successfully!', {
+          style: {
+            background: '#2F7D5F',
+            color: 'white',
+          },
+        })
+
+        setTimeout(() => {
+          window.location.reload()
+        }, 800)
+      }
     } catch (error) {
+      console.error('Error saving profile:', error)
       setSaving(false)
       toast.error('Failed to save profile')
     }
@@ -1469,271 +1696,214 @@ function OwnerSettingsPanel({ user }: { user: any }) {
     </motion.button>
   )
 
-  const PwField = ({ label, field }: { label: string; field: keyof typeof passwords }) => (
-    <div>
-      <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">{label}</label>
-      <div className="relative">
-        <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-        <input
-          type={showPw[field] ? 'text' : 'password'}
-          value={passwords[field]}
-          onChange={e => setPasswords(p => ({ ...p, [field]: e.target.value }))}
-          placeholder={field === 'current' ? 'Current password' : field === 'newPass' ? 'New password' : 'Confirm new password'}
-          className="w-full pl-8 pr-10 py-2.5 border-2 border-gray-200 rounded-xl text-xs focus:outline-none focus:border-button-primary transition-all"
-        />
-        <button type="button" onClick={() => setShowPw(p => ({ ...p, [field]: !p[field] }))}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-          <EyeIcon className="w-3.5 h-3.5" />
-        </button>
+  return (
+    <div className="flex gap-6">
+      {/* Settings Sidebar */}
+      <div className="w-64 flex-shrink-0">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
+          <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4 px-2">Settings</p>
+          <nav className="space-y-1">
+            {[
+              { id: 'profile' as const, label: 'Profile', icon: UserIcon },
+              { id: 'notifications' as const, label: 'Notifications', icon: BellIcon },
+              { id: 'theme' as const, label: 'Theme', icon: SunIcon },
+            ].map(item => (
+              <button
+                key={item.id}
+                onClick={() => setActiveSection(item.id)}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
+                  activeSection === item.id
+                    ? 'bg-button-primary text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                <item.icon className={`w-4 h-4 ${activeSection === item.id ? 'text-white' : 'text-gray-400'}`} />
+                <span className="text-xs font-medium">{item.label}</span>
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
+
+      {/* Settings Content */}
+      <div className="flex-1 space-y-6">
+        {activeSection === 'profile' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-5">Profile Information</h3>
+            <div className="flex items-center gap-4 mb-5 p-4 bg-gradient-to-r from-button-primary/5 to-blue-50 rounded-xl border border-button-primary/10">
+              <div className="relative">
+                {profilePhoto ? (
+                  <img src={profilePhoto} alt="Profile" className="w-14 h-14 rounded-full object-cover" />
+                ) : (
+                  <div className="w-14 h-14 bg-gradient-to-br from-button-primary to-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-inner">
+                    {(user?.name || 'O').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <button onClick={() => fileInputRef.current?.click()}
+                  className="absolute -bottom-1 -right-1 w-5 h-5 bg-button-primary rounded-full flex items-center justify-center border-2 border-white hover:bg-button-primary/90 transition-colors">
+                  <CameraIcon className="w-2.5 h-2.5 text-white" />
+                </button>
+                <input ref={fileInputRef} type="file" accept="image/*" onChange={handlePhotoChange} className="hidden" />
+              </div>
+              <div>
+                <p className="text-sm font-bold text-gray-900">{user?.name || 'Owner'}</p>
+                <p className="text-xs text-gray-500 capitalize">Property Owner</p>
+                <p className="text-[10px] text-gray-400 mt-0.5">{user?.email}</p>
+                <button onClick={() => fileInputRef.current?.click()} className="text-[10px] text-button-primary font-semibold mt-1 hover:underline">
+                  Change Photo
+                </button>
+                {profilePhoto && (
+                  <button onClick={() => {
+                    setProfilePhoto(null)
+                    try {
+                      const savedProfile = localStorage.getItem(`fm_owner_profile_${user?.email}`)
+                      if (savedProfile) {
+                        const parsed = JSON.parse(savedProfile)
+                        parsed.photo = null
+                        parsed.updatedAt = new Date().toISOString()
+                        localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(parsed))
+                        window.dispatchEvent(new Event('ownerProfileUpdated'))
+                      }
+                    } catch {}
+                    toast('Photo removed', { style: { background: '#D1D5DB', color: '#374151' } })
+                  }} className="text-[10px] text-red-500 font-semibold mt-1 ml-2 hover:underline">
+                    Remove Photo
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">First Name *</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  <input value={profile.firstName} onChange={e => {
+                    setProfile(p => ({ ...p, firstName: e.target.value }))
+                    if (errors.firstName) setErrors({...errors, firstName: ''})
+                  }} placeholder="First name" className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-xs focus:outline-none transition-all ${errors.firstName ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'}`} />
+                </div>
+                {errors.firstName && <p className="text-red-500 text-[10px] mt-1">{errors.firstName}</p>}
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Last Name *</label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  <input value={profile.lastName} onChange={e => {
+                    setProfile(p => ({ ...p, lastName: e.target.value }))
+                    if (errors.lastName) setErrors({...errors, lastName: ''})
+                  }} placeholder="Last name" className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-xs focus:outline-none transition-all ${errors.lastName ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'}`} />
+                </div>
+                {errors.lastName && <p className="text-red-500 text-[10px] mt-1">{errors.lastName}</p>}
+              </div>
+              <div className="sm:col-span-2">
+                <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email Address</label>
+                <div className="relative">
+                  <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
+                  <input value={profile.email} readOnly disabled className="w-full pl-8 pr-3 py-2.5 border-2 border-gray-200 bg-gray-100 text-gray-500 rounded-xl text-xs cursor-not-allowed" />
+                </div>
+                <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+              </div>
+            </div>
+            <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.97 }} onClick={saveProfile} disabled={saving} className="flex items-center gap-2 px-5 py-2.5 bg-button-primary text-white font-semibold rounded-xl text-xs hover:bg-button-primary/90 disabled:opacity-60 transition-all">
+              {saving && <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />}
+              {saving ? 'Saving...' : 'Save Profile'}
+            </motion.button>
+          </div>
+        )}
+        {activeSection === 'notifications' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <h3 className="font-bold text-gray-900 mb-5">Notification Preferences</h3>
+            <div className="space-y-2.5">
+              {([
+                { key: 'bookings',   label: 'New Booking Alerts',           desc: 'When tenants book your property' },
+                { key: 'approval',   label: 'Property Approval Reminders',  desc: 'Reminders for pending property approvals' },
+              ] as const).map(s => (
+                <div key={s.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <div><p className="text-xs font-medium text-gray-900">{s.label}</p><p className="text-[10px] text-gray-400">{s.desc}</p></div>
+                  <Toggle on={notifPrefs[s.key]} onToggle={() => {
+                    const newPrefs = { ...notifPrefs, [s.key]: !notifPrefs[s.key] }
+                    setNotifPrefs(newPrefs)
+                    localStorage.setItem(`fm_owner_notifications_${user?.email}`, JSON.stringify(newPrefs))
+                    const isEnabled = !notifPrefs[s.key]
+                    toast(isEnabled ? `${s.label} enabled` : `${s.label} disabled`, {
+                      style: {
+                        background: isEnabled ? '#2F7D5F' : '#6B7280',
+                        color: 'white',
+                      },
+                    })
+                  }} />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+        {activeSection === 'theme' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <SunIcon className="w-5 h-5 text-button-primary"/>
+              <h3 className="font-bold text-gray-900">Display Preferences</h3>
+            </div>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
+                    <MoonIcon className="w-4 h-4 text-button-primary"/>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">Dark Mode</p>
+                    <p className="text-xs text-gray-400">Switch to dark color scheme</p>
+                  </div>
+                </div>
+                <motion.button whileTap={{scale:0.9}} onClick={()=>{
+                  toggleTheme();
+                  setTimeout(() => {
+                    toast(isDark ? 'Dark mode disabled' : 'Dark mode enabled', {
+                      style: {
+                        background: isDark ? '#D1D5DB' : '#2F7D5F',
+                        color: isDark ? '#374151' : 'white',
+                      },
+                    });
+                  }, 100);
+                }} className={`w-12 h-6 rounded-full transition-all relative ${isDark?'bg-button-primary':'bg-gray-300'}`}>
+                  <motion.div animate={{x: isDark ? 24 : 2}} className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"/>
+                </motion.button>
+              </div>
+              <div className="p-3 bg-gray-50 rounded-xl">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
+                    <svg className="w-4 h-4 text-button-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="font-semibold text-gray-900 text-sm">Font Size</p>
+                    <p className="text-xs text-gray-400">Adjust text size for readability</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {(['small', 'medium', 'large'] as const).map((size) => (
+                    <button key={size} onClick={() => {
+                      setCurrentFontSize(size)
+                      localStorage.setItem('fm_font_size', size)
+                      const root = document.documentElement
+                      if (size === 'small') root.style.fontSize = '14px'
+                      else if (size === 'large') root.style.fontSize = '18px'
+                      else root.style.fontSize = '16px'
+                      toast.success(`Font size changed to ${size}`)
+                    }} className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${currentFontSize === size ? 'bg-button-primary text-white shadow-sm' : 'bg-white text-gray-700 hover:bg-gray-100'}`}>
+                      <span className="capitalize">{size}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5 max-w-2xl">
-
-      {/* ── Profile Info ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">Profile Information</p>
-
-        {/* Avatar row */}
-        <div className="flex items-center gap-4 mb-5 p-4 bg-gradient-to-r from-button-primary/5 to-blue-50 rounded-xl border border-button-primary/10">
-          <div className="relative">
-            {profilePhoto ? (
-              <img src={profilePhoto} alt="Profile" className="w-14 h-14 rounded-full object-cover" />
-            ) : (
-              <div className="w-14 h-14 bg-gradient-to-br from-button-primary to-primary rounded-full flex items-center justify-center text-white font-bold text-xl shadow-inner">
-                {(user?.name || 'O').charAt(0).toUpperCase()}
-              </div>
-            )}
-            <button onClick={() => fileInputRef.current?.click()}
-              className="absolute -bottom-1 -right-1 w-5 h-5 bg-button-primary rounded-full flex items-center justify-center border-2 border-white hover:bg-button-primary/90 transition-colors">
-              <CameraIcon className="w-2.5 h-2.5 text-white" />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handlePhotoChange}
-              className="hidden"
-            />
-          </div>
-          <div>
-            <p className="text-sm font-bold text-gray-900">{user?.name || 'Owner'}</p>
-            <p className="text-xs text-gray-500 capitalize">Property Owner</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{user?.email}</p>
-            <button 
-              onClick={() => fileInputRef.current?.click()}
-              className="text-[10px] text-button-primary font-semibold mt-1 hover:underline">
-              Change Photo
-            </button>
-            {profilePhoto && (
-              <button 
-                onClick={() => {
-                  setProfilePhoto(null)
-                  
-                  // Remove from localStorage immediately
-                  try {
-                    const savedProfile = localStorage.getItem(`fm_owner_profile_${user?.email}`)
-                    if (savedProfile) {
-                      const parsed = JSON.parse(savedProfile)
-                      parsed.photo = null
-                      parsed.updatedAt = new Date().toISOString()
-                      localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(parsed))
-                      window.dispatchEvent(new Event('ownerProfileUpdated'))
-                    }
-                  } catch {}
-                  
-                  toast('Photo removed', {
-                    style: {
-                      background: '#D1D5DB',
-                      color: '#374151',
-                    },
-                  })
-                }}
-                className="text-[10px] text-red-500 font-semibold mt-1 ml-2 hover:underline">
-                Remove Photo
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
-          <div>
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">First Name *</label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-              <input value={profile.firstName} onChange={e => {
-                setProfile(p => ({ ...p, firstName: e.target.value }))
-                if (errors.firstName) setErrors({...errors, firstName: ''})
-              }}
-                placeholder="First name" 
-                className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-xs focus:outline-none transition-all ${
-                  errors.firstName ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
-                }`} />
-            </div>
-            {errors.firstName && <p className="text-red-500 text-[10px] mt-1">{errors.firstName}</p>}
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Last Name *</label>
-            <div className="relative">
-              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-              <input value={profile.lastName} onChange={e => {
-                setProfile(p => ({ ...p, lastName: e.target.value }))
-                if (errors.lastName) setErrors({...errors, lastName: ''})
-              }}
-                placeholder="Last name" 
-                className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-xs focus:outline-none transition-all ${
-                  errors.lastName ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
-                }`} />
-            </div>
-            {errors.lastName && <p className="text-red-500 text-[10px] mt-1">{errors.lastName}</p>}
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Email Address *</label>
-            <div className="relative">
-              <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-              <input value={profile.email} onChange={e => {
-                setProfile(p => ({ ...p, email: e.target.value }))
-                if (errors.email) setErrors({...errors, email: ''})
-              }}
-                placeholder="Email address" type="email"
-                className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-xs focus:outline-none transition-all ${
-                  errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
-                }`} />
-            </div>
-            {errors.email && <p className="text-red-500 text-[10px] mt-1">{errors.email}</p>}
-          </div>
-          <div>
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Phone Number (10 digits)</label>
-            <div className="relative">
-              <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-              <input value={profile.phone} 
-                onChange={e => handlePhoneChange(e.target.value)}
-                placeholder="98XXXXXXXX"
-                maxLength={10}
-                inputMode="numeric"
-                className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-xs focus:outline-none transition-all ${
-                  errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
-                }`} />
-            </div>
-            {errors.phone && <p className="text-red-500 text-[10px] mt-1">{errors.phone}</p>}
-            {profile.phone && !errors.phone && (
-              <p className="text-gray-400 text-[10px] mt-1">{profile.phone.length}/10 digits</p>
-            )}
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Location</label>
-            <div className="relative">
-              <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400 pointer-events-none" />
-              <input value={profile.location} onChange={e => {
-                setProfile(p => ({ ...p, location: e.target.value }))
-                if (errors.location) setErrors({...errors, location: ''})
-              }}
-                placeholder="City, Country"
-                className={`w-full pl-8 pr-3 py-2.5 border-2 rounded-xl text-xs focus:outline-none transition-all ${
-                  errors.location ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 focus:border-button-primary'
-                }`} />
-            </div>
-            {errors.location && <p className="text-red-500 text-[10px] mt-1">{errors.location}</p>}
-          </div>
-          <div className="sm:col-span-2">
-            <label className="block text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Bio</label>
-            <textarea value={profile.bio} onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
-              rows={3} placeholder="Tell tenants about yourself..."
-              className="w-full px-3 py-2.5 border-2 border-gray-200 rounded-xl text-xs focus:outline-none focus:border-button-primary resize-none transition-all" />
-          </div>
-        </div>
-        <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.97 }} onClick={saveProfile} disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 bg-button-primary text-white font-semibold rounded-xl text-xs hover:bg-button-primary/90 disabled:opacity-60 transition-all">
-          {saving && <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />}
-          {saving ? 'Saving...' : 'Save Profile'}
-        </motion.button>
-      </div>
-
-      {/* ── Change Password ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">Change Password</p>
-        <div className="space-y-3 mb-4">
-          <PwField label="Current Password" field="current" />
-          <PwField label="New Password" field="newPass" />
-          <PwField label="Confirm New Password" field="confirm" />
-        </div>
-        {passwords.newPass && passwords.confirm && passwords.newPass !== passwords.confirm && (
-          <p className="text-[10px] text-red-500 mb-3 flex items-center gap-1"><AlertCircleIcon className="w-3 h-3" />Passwords do not match</p>
-        )}
-        <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.97 }} onClick={changePassword} disabled={savingPw}
-          className="flex items-center gap-2 px-5 py-2.5 bg-button-primary text-white font-semibold rounded-xl text-xs hover:bg-button-primary/90 disabled:opacity-60 transition-all">
-          {savingPw && <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />}
-          <LockIcon className="w-3.5 h-3.5" />
-          {savingPw ? 'Updating...' : 'Update Password'}
-        </motion.button>
-      </div>
-
-      {/* ── Notification Preferences ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">Notification Preferences</p>
-        <div className="space-y-2.5">
-          {([
-            { key: 'bookings',   label: 'New Booking Alerts',     desc: 'When tenants book your property' },
-            { key: 'rent',       label: 'Rent Reminders',          desc: 'Automatic payment reminders' },
-            { key: 'inquiries',  label: 'Inquiry Notifications',   desc: 'New property inquiries' },
-            { key: 'marketing',  label: 'Marketing Updates',       desc: 'Tips and news from Flat-Mate' },
-          ] as const).map(s => (
-            <div key={s.key} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-              <div><p className="text-xs font-medium text-gray-900">{s.label}</p><p className="text-[10px] text-gray-400">{s.desc}</p></div>
-              <Toggle on={notifPrefs[s.key]} onToggle={() => {
-                setNotifPrefs(p => ({ ...p, [s.key]: !p[s.key] }))
-                toast.success(`${s.label} ${notifPrefs[s.key] ? 'disabled' : 'enabled'}`)
-              }} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Security ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <p className="text-xs font-bold text-gray-700 uppercase tracking-wider mb-4">Security</p>
-        <div className="flex items-center gap-3 p-3 bg-blue-50 border border-blue-100 rounded-xl mb-3">
-          <ShieldCheckIcon className="w-5 h-5 text-blue-500 flex-shrink-0" />
-          <div className="flex-1"><p className="text-xs font-medium text-blue-800">Account secured</p><p className="text-[10px] text-blue-500">2FA not enabled yet</p></div>
-          <button onClick={() => toast.info('2FA setup coming soon')} className="px-2.5 py-1.5 bg-blue-500 text-white text-[10px] font-semibold rounded-lg hover:bg-blue-600 transition-all">Enable 2FA</button>
-        </div>
-        <div className="space-y-2">
-          {[
-            { icon: KeyRoundIcon, label: 'Active Sessions', sub: '1 device — this browser', action: 'Manage' },
-            { icon: GlobeIcon,    label: 'Login History',   sub: 'Last login: just now',     action: 'View' },
-          ].map(item => (
-            <button key={item.label} onClick={() => toast.info('Coming soon')}
-              className="w-full flex items-center gap-3 p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left">
-              <item.icon className="w-4 h-4 text-button-primary flex-shrink-0" />
-              <div className="flex-1"><p className="text-xs font-medium text-gray-900">{item.label}</p><p className="text-[10px] text-gray-400">{item.sub}</p></div>
-              <span className="text-[10px] text-button-primary font-semibold">{item.action}</span>
-              <ChevronRightIcon className="w-3.5 h-3.5 text-gray-400" />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── Danger Zone ── */}
-      <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
-        <p className="text-xs font-bold text-red-500 uppercase tracking-wider mb-3">Danger Zone</p>
-        {[
-          { l: 'Deactivate Account', d: 'Temporarily hide your listings', btn: 'Deactivate' },
-          { l: 'Delete Account',     d: 'Permanently delete all data',    btn: 'Delete' },
-        ].map(a => (
-          <div key={a.l} className="flex items-center justify-between p-3 bg-red-50 rounded-xl mb-2">
-            <div><p className="text-xs font-medium text-gray-900">{a.l}</p><p className="text-[10px] text-gray-400">{a.d}</p></div>
-            <button onClick={() => toast.error(`${a.l} — contact support`)}
-              className="px-3 py-1.5 bg-red-400 text-white text-[10px] font-semibold rounded-lg hover:bg-red-500 transition-all">{a.btn}</button>
-          </div>
-        ))}
-      </div>
-    </motion.div>
-  )
 }
 
-// ─── MAIN ─────────────────────────────────────────────────────────────────────
 export function OwnerDashboard() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -1764,14 +1934,18 @@ export function OwnerDashboard() {
   const [properties, setProperties] = useState<any[]>([])
   const [tenants, setTenants] = useState<any[]>(() => {
     const stored = ls('fm_owner_tenants')
-    return stored.length > 0 ? [...stored, ...INIT_TENANTS] : INIT_TENANTS
+    // Check if this is first time (no stored tenants)
+    if (stored.length === 0) {
+      // First time: save INIT_TENANTS to localStorage and use them
+      setLS('fm_owner_tenants', INIT_TENANTS)
+      return INIT_TENANTS
+    }
+    // Not first time: only use stored tenants (respects deletions)
+    return stored
   })
   const [applications, setApplications] = useState(INIT_APPLICATIONS)
   const [bookings, setBookings] = useState<any[]>(() => ls('fm_bookings'))
-  const [notifs, setNotifs] = useState<any[]>(() => {
-    const stored = ls('fm_owner_notifs')
-    return stored.length > 0 ? [...stored, ...INIT_NOTIFS] : INIT_NOTIFS
-  })
+  const [notifs, setNotifs] = useState<any[]>([]) // Notifications fetched from backend
   const [selectedApp, setSelectedApp] = useState<any>(null)
   const [messageUnreadCount, setMessageUnreadCount] = useState(0)
   
@@ -1837,11 +2011,77 @@ export function OwnerDashboard() {
 
     fetchProperties();
     
-    // Set up interval to check for status updates from admin
-    const interval = setInterval(fetchProperties, 5000);
-    
+    // Poll for updates every 10 seconds
+    const interval = setInterval(fetchProperties, 10000);
     return () => clearInterval(interval);
   }, [user]);
+
+  // Fetch notifications from backend
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        if (!user?.email) {
+          return;
+        }
+
+        // Get user ID from email
+        const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+        if (!userResponse.ok) {
+          console.error('Failed to fetch user data');
+          return;
+        }
+        const userData = await userResponse.json();
+        const userId = userData.user.id;
+
+        // Fetch notifications
+        const notifResponse = await fetch(`http://localhost:5000/api/users/${userId}/notifications`);
+        if (!notifResponse.ok) {
+          console.error('Failed to fetch notifications');
+          return;
+        }
+        const notifData = await notifResponse.json();
+        
+        // Transform backend notifications to frontend format
+        const transformedNotifs = notifData.notifications.map((n: any) => ({
+          id: n.id,
+          type: n.type === 'property_approved' ? 'success' : n.type === 'property_rejected' ? 'warning' : 'info',
+          title: n.title,
+          msg: n.message,
+          time: formatNotificationTime(new Date(n.createdAt)),
+          ts: new Date(n.createdAt).getTime(), // Add timestamp for filtering
+          read: n.read,
+          propertyId: n.propertyId,
+          propertyTitle: n.propertyTitle
+        }));
+
+        setNotifs(transformedNotifs);
+        console.log('Fetched notifications from backend:', transformedNotifs.length, transformedNotifs);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      }
+    };
+
+    fetchNotifications();
+    
+    // Poll for new notifications every 10 seconds
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Helper function to format notification time
+  const formatNotificationTime = (date: Date) => {
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return 'Just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
 
   // Calculate message unread count
   useEffect(() => {
@@ -1904,22 +2144,106 @@ export function OwnerDashboard() {
   const propFilterRef = useRef<HTMLDivElement>(null)
   const tenantFilterRef = useRef<HTMLDivElement>(null)
 
+  // Sync bookings to tenants - automatically add tenants from bookings
+  const syncBookingsToTenants = () => {
+    const currentBookings = ls('fm_bookings')
+    const storedTenants = ls('fm_owner_tenants')
+    const existingTenantEmails = new Set(storedTenants.map((t: any) => t.email.toLowerCase()))
+    
+    // Create tenant records from bookings that don't exist yet
+    const newTenants = currentBookings
+      .filter((b: any) => b.customerEmail && !existingTenantEmails.has(b.customerEmail.toLowerCase()))
+      .map((b: any) => {
+        const nameParts = (b.customerName || '').split(' ')
+        const firstName = nameParts[0] || 'Unknown'
+        const lastName = nameParts.slice(1).join(' ') || 'User'
+        
+        return {
+          id: `t_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          firstName,
+          lastName,
+          email: b.customerEmail,
+          phone: b.customerPhone || 'â€”',
+          property: b.propertyTitle || 'â€”',
+          propId: b.propertyId || '',
+          rentDue: new Date().toISOString().split('T')[0],
+          status: b.status === 'confirmed' ? 'active' : 'pending',
+          paid: b.paymentType === 'full' || b.paymentType === 'advance',
+          joinedDate: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          lastAccess: new Date().toISOString().split('T')[0],
+          reports: 0,
+          blocked: false,
+          muted: false,
+          archived: false,
+          blockReason: ''
+        }
+      })
+    
+    if (newTenants.length > 0) {
+      const updatedTenants = [...storedTenants, ...newTenants]
+      setLS('fm_owner_tenants', updatedTenants)
+      return updatedTenants
+    }
+    
+    return storedTenants
+  }
+
   useEffect(() => {
+    // Initial sync
+    const initialTenants = syncBookingsToTenants()
+    setTenants([...initialTenants, ...INIT_TENANTS])
+    
     const id = setInterval(() => {
       setBookings(ls('fm_bookings'))
       
-      const storedTenants = ls('fm_owner_tenants')
-      if (storedTenants.length > 0) setTenants([...storedTenants, ...INIT_TENANTS])
-      else setTenants(INIT_TENANTS)
-      
-      const storedNotifs = ls('fm_owner_notifs')
-      if (storedNotifs.length > 0) setNotifs([...storedNotifs, ...INIT_NOTIFS])
-      else setNotifs(INIT_NOTIFS)
+      // Sync bookings to tenants on each refresh
+      const syncedTenants = syncBookingsToTenants()
+      // Only use synced tenants from localStorage, don't re-add INIT_TENANTS
+      setTenants(syncedTenants)
 
+      // Notifications are now fetched from backend via separate useEffect
       // Don't reset properties here - they're managed by the dedicated useEffect
     }, 5000)
     return () => clearInterval(id)
   }, [])
+  
+  // Auto-mark notifications as read when visiting notifications tab
+  useEffect(() => {
+    const markAllAsRead = async () => {
+      if (activeTab !== 'notifications' || !user?.email || notifs.length === 0) return;
+      
+      // Check if there are any unread notifications
+      const hasUnread = notifs.some(n => !n.read);
+      if (!hasUnread) return;
+      
+      try {
+        // Get user ID
+        const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+        if (!userResponse.ok) return;
+        const userData = await userResponse.json();
+        const userId = userData.user.id;
+        
+        // Mark all as read in backend
+        await fetch(`http://localhost:5000/api/users/${userId}/notifications/mark-all-read`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        
+        // Update local state
+        const updated = notifs.map(n => ({ ...n, read: true }));
+        setNotifs(updated);
+        
+        console.log('Auto-marked all notifications as read');
+      } catch (error) {
+        console.error('Error auto-marking notifications as read:', error);
+      }
+    };
+    
+    // Small delay to ensure the tab has fully loaded
+    const timer = setTimeout(markAllAsRead, 500);
+    return () => clearTimeout(timer);
+  }, [activeTab, notifs.length]);
+  
   useEffect(() => {
     const fn = (e: MouseEvent) => {
       if (propFilterRef.current && !propFilterRef.current.contains(e.target as Node)) setPropFilterOpen(false)
@@ -1933,7 +2257,12 @@ export function OwnerDashboard() {
     setBookings(ls('fm_bookings'))
     await new Promise(r => setTimeout(r, 700))
     setRefreshing(false)
-    toast.success('Data refreshed!')
+    toast('Data refreshed!', {
+      style: {
+        background: '#2F7D5F',
+        color: 'white',
+      },
+    })
   }
 
   const handleLogout = () => { 
@@ -2041,14 +2370,19 @@ export function OwnerDashboard() {
     })
     setLS('fm_admin_notifs', adminNotifs)
     
-    toast.success('Tenant blocked')
+    toast.error('Tenant blocked', {
+      style: {
+        background: '#ef4444',
+        color: 'white',
+      },
+    })
     setBlockTenantModal(null)
     setBlockReason('')
   }
 
   const approveApp = (id: string) => { setApplications(prev => prev.map(a => a.id === id ? { ...a, status: 'approved' } : a)); toast.success('Application approved!') }
   const rejectApp  = (id: string) => { 
-    setApplications(prev => prev.map(a => a.id === id ? { ...a, status: 'rejected' } : a)); 
+    setApplications(prev => prev.map(a => a.id === id ? { ...a, status: 'Rejected' } : a)); 
     toast('Application rejected', {
       style: {
         background: '#ef4444',
@@ -2093,7 +2427,7 @@ export function OwnerDashboard() {
 
   const renderContent = () => { switch (activeTab) {
 
-  // ── OVERVIEW ─────────────────────────────────────────────────────────────────
+  // â”€â”€ OVERVIEW â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'overview': return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       {/* Welcome + refresh */}
@@ -2135,7 +2469,7 @@ export function OwnerDashboard() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-        {/* Revenue chart — 3 cols */}
+        {/* Revenue chart â€” 3 cols */}
         <div className="lg:col-span-3 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <div className="flex items-start justify-between mb-3">
             <div>
@@ -2156,7 +2490,7 @@ export function OwnerDashboard() {
           </div>
         </div>
 
-        {/* Calendar — 2 cols */}
+        {/* Calendar â€” 2 cols */}
         <div className="lg:col-span-2 bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
           <p className="text-xs font-semibold text-gray-800 mb-3">Today's Schedule</p>
           <MiniCalendar />
@@ -2178,7 +2512,7 @@ export function OwnerDashboard() {
               { msg: 'Anita Thapa paid rent for 2BHK', time: '2h ago', dot: 'bg-green-400' },
               { msg: 'New inquiry on Spacious 3BHK', time: '5h ago', dot: 'bg-blue-400' },
               { msg: 'New application from Rajan', time: '1d ago', dot: 'bg-amber-400' },
-              { msg: 'Maintenance request — water heater', time: '2d ago', dot: 'bg-red-400' },
+              { msg: 'Maintenance request â€” water heater', time: '2d ago', dot: 'bg-red-400' },
             ].map((a, i) => (
               <motion.div key={i} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-start gap-2.5">
                 <div className={`w-2 h-2 rounded-full ${a.dot} mt-1.5 flex-shrink-0`} />
@@ -2229,7 +2563,7 @@ export function OwnerDashboard() {
     </motion.div>
   )
 
-  // ── PROPERTIES ───────────────────────────────────────────────────────────────
+  // â”€â”€ PROPERTIES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'properties': return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       {/* Status tabs */}
@@ -2257,7 +2591,7 @@ export function OwnerDashboard() {
             <div className="relative h-40 overflow-hidden">
               <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
               {p.isPremium && <span className="absolute top-2 left-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">⭐ PREMIUM</span>}
-              <div className="absolute top-2.5 right-2.5"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'pending' ? 'bg-amber-400 text-white' : p.status === 'approved' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>{p.status === 'pending' ? '⏳ Pending' : p.status === 'approved' ? '✓ Approved' : '✗ Rejected'}</span></div>
+              <div className="absolute top-2.5 right-2.5"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'pending' ? 'bg-amber-400 text-white' : p.status === 'approved' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>{p.status === 'pending' ? 'Pending' : p.status === 'approved' ? 'Approved' : 'Rejected'}</span></div>
             </div>
             <div className="p-4">
               <h4 className="font-bold text-gray-900 text-xs mb-0.5 truncate">{p.title}</h4>
@@ -2311,7 +2645,7 @@ export function OwnerDashboard() {
     </motion.div>
   )
 
-  // ── TENANTS ──────────────────────────────────────────────────────────────────
+  // â”€â”€ TENANTS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'tenants': return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       {/* Pending applications */}
@@ -2352,17 +2686,29 @@ export function OwnerDashboard() {
       </div>
 
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
-        <table className="w-full text-xs min-w-[700px]">
+        <table className="w-full text-xs min-w-[800px]">
           <thead>
             <tr className="border-b border-gray-100">
               <th className="p-3 w-8"><input type="checkbox" checked={selectedTenantIds.length === filteredTenants.length && filteredTenants.length > 0} onChange={() => setSelectedTenantIds(p => p.length === filteredTenants.length ? [] : filteredTenants.map(t => t.id))} className="w-3.5 h-3.5 rounded border-2 border-gray-300 accent-button-primary cursor-pointer" /></th>
-              {['Tenant', 'Email', 'Property', 'Status', 'Rent', 'Joined', 'Last Active', 'Reason', 'Actions'].map(h => <th key={h} className="p-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>)}
+              {['Tenant', 'Email', 'Property', 'Status', 'Payment Type', 'Rent', 'Joined', 'Last Active', 'Reason', 'Actions'].map(h => <th key={h} className="p-3 text-left text-[10px] font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{h}</th>)}
             </tr>
           </thead>
           <tbody>
-            <AnimatePresence>
-              {filteredTenants.map((t, i) => (
-                <motion.tr key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ delay: i * 0.03 }}
+            {filteredTenants.map((t, i) => {
+              // Find booking for this tenant to get payment type
+              const booking = bookings.find((b: any) => 
+                b.customerName?.toLowerCase().includes(`${t.firstName} ${t.lastName}`.toLowerCase()) ||
+                b.customerEmail === t.email
+              );
+              const paymentTypeDisplay = booking?.paymentType === 'advance' ? 'Half (30%)' : 
+                                        booking?.paymentType === 'full' ? 'Full' : 
+                                        booking?.paymentType === 'cash' ? 'Cash' : 'â€”';
+              const paymentTypeColor = booking?.paymentType === 'advance' ? 'bg-blue-100 text-blue-700' : 
+                                      booking?.paymentType === 'full' ? 'bg-green-100 text-green-700' : 
+                                      booking?.paymentType === 'cash' ? 'bg-amber-100 text-amber-700' : 'bg-gray-100 text-gray-500';
+              
+              return (
+                <tr key={t.id}
                   className={`border-b border-gray-50 hover:bg-gray-50/60 transition-colors ${t.blocked ? 'opacity-40' : ''}`}>
                   <td className="p-3"><input type="checkbox" checked={selectedTenantIds.includes(t.id)} onChange={() => setSelectedTenantIds(p => p.includes(t.id) ? p.filter(x => x !== t.id) : [...p, t.id])} className="w-3.5 h-3.5 rounded border-2 border-gray-300 accent-button-primary cursor-pointer" /></td>
                   <td className="p-3"><div className="flex items-center gap-2">
@@ -2372,6 +2718,7 @@ export function OwnerDashboard() {
                   <td className="p-3 text-gray-500">{t.email}</td>
                   <td className="p-3 text-gray-500 truncate max-w-[110px]">{t.property}</td>
                   <td className="p-3"><span className={`font-semibold px-2 py-0.5 rounded-full ${t.status === 'active' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>{t.status}</span></td>
+                  <td className="p-3"><span className={`font-semibold px-2 py-0.5 rounded-full text-[10px] ${paymentTypeColor}`}>{paymentTypeDisplay}</span></td>
                   <td className="p-3"><span className={`font-semibold px-2 py-0.5 rounded-full ${t.paid ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>{t.paid ? 'Paid' : 'Due'}</span></td>
                   <td className="p-3 text-gray-400 whitespace-nowrap">{daysSince(t.joinedDate)}</td>
                   <td className="p-3 text-gray-400 whitespace-nowrap">{daysSince(t.lastAccess)}</td>
@@ -2379,13 +2726,23 @@ export function OwnerDashboard() {
                     {t.blocked && t.blockReason ? (
                       <span className="text-xs text-red-600 bg-red-50 px-2 py-1 rounded">{t.blockReason}</span>
                     ) : (
-                      <span className="text-xs text-gray-400">—</span>
+                      <span className="text-xs text-gray-400">â€”</span>
                     )}
                   </td>
                   <td className="p-3">
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setBlockTenantModal({ id: t.id, name: `${t.firstName} ${t.lastName}` })} 
-                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${t.blocked ? 'bg-red-100 text-red-600' : 'border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                      <button 
+                        onClick={() => {
+                          if (!t.blocked) {
+                            setBlockTenantModal({ id: t.id, name: `${t.firstName} ${t.lastName}` });
+                          }
+                        }}
+                        disabled={t.blocked}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                          t.blocked 
+                            ? 'bg-red-100 text-red-600 cursor-not-allowed' 
+                            : 'border border-gray-200 text-gray-600 hover:bg-gray-50 cursor-pointer'
+                        }`}>
                         {t.blocked ? 'Blocked' : 'Block'}
                       </button>
                       <button onClick={() => setDeleteTenantModal({ id: t.id, name: `${t.firstName} ${t.lastName}` })} 
@@ -2394,9 +2751,9 @@ export function OwnerDashboard() {
                       </button>
                     </div>
                   </td>
-                </motion.tr>
-              ))}
-            </AnimatePresence>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
         {filteredTenants.length === 0 && <div className="text-center py-10 text-gray-400 text-xs">No tenants match this filter.</div>}
@@ -2404,7 +2761,7 @@ export function OwnerDashboard() {
     </motion.div>
   )
 
-  // ── BOOKINGS ─────────────────────────────────────────────────────────────────
+  // â”€â”€ BOOKINGS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'bookings': return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
       {/* KPI */}
@@ -2440,7 +2797,7 @@ export function OwnerDashboard() {
             <tbody>
               {myBookings.map((b: any, i: number) => (
                 <motion.tr key={i} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.03 }} className="border-b border-gray-50 hover:bg-gray-50/60 transition-colors">
-                  <td className="p-3 font-mono text-button-primary text-[10px]">{b.receiptId || '—'}</td>
+                  <td className="p-3 font-mono text-button-primary text-[10px]">{b.receiptId || 'â€”'}</td>
                   <td className="p-3 text-gray-600 max-w-[130px] truncate">{b.propertyTitle}</td>
                   <td className="p-3 text-gray-600">{b.customerName}</td>
                   <td className="p-3 font-semibold text-gray-800">{b.amount > 0 ? fmtNPR(b.amount) : 'Cash'}</td>
@@ -2464,7 +2821,7 @@ export function OwnerDashboard() {
     </motion.div>
   )
 
-  // ── ANALYTICS ────────────────────────────────────────────────────────────────
+  // â”€â”€ ANALYTICS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'analytics': return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-5">
       {/* KPI row */}
@@ -2545,42 +2902,110 @@ export function OwnerDashboard() {
     </motion.div>
   )
 
-  // ── MESSAGES ─────────────────────────────────────────────────────────────────
+  // â”€â”€ MESSAGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'messages': return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <OwnerMessengerFull user={user} activeConvId={activeChatId} />
     </motion.div>
   )
 
-  // ── NOTIFICATIONS ─────────────────────────────────────────────────────────────
+  // â”€â”€ NOTIFICATIONS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'notifications': return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm font-semibold text-gray-800">Notifications</p>
-        <button onClick={() => {
-          const updated = notifs.map(n => ({ ...n, read: true }))
-          setNotifs(updated)
-          setLS('fm_owner_notifs', updated)
-          toast.success('All notifications marked as read')
-        }} className="text-xs text-button-primary font-medium hover:underline">Mark all read</button>
+        <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">Notifications</p>
+        <div className="flex items-center gap-2">
+          <button onClick={async () => {
+            try {
+              if (!user?.email) return;
+              
+              // Get user ID
+              const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+              const userData = await userResponse.json();
+              const userId = userData.user.id;
+              
+              // Mark all as read in backend
+              await fetch(`http://localhost:5000/api/users/${userId}/notifications/mark-all-read`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              
+              // Update local state
+              const updated = notifs.map(n => ({ ...n, read: true }));
+              setNotifs(updated);
+              
+              toast('All notifications marked as read', {
+                style: {
+                  background: '#2F7D5F',
+                  color: 'white',
+                },
+              });
+            } catch (error) {
+              console.error('Error marking notifications as read:', error);
+            }
+          }} className="text-xs text-button-primary font-medium hover:underline">Mark all read</button>
+          <span className="text-gray-300">|</span>
+          <button onClick={async () => {
+            try {
+              if (!user?.email) return;
+              
+              // Get user ID
+              const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+              const userData = await userResponse.json();
+              const userId = userData.user.id;
+              
+              // Clear all notifications in backend
+              await fetch(`http://localhost:5000/api/users/${userId}/notifications`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+              });
+              
+              // Update local state
+              setNotifs([]);
+              
+              toast('All notifications cleared', {
+                style: {
+                  background: '#6B7280',
+                  color: 'white',
+                },
+              });
+            } catch (error) {
+              console.error('Error clearing notifications:', error);
+            }
+          }} className="text-xs text-red-500 font-medium hover:underline">Clear all</button>
+        </div>
       </div>
-      {/* Today */}
-      {notifs.filter(n => (Date.now() - n.ts) < 86400000).length > 0 && (
+      {notifs.length === 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 border border-gray-100 dark:border-gray-700 shadow-sm text-center">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BellIcon className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+          </div>
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">No notifications</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">You're all caught up! Check back later for updates.</p>
+        </div>
+      ) : (
+        <>
+          {/* Today */}
+          {notifs.filter(n => (Date.now() - n.ts) < 86400000).length > 0 && (
         <div className="mb-4">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Today</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Today</p>
           <div className="space-y-2">
             {notifs.filter(n => (Date.now() - n.ts) < 86400000).map((n, i) => (
               <motion.div key={n.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                className={`bg-white rounded-2xl p-3 border shadow-sm flex gap-3 items-start transition-all ${n.read ? 'border-gray-100' : 'border-button-primary/20 bg-button-primary/[0.02]'}`}>
+                className={`bg-white dark:bg-gray-800 rounded-2xl p-3 border shadow-sm flex gap-3 items-start transition-all ${n.read ? 'border-gray-100 dark:border-gray-700' : 'border-button-primary/20 bg-button-primary/[0.02]'}`}>
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${n.type === 'success' ? 'bg-green-100' : n.type === 'warning' ? 'bg-amber-100' : 'bg-blue-100'}`}>
                   {n.type === 'success' ? <CheckCircleIcon className="w-4 h-4 text-green-600" /> : n.type === 'warning' ? <AlertTriangleIcon className="w-4 h-4 text-amber-600" /> : <BellIcon className="w-4 h-4 text-blue-500" />}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5"><p className="text-xs font-semibold text-gray-900">{n.title}</p>{!n.read && <span className="w-1.5 h-1.5 bg-button-primary rounded-full flex-shrink-0" />}</div>
-                  <p className="text-[11px] text-gray-500">{n.msg}</p>
-                  <p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1"><ClockIcon className="w-2.5 h-2.5" />{n.time}</p>
+                  <div className="flex items-center gap-2 mb-0.5"><p className="text-xs font-semibold text-gray-900 dark:text-white">{n.title}</p>{!n.read && <span className="w-1.5 h-1.5 bg-button-primary rounded-full flex-shrink-0" />}</div>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400">{n.msg}</p>
+                  <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1"><ClockIcon className="w-2.5 h-2.5" />{n.time}</p>
                 </div>
-                <button onClick={() => setNotifs(prev => prev.map(x => x.id === n.id ? { ...x, read: true } : x))} className="p-1 text-gray-300 hover:text-gray-500 rounded-lg flex-shrink-0"><XIcon className="w-3 h-3" /></button>
+                <button onClick={() => {
+                  const updated = notifs.map(x => x.id === n.id ? { ...x, read: true } : x)
+                  setNotifs(updated)
+                  setLS('fm_owner_notifs', updated)
+                }} className="p-1 text-gray-300 hover:text-gray-500 rounded-lg flex-shrink-0"><XIcon className="w-3 h-3" /></button>
               </motion.div>
             ))}
           </div>
@@ -2589,24 +3014,27 @@ export function OwnerDashboard() {
       {/* Earlier */}
       {notifs.filter(n => (Date.now() - n.ts) >= 86400000).length > 0 && (
         <div>
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Earlier</p>
+          <p className="text-[10px] font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-2">Earlier</p>
           <div className="space-y-2">
             {notifs.filter(n => (Date.now() - n.ts) >= 86400000).map((n, i) => (
               <motion.div key={n.id} initial={{ opacity: 0, x: -6 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                className="bg-white rounded-2xl p-3 border border-gray-100 shadow-sm flex gap-3 items-start opacity-75">
+                className="bg-white dark:bg-gray-800 rounded-2xl p-3 border border-gray-100 dark:border-gray-700 shadow-sm flex gap-3 items-start opacity-75">
                 <div className={`w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${n.type === 'success' ? 'bg-green-100' : n.type === 'warning' ? 'bg-amber-100' : 'bg-blue-100'}`}>
                   {n.type === 'success' ? <CheckCircleIcon className="w-4 h-4 text-green-600" /> : n.type === 'warning' ? <AlertTriangleIcon className="w-4 h-4 text-amber-600" /> : <BellIcon className="w-4 h-4 text-blue-500" />}
                 </div>
-                <div className="flex-1"><p className="text-xs font-medium text-gray-700">{n.title}</p><p className="text-[11px] text-gray-500">{n.msg}</p><p className="text-[10px] text-gray-400 mt-0.5 flex items-center gap-1"><ClockIcon className="w-2.5 h-2.5" />{n.time}</p></div>
+                <div className="flex-1"><p className="text-xs font-medium text-gray-700 dark:text-gray-200">{n.title}</p><p className="text-[11px] text-gray-500 dark:text-gray-400">{n.msg}</p><p className="text-[10px] text-gray-400 dark:text-gray-500 mt-0.5 flex items-center gap-1"><ClockIcon className="w-2.5 h-2.5" />{n.time}</p></div>
               </motion.div>
             ))}
           </div>
         </div>
       )}
+        </>
+      )}
     </motion.div>
   )
 
-  // ── SETTINGS ─────────────────────────────────────────────────────────────────
+
+  // ── HISTORY ──────────────────────────────────────────────────────────────────
   case 'settings': return <OwnerSettingsPanel user={user} />
 
   default: return null
@@ -2616,17 +3044,17 @@ export function OwnerDashboard() {
   const subMap: Record<string, string> = { overview: 'Manage properties and track performance', properties: 'Your property listings', tenants: 'Manage your tenants', bookings: 'Booking requests and confirmations', analytics: 'Revenue and performance analytics', messages: 'Chat with tenants and applicants', notifications: 'Recent alerts and updates', settings: 'Account and preferences' }
 
   return (
-    <main className="min-h-screen bg-gray-50/60 flex">
+    <main className="min-h-screen bg-gray-50/60 dark:bg-gray-900 flex">
       {/* SIDEBAR */}
-      <aside className={`${sidebarCollapsed ? 'w-14' : 'w-60'} bg-white border-r border-gray-100 min-h-screen sticky top-0 hidden lg:flex flex-col transition-all duration-300 flex-shrink-0 shadow-sm`}>
+      <aside className={`${sidebarCollapsed ? 'w-14' : 'w-60'} bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 min-h-screen sticky top-0 hidden lg:flex flex-col transition-all duration-300 flex-shrink-0 shadow-sm`}>
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center justify-between mb-5">
-            {!sidebarCollapsed && <div className="flex items-center gap-2"><div className="w-7 h-7 bg-gradient-to-br from-button-primary to-primary rounded-xl flex items-center justify-center"><span className="text-white font-bold text-sm">F</span></div><span className="text-gray-900 font-bold text-sm">Flat-Mate</span></div>}
-            <button onClick={() => setSidebarCollapsed(v => !v)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors ml-auto"><MenuIcon className="w-4 h-4 text-gray-400" /></button>
+            {!sidebarCollapsed && <div className="flex items-center gap-2"><div className="w-7 h-7 bg-gradient-to-br from-button-primary to-primary rounded-xl flex items-center justify-center"><span className="text-white font-bold text-sm">F</span></div><span className="text-gray-900 dark:text-white font-bold text-sm">Flat-Mate</span></div>}
+            <button onClick={() => setSidebarCollapsed(v => !v)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors ml-auto"><MenuIcon className="w-4 h-4 text-gray-400 dark:text-gray-500" /></button>
           </div>
-          {!sidebarCollapsed && <div className="flex items-center gap-2.5 mb-4 p-2.5 bg-gradient-to-r from-button-primary/5 to-blue-50 rounded-xl border border-button-primary/10">
+          {!sidebarCollapsed && <div className="flex items-center gap-2.5 mb-4 p-2.5 bg-gradient-to-r from-button-primary/5 to-blue-50 dark:from-button-primary/10 dark:to-blue-900/20 rounded-xl border border-button-primary/10 dark:border-button-primary/20">
             <div className="w-8 h-8 bg-button-primary rounded-full flex items-center justify-center text-white font-bold text-xs flex-shrink-0">{(user?.name || 'O').charAt(0)}</div>
-            <div className="min-w-0"><p className="font-semibold text-gray-900 text-xs truncate">{user?.name || 'Owner'}</p><p className="text-[10px] text-gray-400">Property Owner</p></div>
+            <div className="min-w-0"><p className="font-semibold text-gray-900 dark:text-white text-xs truncate">{user?.name || 'Owner'}</p><p className="text-[10px] text-gray-400 dark:text-gray-500">Property Owner</p></div>
           </div>}
           <nav className="space-y-0.5 flex-1">
             {TABS.map(tab => {
@@ -2635,16 +3063,16 @@ export function OwnerDashboard() {
               const badge = tab.id === 'messages' ? messageUnreadCount : tab.id === 'notifications' ? unreadNotifs : tab.id === 'bookings' ? myBookings.filter((b: any) => b.status === 'pending').length : 0
               return (
                 <motion.button key={tab.id} whileHover={{ x: sidebarCollapsed ? 0 : 2 }} whileTap={{ scale: 0.97 }} onClick={() => setActiveTab(tab.id)} title={sidebarCollapsed ? tab.label : undefined}
-                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${isActive ? 'bg-button-primary/8 text-button-primary font-semibold' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-800'}`}
+                  className={`w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs font-medium transition-all ${isActive ? 'bg-button-primary/8 text-button-primary font-semibold' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 hover:text-gray-800 dark:hover:text-gray-200'}`}
                   style={isActive ? { backgroundColor: 'rgba(47,125,95,0.08)' } : {}}>
-                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-button-primary' : 'text-gray-400'}`} />
+                  <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? 'text-button-primary' : 'text-gray-400 dark:text-gray-500'}`} />
                   {!sidebarCollapsed && <><span>{tab.label}</span>{badge > 0 && <span className="ml-auto min-w-[16px] h-4 px-1 bg-red-400 text-white text-[9px] rounded-full flex items-center justify-center font-bold">{badge}</span>}</>}
                 </motion.button>
               )
             })}
           </nav>
-          <div className="pt-3 border-t border-gray-100">
-            <motion.button whileHover={{ x: sidebarCollapsed ? 0 : 2 }} onClick={handleLogout} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-red-400 hover:bg-red-50 transition-all font-medium">
+          <div className="pt-3 border-t border-gray-100 dark:border-gray-700">
+            <motion.button whileHover={{ x: sidebarCollapsed ? 0 : 2 }} onClick={handleLogout} className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-xl text-xs text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all font-medium">
               <LogOutIcon className="w-4 h-4 flex-shrink-0" />{!sidebarCollapsed && 'Sign Out'}
             </motion.button>
           </div>
@@ -2653,17 +3081,17 @@ export function OwnerDashboard() {
 
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-gray-100 px-5 py-3.5 flex items-center justify-between sticky top-0 z-30">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-5 py-3.5 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <button onClick={() => setMobileOpen(v => !v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 border border-gray-200"><MenuIcon className="w-5 h-5 text-gray-500" /></button>
-            <div><h1 className="text-sm font-bold text-gray-900">{hdrMap[activeTab]}</h1><p className="text-[11px] text-gray-400">{subMap[activeTab]}</p></div>
+            <button onClick={() => setMobileOpen(v => !v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600"><MenuIcon className="w-5 h-5 text-gray-500 dark:text-gray-400" /></button>
+            <div><h1 className="text-sm font-bold text-gray-900 dark:text-white">{hdrMap[activeTab]}</h1><p className="text-[11px] text-gray-400 dark:text-gray-500">{subMap[activeTab]}</p></div>
           </div>
           <div className="flex items-center gap-1.5">
-            <motion.button whileTap={{ rotate: 180 }} onClick={handleRefresh} disabled={refreshing} className="p-2 text-gray-400 hover:text-button-primary hover:bg-gray-50 rounded-xl transition-colors">
+            <motion.button whileTap={{ rotate: 180 }} onClick={handleRefresh} disabled={refreshing} className="p-2 text-gray-400 dark:text-gray-500 hover:text-button-primary hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors">
               <motion.div animate={refreshing ? { rotate: 360 } : {}} transition={refreshing ? { duration: 0.8, repeat: Infinity, ease: 'linear' } : {}}><RefreshCwIcon className="w-4 h-4" /></motion.div>
             </motion.button>
             <div className="relative">
-              <button onClick={() => setActiveTab('notifications')} className="p-2 text-gray-400 hover:text-button-primary hover:bg-gray-50 rounded-xl transition-colors"><BellIcon className="w-4 h-4" /></button>
+              <button onClick={() => setActiveTab('notifications')} className="p-2 text-gray-400 dark:text-gray-500 hover:text-button-primary hover:bg-gray-50 dark:hover:bg-gray-700 rounded-xl transition-colors"><BellIcon className="w-4 h-4" /></button>
               {unreadNotifs > 0 && <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-red-400 text-white text-[9px] rounded-full flex items-center justify-center font-bold">{unreadNotifs}</span>}
             </div>
             <button onClick={() => setActiveTab('settings')} className="w-8 h-8 bg-button-primary/10 rounded-full flex items-center justify-center text-button-primary font-bold text-sm hover:bg-button-primary/20 transition-colors overflow-hidden">
@@ -2677,9 +3105,9 @@ export function OwnerDashboard() {
         </header>
 
         <AnimatePresence>
-          {mobileOpen && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="lg:hidden bg-white border-b border-gray-100 overflow-hidden">
+          {mobileOpen && <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-hidden">
             <div className="px-4 py-2.5 flex flex-wrap gap-1.5">
-              {TABS.map(tab => { const Icon = tab.icon; return <button key={tab.id} onClick={() => { setActiveTab(tab.id); setMobileOpen(false) }} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${activeTab === tab.id ? 'bg-button-primary text-white' : 'bg-gray-100 text-gray-600'}`}><Icon className="w-3 h-3" />{tab.label}</button> })}
+              {TABS.map(tab => { const Icon = tab.icon; return <button key={tab.id} onClick={() => { setActiveTab(tab.id); setMobileOpen(false) }} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-[10px] font-medium transition-all ${activeTab === tab.id ? 'bg-button-primary text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}><Icon className="w-3 h-3" />{tab.label}</button> })}
             </div>
           </motion.div>}
         </AnimatePresence>
@@ -2814,3 +3242,4 @@ export function OwnerDashboard() {
     </main>
   )
 }
+

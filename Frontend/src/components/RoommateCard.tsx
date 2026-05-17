@@ -3,7 +3,7 @@ import React, { useState } from 'react'
 import { motion } from 'framer-motion'
 import { MapPinIcon, BriefcaseIcon, CalendarIcon, ShieldCheckIcon, MessageCircleIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 
 interface RoommateCardProps {
   id: string

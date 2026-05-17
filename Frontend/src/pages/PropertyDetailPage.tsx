@@ -88,7 +88,7 @@ import {
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { PropertyCard } from '../components/PropertyCard'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 import { useFavorites } from '../contexts/FavoritesContext'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
@@ -485,7 +485,7 @@ function ReviewSection({ propertyId, propertyTitle }: { propertyId: string; prop
   }
 
   const handleDelete = async (id: string) => {
-    try { await fetch(`/api/reviews/${id}`, { method: 'DELETE' }).catch(() => {}) } finally { setReviews(prev => prev.filter(r => r._id !== id)); toast.success('Review deleted.') }
+    try { await fetch(`/api/reviews/${id}`, { method: 'DELETE' }).catch(() => {}) } finally { setReviews(prev => prev.filter(r => r._id !== id)); toast.error('Review deleted.') }
   }
 
   const handleEditSave = async (id: string) => {
@@ -878,7 +878,7 @@ export function PropertyDetailPage() {
             </ol>
           </nav>
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-            onClick={() => { toggleFavorite({ id: property.id, image: property.image, title: property.title, location: property.location, rent: property.rent, bedrooms: property.bedrooms, bathrooms: property.bathrooms, ownerName: property.ownerName, views: property.views, isPremium: property.isPremium }); toast.success(saved ? 'Removed from favorites' : 'Saved to favorites!') }}
+            onClick={() => { toggleFavorite({ id: property.id, image: property.image, title: property.title, location: property.location, rent: property.rent, bedrooms: property.bedrooms, bathrooms: property.bathrooms, ownerName: property.ownerName, views: property.views, isPremium: property.isPremium }); saved ? toast.removed('Removed from favorites') : toast.success('Saved to favorites!') }}
             className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border-2 transition-all ${saved ? 'bg-pink-500 border-pink-500 text-white' : 'bg-white border-pink-200 text-pink-600 hover:bg-pink-50 hover:border-pink-400'}`}>
             <HeartIcon className={`w-4 h-4 ${saved ? 'fill-white' : ''}`} />
             {saved ? 'Saved' : 'Save'}

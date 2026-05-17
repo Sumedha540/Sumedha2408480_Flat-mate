@@ -45,7 +45,7 @@ import {
   UserIcon, MailIcon, PhoneIcon as PhoneIconSolid, MapPinIcon, CameraIcon,
   ShieldCheckIcon, BedDoubleIcon, BathIcon, TrashIcon, BarChart2Icon,
   ThumbsUpIcon, ListIcon, SendIcon as SendIcon2, EyeIcon, MessageSquareIcon,
-  CheckIcon, SunIcon, MoonIcon,
+  CheckIcon, SunIcon, MoonIcon, FileTextIcon,
 } from 'lucide-react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -56,7 +56,7 @@ import { useTheme } from '../contexts/ThemeContext'
 import { useFavorites } from '../contexts/FavoritesContext'
 import { generateOwnerResponse, simulateTypingDelay } from '../utils/chatbot'
 import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '../utils/chatStorage'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const mockBookings = [
@@ -108,9 +108,8 @@ function formatMsgTime(dateStr: string): string {
 
 // ─── Inline Profile Settings ───────────────────────────────────────────────────
 function ProfileSettingsPanel() {
-  const { user } = useAuth()
-  const { isDark, toggleTheme } = useTheme()
-  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', phone: '', address: '', bio: '' })
+  const { user, updateUser } = useAuth()
+  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', phone: '', address: '' })
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -207,12 +206,6 @@ function ProfileSettingsPanel() {
       newErrors.name = 'Name is required'
     }
 
-    if (!form.email.trim()) {
-      newErrors.email = 'Email is required'
-    } else if (!validateEmail(form.email)) {
-      newErrors.email = 'Please enter a valid email address'
-    }
-
     if (form.phone && !validatePhone(form.phone)) {
       newErrors.phone = 'Phone number must be exactly 10 digits'
     }
@@ -234,12 +227,36 @@ function ProfileSettingsPanel() {
 
     // Save to localStorage
     try {
-      const profileData = {
-        form,
-        photo: profilePhoto,
-        updatedAt: new Date().toISOString()
-      }
+      const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+      const profileData = savedProfile ? JSON.parse(savedProfile) : {}
+      profileData.form = form
+      profileData.photo = profilePhoto
+      profileData.updatedAt = new Date().toISOString()
       localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
+      
+      // Update name in backend database
+      try {
+        const response = await fetch(`http://localhost:5000/api/users/email/${user?.email}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: form.name,
+            phone: form.phone,
+            address: form.address
+          })
+        })
+
+        if (response.ok) {
+          // Update the user context with new name
+          updateUser({ name: form.name, phone: form.phone })
+        } else {
+          console.warn('Failed to update user in database, but localStorage updated')
+        }
+      } catch (error) {
+        console.warn('Backend not available, profile saved to localStorage only:', error)
+      }
       
       // Dispatch custom event to notify other components
       window.dispatchEvent(new Event('profilePhotoUpdated'))
@@ -266,23 +283,23 @@ function ProfileSettingsPanel() {
   }
 
   return (
-    <motion.div initial={{ opacity:0, y:20 }} animate={{ opacity:1, y:0 }}>
-      <h2 className="text-xl font-bold text-primary dark:text-white mb-6">Profile Settings</h2>
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+      <h3 className="font-bold text-gray-900 dark:text-white mb-5">Tenant Profile</h3>
 
       {/* Avatar */}
-      <div className="flex items-center gap-5 mb-8 p-5 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+      <div className="flex items-center gap-6 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
         <div className="relative">
           {profilePhoto ? (
-            <img src={profilePhoto} alt="Profile" className="w-20 h-20 rounded-full object-cover" />
+            <img src={profilePhoto} alt="Profile" className="w-24 h-24 rounded-full object-cover shadow-lg" />
           ) : (
-            <div className="w-20 h-20 bg-button-primary rounded-full flex items-center justify-center text-white font-black text-2xl">
+            <div className="w-24 h-24 bg-button-primary rounded-full flex items-center justify-center text-white font-black text-3xl shadow-lg">
               {(user?.name || 'U').charAt(0)}
             </div>
           )}
           <button 
             onClick={() => fileInputRef.current?.click()}
-            className="absolute -bottom-1 -right-1 w-7 h-7 bg-button-primary rounded-full flex items-center justify-center border-2 border-white shadow-md hover:bg-button-primary/90 transition-colors">
-            <CameraIcon className="w-3.5 h-3.5 text-white" />
+            className="absolute bottom-0 right-0 w-8 h-8 bg-button-primary rounded-full flex items-center justify-center border-2 border-white shadow-md hover:bg-button-primary/90 transition-colors">
+            <CameraIcon className="w-4 h-4 text-white" />
           </button>
           <input
             ref={fileInputRef}
@@ -293,158 +310,439 @@ function ProfileSettingsPanel() {
           />
         </div>
         <div>
-          <p className="font-bold text-gray-900 dark:text-white">{user?.name}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{user?.role}</p>
-          <button 
-            onClick={() => fileInputRef.current?.click()}
-            className="text-xs text-button-primary font-semibold mt-1 hover:underline">
-            Change Photo
-          </button>
-          {profilePhoto && (
-            <button 
-              onClick={() => {
-                setProfilePhoto(null)
-                // Update localStorage immediately
-                try {
-                  const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
-                  if (savedProfile) {
-                    const parsed = JSON.parse(savedProfile)
-                    parsed.photo = null
-                    localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(parsed))
-                    window.dispatchEvent(new Event('profilePhotoUpdated'))
-                  }
-                } catch {}
-                toast('Photo removed', {
-                  style: {
-                    background: '#D1D5DB',
-                    color: '#374151',
-                  },
-                })
-              }}
-              className="text-xs text-red-500 font-semibold mt-1 ml-3 hover:underline">
-              Remove Photo
-            </button>
-          )}
+          <p className="font-bold text-gray-900 dark:text-white text-lg">{form.name || user?.name}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{user?.email}</p>
+          <p className="text-xs text-gray-400 mt-1">Click the camera icon to upload a new photo</p>
         </div>
       </div>
 
       {/* Form */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
-        {/* Name Field */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Full Name *</label>
-          <div className="relative">
-            <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input 
-              type="text" 
-              value={form.name} 
-              placeholder="Your full name"
-              onChange={e => {
-                setForm({...form, name: e.target.value})
-                if (errors.name) setErrors({...errors, name: ''})
-              }}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
-                errors.name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
-              }`} />
+      <div className="space-y-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {/* Name Field */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Full Name *</label>
+            <div className="relative">
+              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input 
+                type="text" 
+                value={form.name} 
+                placeholder="Your full name"
+                onChange={e => {
+                  setForm({...form, name: e.target.value})
+                  if (errors.name) setErrors({...errors, name: ''})
+                }}
+                className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                  errors.name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
+                }`} />
+            </div>
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
-          {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
-        </div>
 
-        {/* Email Field */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email *</label>
-          <div className="relative">
-            <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input 
-              type="email" 
-              value={form.email} 
-              placeholder="you@example.com"
-              onChange={e => {
-                setForm({...form, email: e.target.value})
-                if (errors.email) setErrors({...errors, email: ''})
-              }}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
-                errors.email ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
-              }`} />
+          {/* Email Field */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email (Cannot be changed)</label>
+            <div className="relative">
+              <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input 
+                type="email" 
+                value={form.email} 
+                placeholder="you@example.com"
+                disabled
+                className="w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed" />
+            </div>
           </div>
-          {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
-        </div>
 
-        {/* Phone Field */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Phone (10 digits)</label>
-          <div className="relative">
-            <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input 
-              type="tel" 
-              value={form.phone} 
-              placeholder="98XXXXXXXX"
-              maxLength={10}
-              inputMode="numeric"
-              onChange={e => handlePhoneChange(e.target.value)}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
-                errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
-              }`} />
+          {/* Phone Field */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Phone (10 digits)</label>
+            <div className="relative">
+              <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input 
+                type="tel" 
+                value={form.phone} 
+                placeholder="98XXXXXXXX"
+                maxLength={10}
+                inputMode="numeric"
+                onChange={e => handlePhoneChange(e.target.value)}
+                className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                  errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
+                }`} />
+            </div>
+            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+            {form.phone && !errors.phone && (
+              <p className="text-gray-400 text-xs mt-1">{form.phone.length}/10 digits</p>
+            )}
           </div>
-          {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-          {form.phone && !errors.phone && (
-            <p className="text-gray-400 text-xs mt-1">{form.phone.length}/10 digits</p>
-          )}
-        </div>
 
-        {/* Address Field */}
-        <div>
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Address *</label>
-          <div className="relative">
-            <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            <input 
-              type="text" 
-              value={form.address} 
-              placeholder="Your address"
-              onChange={e => {
-                setForm({...form, address: e.target.value})
-                if (errors.address) setErrors({...errors, address: ''})
-              }}
-              className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
-                errors.address ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
-              }`} />
+          {/* Address Field */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Address *</label>
+            <div className="relative">
+              <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input 
+                type="text" 
+                value={form.address} 
+                placeholder="Your address"
+                onChange={e => {
+                  setForm({...form, address: e.target.value})
+                  if (errors.address) setErrors({...errors, address: ''})
+                }}
+                className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                  errors.address ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
+                }`} />
+            </div>
+            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
           </div>
-          {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
         </div>
       </div>
 
-      <div className="mb-6">
-        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Bio</label>
-        <textarea value={form.bio} onChange={e => setForm({...form, bio: e.target.value})}
-          placeholder="Tell others about yourself..."
-          rows={3}
-          className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl text-sm focus:outline-none focus:border-button-primary resize-none transition-all" />
+      <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }} onClick={handleSave} disabled={saving}
+        className="mt-6 flex items-center gap-2 px-6 py-3 bg-button-primary text-white font-bold rounded-xl shadow-md hover:bg-button-primary/90 disabled:opacity-60 transition-all">
+        {saving ? <><motion.div animate={{ rotate:360 }} transition={{ duration:0.7, repeat:Infinity, ease:'linear' }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />Saving...</> : 'Save Changes'}
+      </motion.button>
+    </div>
+  )
+}
+
+// ─── Verification Settings Panel ───────────────────────────────────────────────
+function VerificationSettingsPanel() {
+  const { user } = useAuth()
+  const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified')
+  const [citizenshipDoc, setCitizenshipDoc] = useState<string | null>(null)
+  const [uploadingDoc, setUploadingDoc] = useState(false)
+  const [processingOCR, setProcessingOCR] = useState(false)
+  const [ocrData, setOcrData] = useState<{ name?: string; citizenshipNo?: string; dob?: string } | null>(null)
+  const [form, setForm] = useState({ name: user?.name || '' })
+
+  // Load verification data from localStorage
+  useEffect(() => {
+    const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+    if (savedProfile) {
+      try {
+        const parsed = JSON.parse(savedProfile)
+        setVerificationStatus(parsed.verificationStatus || 'unverified')
+        setCitizenshipDoc(parsed.citizenshipDoc || null)
+        setOcrData(parsed.ocrData || null)
+        if (parsed.form) {
+          setForm({ name: parsed.form.name || user?.name || '' })
+        }
+      } catch {}
+    }
+  }, [user?.email, user?.name])
+
+  // OCR Processing Function
+  const processOCR = async (imageData: string) => {
+    setProcessingOCR(true)
+    try {
+      // Dynamically import Tesseract
+      const Tesseract = await import('tesseract.js')
+      
+      const { data: { text } } = await Tesseract.recognize(
+        imageData,
+        'eng',
+        {
+          logger: (m) => {
+            if (m.status === 'recognizing text') {
+              console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`)
+            }
+          }
+        }
+      )
+
+      // Extract information from OCR text
+      const extractedData: { name?: string; citizenshipNo?: string; dob?: string } = {}
+      
+      // Try to extract name (usually after "Name:" or "नाम:")
+      const nameMatch = text.match(/(?:Name|नाम)[:\s]+([A-Za-z\s]+)/i)
+      if (nameMatch) {
+        extractedData.name = nameMatch[1].trim()
+      }
+
+      // Try to extract citizenship number
+      const citizenshipMatch = text.match(/(?:Citizenship|नागरिकता)\s*(?:No|नं)[:\s]*([0-9\-\/]+)/i)
+      if (citizenshipMatch) {
+        extractedData.citizenshipNo = citizenshipMatch[1].trim()
+      }
+
+      // Try to extract date of birth
+      const dobMatch = text.match(/(?:Date of Birth|जन्म मिति)[:\s]*([0-9\/\-]+)/i)
+      if (dobMatch) {
+        extractedData.dob = dobMatch[1].trim()
+      }
+
+      setOcrData(extractedData)
+      
+      // Save OCR data to localStorage
+      try {
+        const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+        const profileData = savedProfile ? JSON.parse(savedProfile) : {}
+        profileData.ocrData = extractedData
+        localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
+      } catch {}
+
+      toast.success('Document processed successfully!')
+      setProcessingOCR(false)
+      return extractedData
+    } catch (error) {
+      console.error('OCR Error:', error)
+      toast.error('Failed to process document. Please try again.')
+      setProcessingOCR(false)
+      return null
+    }
+  }
+
+  // Handle citizenship document upload
+  const handleCitizenshipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('File size must be less than 5MB')
+      return
+    }
+
+    // Check file type (only images for OCR)
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file for OCR processing')
+      return
+    }
+
+    setUploadingDoc(true)
+
+    // Convert to base64
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      const base64 = event.target?.result as string
+      setCitizenshipDoc(base64)
+      
+      // Save to localStorage
+      try {
+        const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+        const profileData = savedProfile ? JSON.parse(savedProfile) : {}
+        profileData.citizenshipDoc = base64
+        profileData.updatedAt = new Date().toISOString()
+        localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
+        
+        toast.success('Citizenship document uploaded successfully!')
+      } catch {}
+      
+      setUploadingDoc(false)
+
+      // Process OCR automatically
+      await processOCR(base64)
+    }
+    reader.onerror = () => {
+      toast.error('Failed to read file')
+      setUploadingDoc(false)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Submit for verification
+  const submitForVerification = async () => {
+    if (!citizenshipDoc) {
+      toast.error('Please upload your citizenship document')
+      return
+    }
+
+    setVerificationStatus('pending')
+    
+    // Save to localStorage
+    try {
+      const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+      const profileData = savedProfile ? JSON.parse(savedProfile) : {}
+      profileData.verificationStatus = 'pending'
+      profileData.citizenshipDoc = citizenshipDoc
+      profileData.ocrData = ocrData
+      profileData.submittedAt = new Date().toISOString()
+      localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
+      
+      // Notify admin with OCR data
+      const adminNotifs = JSON.parse(localStorage.getItem('fm_admin_notifs') || '[]')
+      localStorage.setItem('fm_admin_notifs', JSON.stringify([{
+        id: Date.now().toString(),
+        type: 'tenant_verification',
+        title: 'Tenant Verification Request',
+        msg: `${form.name} submitted citizenship for verification${ocrData?.citizenshipNo ? ` (Citizenship No: ${ocrData.citizenshipNo})` : ''}`,
+        time: 'Just now',
+        read: false,
+        tenantEmail: user?.email,
+        ocrData: ocrData,
+        timestamp: Date.now()
+      }, ...adminNotifs]))
+      
+      // Dispatch event to update verification status in sidebar
+      window.dispatchEvent(new Event('profilePhotoUpdated'))
+      
+      toast.success('Verification request submitted! Admin will review your document.')
+    } catch {
+      toast.error('Failed to submit verification request')
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+      <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center gap-2">
+          <ShieldCheckIcon className="w-5 h-5 text-button-primary"/>
+          <h3 className="font-bold text-gray-900 dark:text-white">Account Verification</h3>
+        </div>
+        {verificationStatus === 'verified' && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
+            <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <span className="text-xs font-bold text-green-700 dark:text-green-400">Verified</span>
+          </div>
+        )}
+        {verificationStatus === 'pending' && (
+          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
+            <ClockIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Pending</span>
+          </div>
+        )}
       </div>
 
-      {/* Security section */}
-      <div className="p-4 bg-blue-50 border border-blue-100 rounded-2xl mb-6 flex items-start gap-3">
-        <ShieldCheckIcon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="font-semibold text-blue-800 text-sm">Account Security</p>
-          <p className="text-blue-600 text-xs mt-0.5">Your account is verified and secure.</p>
-          <button className="text-xs text-blue-700 font-bold mt-1 hover:underline">Change Password</button>
-        </div>
-      </div>
+      {verificationStatus === 'unverified' || verificationStatus === 'rejected' ? (
+        <div className="space-y-4">
+          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
+            <div className="flex items-start gap-2">
+              <InfoIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Why verify your account?</p>
+                <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                  <li>• Build trust with property owners</li>
+                  <li>• Get a verified badge on your profile</li>
+                  <li>• Increase booking approval chances</li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
-      {/* Display Preferences */}
-      <div className="p-4 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl mb-6">
-        <div className="flex items-center gap-2 mb-3">
-          <SunIcon className="w-4 h-4 text-button-primary"/>
-          <p className="font-semibold text-gray-800 dark:text-white text-sm">Display Preferences</p>
+          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <p className="text-sm font-semibold text-gray-900 dark:text-white">Citizenship Document</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Upload your citizenship card (front & back)</p>
+              </div>
+              {citizenshipDoc && (
+                <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+              )}
+            </div>
+            <label className="block">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleCitizenshipUpload}
+                className="hidden"
+                disabled={uploadingDoc || processingOCR}
+              />
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 rounded-lg cursor-pointer transition-colors border border-gray-200 dark:border-gray-500">
+                <FileTextIcon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
+                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                  {uploadingDoc ? 'Uploading...' : processingOCR ? 'Processing OCR...' : citizenshipDoc ? 'Change Document' : 'Upload Document'}
+                </span>
+              </div>
+            </label>
+
+            {/* OCR Extracted Data */}
+            {ocrData && (
+              <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
+                <div className="flex items-start gap-2 mb-2">
+                  <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs font-semibold text-green-900 dark:text-green-300">Document Information Extracted</p>
+                </div>
+                <div className="space-y-1 text-xs text-green-700 dark:text-green-400">
+                  {ocrData.name && <p>• Name: {ocrData.name}</p>}
+                  {ocrData.citizenshipNo && <p>• Citizenship No: {ocrData.citizenshipNo}</p>}
+                  {ocrData.dob && <p>• Date of Birth: {ocrData.dob}</p>}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <motion.button
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={submitForVerification}
+            disabled={!citizenshipDoc || uploadingDoc}
+            className="w-full px-4 py-3 bg-button-primary text-white font-bold rounded-xl text-sm hover:bg-button-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">
+            {uploadingDoc ? 'Uploading...' : 'Submit for Verification'}
+          </motion.button>
         </div>
-        <div className="flex items-center justify-between p-3 bg-white dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
+      ) : verificationStatus === 'pending' ? (
+        <div className="text-center py-8">
+          <ClockIcon className="w-12 h-12 text-amber-500 dark:text-amber-400 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Verification in Progress</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Admin is reviewing your document. This usually takes 24-48 hours.</p>
+        </div>
+      ) : (
+        <div className="text-center py-8">
+          <CheckCircleIcon className="w-12 h-12 text-green-500 dark:text-green-400 mx-auto mb-3" />
+          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Account Verified!</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Your account has been verified. You now have a verified badge.</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Display Preferences Panel ─────────────────────────────────────────────────
+function DisplayPreferencesPanel() {
+  const { isDark, toggleTheme } = useTheme()
+  const [fontSize, setFontSize] = useState<'small' | 'medium' | 'large'>(() => {
+    try {
+      const saved = localStorage.getItem('fm_font_size')
+      return (saved as 'small' | 'medium' | 'large') || 'medium'
+    } catch {
+      return 'medium'
+    }
+  })
+
+  const handleFontSizeChange = (size: 'small' | 'medium' | 'large') => {
+    setFontSize(size)
+    localStorage.setItem('fm_font_size', size)
+    
+    // Apply font size to document root
+    const root = document.documentElement
+    if (size === 'small') {
+      root.style.fontSize = '14px'
+    } else if (size === 'large') {
+      root.style.fontSize = '18px'
+    } else {
+      root.style.fontSize = '16px'
+    }
+    
+    toast.success(`Font size changed to ${size}`)
+  }
+
+  // Apply saved font size on mount
+  React.useEffect(() => {
+    const root = document.documentElement
+    if (fontSize === 'small') {
+      root.style.fontSize = '14px'
+    } else if (fontSize === 'large') {
+      root.style.fontSize = '18px'
+    } else {
+      root.style.fontSize = '16px'
+    }
+  }, [])
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <SunIcon className="w-5 h-5 text-button-primary"/>
+        <h3 className="font-bold text-gray-900 dark:text-white">Display Preferences</h3>
+      </div>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
               <MoonIcon className="w-4 h-4 text-button-primary"/>
             </div>
             <div>
-              <p className="text-sm font-medium text-gray-900 dark:text-white">Dark Mode</p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Switch to dark color scheme</p>
+              <p className="font-semibold text-gray-900 dark:text-white text-sm">Dark Mode</p>
+              <p className="text-xs text-gray-400">Switch to dark color scheme</p>
             </div>
           </div>
           <motion.button 
@@ -452,7 +750,6 @@ function ProfileSettingsPanel() {
             onClick={() => {
               toggleTheme()
               if (!isDark) {
-                // Enabling dark mode - green
                 toast('Dark mode enabled', {
                   style: {
                     background: '#2F7D5F',
@@ -460,7 +757,6 @@ function ProfileSettingsPanel() {
                   },
                 });
               } else {
-                // Disabling dark mode - light grey
                 toast('Dark mode disabled', {
                   style: {
                     background: '#D1D5DB',
@@ -476,13 +772,40 @@ function ProfileSettingsPanel() {
               className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
           </motion.button>
         </div>
-      </div>
 
-      <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }} onClick={handleSave} disabled={saving}
-        className="flex items-center gap-2 px-6 py-3 bg-button-primary text-white font-bold rounded-xl shadow-md hover:bg-button-primary/90 disabled:opacity-60 transition-all">
-        {saving ? <><motion.div animate={{ rotate:360 }} transition={{ duration:0.7, repeat:Infinity, ease:'linear' }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />Saving...</> : 'Save Changes'}
-      </motion.button>
-    </motion.div>
+        {/* Font Size Selector */}
+        <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-button-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+              </svg>
+            </div>
+            <div>
+              <p className="font-semibold text-gray-900 dark:text-white text-sm">Font Size</p>
+              <p className="text-xs text-gray-400">Adjust text size for readability</p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {(['small', 'medium', 'large'] as const).map((size) => (
+              <button
+                key={size}
+                onClick={() => handleFontSizeChange(size)}
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  fontSize === size
+                    ? 'bg-button-primary text-white shadow-sm'
+                    : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-500'
+                }`}>
+                {size === 'small' && 'A'}
+                {size === 'medium' && 'A'}
+                {size === 'large' && 'A'}
+                <span className="ml-1 capitalize">{size}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
 
@@ -505,6 +828,18 @@ export function TenantDashboard() {
     return null
   })
 
+  // Load verification status from localStorage
+  const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>(() => {
+    try {
+      const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+      if (savedProfile) {
+        const parsed = JSON.parse(savedProfile)
+        return parsed.verificationStatus || 'unverified'
+      }
+    } catch {}
+    return 'unverified'
+  })
+
   // Listen for profile updates
   useEffect(() => {
     const handleStorageChange = () => {
@@ -513,6 +848,7 @@ export function TenantDashboard() {
         if (savedProfile) {
           const parsed = JSON.parse(savedProfile)
           setProfilePhoto(parsed.photo || null)
+          setVerificationStatus(parsed.verificationStatus || 'unverified')
         }
       } catch {}
     }
@@ -742,6 +1078,7 @@ export function TenantDashboard() {
   const urlTab = searchParams.get('tab')
   const fromPage = searchParams.get('from') || 'properties'
   const [activeTab, setActiveTab] = useState(urlTab || 'overview')
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'verification' | 'display'>('profile')
 
   // Messages params from PropertyDetailPage / FindRoommatePage (must be declared before useEffect)
   const msgUserId        = searchParams.get('userId')        || undefined
@@ -851,12 +1188,7 @@ export function TenantDashboard() {
 
   const handleLogout = () => {
     logout()
-    toast('Signed out', {
-      style: {
-        background: '#D1D5DB',
-        color: '#374151',
-      },
-    })
+    toast.removed('Signed out')
     navigate('/')
   }
 
@@ -935,7 +1267,7 @@ export function TenantDashboard() {
                 <p className="text-gray-500 dark:text-gray-400 text-sm">{favorites.length} saved {favorites.length === 1 ? 'property' : 'properties'}</p>
               </div>
               {favorites.length > 0 && (
-                <button onClick={() => { clearFavorites(); toast.success('All favorites cleared') }}
+                <button onClick={() => { clearFavorites(); toast.error('All favorites cleared') }}
                   className="flex items-center gap-1.5 px-3 py-2 border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 text-sm font-semibold rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
                   <TrashIcon className="w-4 h-4" /> Clear All
                 </button>
@@ -1254,7 +1586,43 @@ export function TenantDashboard() {
         )
 
       case 'settings':
-        return <ProfileSettingsPanel />
+        return (
+          <motion.div initial={{ opacity:0, y:12 }} animate={{ opacity:1, y:0 }} className="flex gap-6 max-w-6xl">
+            
+            {/* Settings Sidebar */}
+            <div className="w-64 flex-shrink-0">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 sticky top-6">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-4 px-2">Settings</h3>
+                <nav className="space-y-1">
+                  {[
+                    { id: 'profile' as const, label: 'Profile', icon: UserIcon },
+                    { id: 'verification' as const, label: 'Verification', icon: ShieldCheckIcon },
+                    { id: 'display' as const, label: 'Display', icon: SunIcon },
+                  ].map(item => (
+                    <button 
+                      key={item.id} 
+                      onClick={() => setSettingsTab(item.id)}
+                      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+                        settingsTab === item.id
+                          ? 'bg-button-primary text-white shadow-sm'
+                          : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}>
+                      <item.icon className="w-4 h-4"/>
+                      <span className="font-medium text-sm">{item.label}</span>
+                    </button>
+                  ))}
+                </nav>
+              </div>
+            </div>
+
+            {/* Settings Content */}
+            <div className="flex-1 space-y-6">
+              {settingsTab === 'profile' && <ProfileSettingsPanel />}
+              {settingsTab === 'verification' && <VerificationSettingsPanel />}
+              {settingsTab === 'display' && <DisplayPreferencesPanel />}
+            </div>
+          </motion.div>
+        )
 
       default: // overview
         return (
@@ -1384,8 +1752,13 @@ export function TenantDashboard() {
                   {(user?.name || 'U').charAt(0)}
                 </div>
               )}
-              <div className="min-w-0">
-                <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{user?.name || 'User'}</p>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{user?.name || 'User'}</p>
+                  {verificationStatus === 'verified' && (
+                    <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" title="Verified Account" />
+                  )}
+                </div>
                 <p className="text-xs text-gray-400 capitalize">{user?.role || 'tenant'}</p>
               </div>
             </div>

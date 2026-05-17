@@ -186,6 +186,41 @@ router.put('/:id/approve', async (req, res) => {
       return res.status(404).json({ success: false, message: 'Property not found' });
     }
 
+    // Send notification to property owner
+    if (property.ownerId) {
+      try {
+        const User = (await import('../models/User.js')).default;
+        console.log('Looking for owner with ID:', property.ownerId);
+        const owner = await User.findById(property.ownerId);
+        
+        if (owner) {
+          const notification = {
+            id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'property_approved',
+            title: 'Property Approved',
+            message: `Your property "${property.title}" has been approved and is now live!`,
+            propertyId: property._id.toString(),
+            propertyTitle: property.title,
+            read: false,
+            createdAt: new Date()
+          };
+
+          owner.notifications = owner.notifications || [];
+          owner.notifications.unshift(notification); // Add to beginning
+          await owner.save();
+
+          console.log('✅ Notification sent to owner:', owner.email, 'Total notifications:', owner.notifications.length);
+        } else {
+          console.log('⚠️ Owner not found in database with ID:', property.ownerId);
+          console.log('Property owner details:', { ownerName: property.ownerName, ownerEmail: property.ownerEmail });
+        }
+      } catch (notifError) {
+        console.error('❌ Error sending notification:', notifError);
+      }
+    } else {
+      console.log('⚠️ Property has no ownerId:', property._id);
+    }
+
     console.log('Property approved:', property._id);
 
     res.json({ 
@@ -216,6 +251,41 @@ router.put('/:id/reject', async (req, res) => {
 
     if (!property) {
       return res.status(404).json({ success: false, message: 'Property not found' });
+    }
+
+    // Send notification to property owner
+    if (property.ownerId) {
+      try {
+        const User = (await import('../models/User.js')).default;
+        console.log('Looking for owner with ID:', property.ownerId);
+        const owner = await User.findById(property.ownerId);
+        
+        if (owner) {
+          const notification = {
+            id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            type: 'property_rejected',
+            title: 'Property Rejected',
+            message: `Your property "${property.title}" was rejected. Reason: ${reason || 'Not specified'}`,
+            propertyId: property._id.toString(),
+            propertyTitle: property.title,
+            read: false,
+            createdAt: new Date()
+          };
+
+          owner.notifications = owner.notifications || [];
+          owner.notifications.unshift(notification); // Add to beginning
+          await owner.save();
+
+          console.log('✅ Rejection notification sent to owner:', owner.email, 'Total notifications:', owner.notifications.length);
+        } else {
+          console.log('⚠️ Owner not found in database with ID:', property.ownerId);
+          console.log('Property owner details:', { ownerName: property.ownerName, ownerEmail: property.ownerEmail });
+        }
+      } catch (notifError) {
+        console.error('❌ Error sending notification:', notifError);
+      }
+    } else {
+      console.log('⚠️ Property has no ownerId:', property._id);
     }
 
     console.log('Property rejected:', property._id);

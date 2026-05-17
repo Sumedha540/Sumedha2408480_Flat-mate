@@ -1,25 +1,7 @@
 import express  from 'express'
-import mongoose from 'mongoose'
+import Booking from '../models/Booking.js'
 
 const router = express.Router()
-
-// ─── Booking Model ────────────────────────────────────────────────────────────
-const bookingSchema = new mongoose.Schema({
-  propertyId:    { type: String, required: true },
-  propertyTitle: { type: String, required: true },
-  ownerName:     { type: String, default: '' },
-  rent:          { type: Number, default: 0 },
-  paymentType:   { type: String, enum: ['advance', 'full', 'cash'], required: true },
-  amount:        { type: Number, default: 0 },
-  customerName:  { type: String, required: true },
-  customerEmail: { type: String, required: true },
-  customerPhone: { type: String, required: true },
-  moveInDate:    { type: String, default: '' },
-  receiptId:     { type: String, default: '' },
-  status:        { type: String, default: 'pending' },
-}, { timestamps: true })
-
-const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema)
 
 // // ─── Review Model (matches reviews.js schema) ─────────────────────────────────
 // const reviewSchema = new mongoose.Schema({

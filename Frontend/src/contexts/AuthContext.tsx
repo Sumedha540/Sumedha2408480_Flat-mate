@@ -19,6 +19,7 @@ interface AuthContextType {
   login: (name: string, role: UserRole, email?: string) => void;
   signup: (name: string, email: string, role: UserRole) => void;
   logout: () => void;
+  updateUser: (updates: Partial<User>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -62,6 +63,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('flatmate_token');
   };
 
+  const updateUser = (updates: Partial<User>) => {
+    if (user) {
+      const updatedUser = { ...user, ...updates };
+      setUser(updatedUser);
+      localStorage.setItem('flatmate_user', JSON.stringify(updatedUser));
+    }
+  };
+
   // Show loading state while checking for stored user
   if (loading) {
     return (
@@ -75,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

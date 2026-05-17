@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '../utils/chatStorage'
 import { useAuth } from '../contexts/AuthContext'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 
 function formatTime(date: Date): string {
   const diff = Date.now() - date.getTime()

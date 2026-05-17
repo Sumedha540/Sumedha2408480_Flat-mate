@@ -6,7 +6,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { MapPinIcon, BedDoubleIcon, BathIcon, HeartIcon, EyeIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 import { useFavorites } from '../contexts/FavoritesContext'
 
 export interface PropertyCardProps {
@@ -34,19 +34,9 @@ export function PropertyCard({
     e.stopPropagation()
     toggleFavorite({ id, image, title, location, rent, bedrooms, bathrooms, ownerName, views, isPremium })
     if (saved) {
-      toast.success('Removed from favorites', {
-        style: {
-          background: '#6B7280',
-          color: 'white',
-        },
-      })
+      toast.removed('Removed from favorites')
     } else {
-      toast.success('Saved to favorites!', {
-        style: {
-          background: '#2F7D5F',
-          color: 'white',
-        },
-      })
+      toast.success('Saved to favorites!')
     }
   }
 

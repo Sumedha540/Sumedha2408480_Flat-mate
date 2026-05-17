@@ -9,7 +9,7 @@ import {
 import { RoommateCard } from '../components/RoommateCard'
 import { Card } from '../components/ui/Card'
 import { Link, useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 import { allRoommates } from '../utils/roommateData'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────

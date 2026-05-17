@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { EyeIcon, EyeOffIcon, XIcon, MailIcon, LockIcon, UserIcon, CheckCircleIcon, CheckIcon } from 'lucide-react';
 import { useAuth, UserRole } from '../../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '../../utils/toast';
 
 const GOOGLE_CLIENT_ID = ((import.meta as any).env || {}).VITE_GOOGLE_CLIENT_ID || '';
 

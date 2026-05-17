@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 import {
   MailIcon, LockIcon, EyeIcon, EyeOffIcon,
   CheckCircleIcon, ArrowLeftIcon, ShieldCheckIcon,

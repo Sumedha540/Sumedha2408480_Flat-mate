@@ -61,6 +61,7 @@ import propertyRoutes from './routes/properties.js'
 import messageRoutes from './routes/messages.js'
 import userRoutes from './routes/users.js'
 import contactRoutes from './routes/contact.js'
+import historyRoutes from './routes/history.js'
 
 connectDB();
 
@@ -86,6 +87,7 @@ app.use('/api/properties', propertyRoutes);
 app.use('/api/messages', messageRoutes);
 app.use('/api/users', userRoutes)
 app.use('/api/contact', contactRoutes)
+app.use('/api/history', historyRoutes)
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

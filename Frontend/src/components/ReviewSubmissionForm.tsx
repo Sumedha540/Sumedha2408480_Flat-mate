@@ -6,7 +6,7 @@ import {
   SendIcon, AlertTriangleIcon, CheckCircleIcon, XIcon,
   QuoteIcon, ThumbsUpIcon, SparklesIcon,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 
 const BANNED_WORDS = [
   'stupid','idiot',

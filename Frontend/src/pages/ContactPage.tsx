@@ -78,7 +78,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 // Office coordinates (Kathmandu, Nepal)
 const OFFICE_LAT = 27.7172;
 const OFFICE_LNG = 85.3240;

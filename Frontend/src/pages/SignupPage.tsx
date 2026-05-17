@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, UserRole } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 import {
   ShieldCheckIcon, UsersIcon, HomeIcon,
   UserIcon, MailIcon, LockIcon,

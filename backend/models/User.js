@@ -11,6 +11,7 @@ const userSchema = new mongoose.Schema(
     },
     password:  { type: String, required: true },
     phone: { type: String, default: null },
+    address: { type: String, default: null },
     role: {
       type: String,
       enum: ['tenant', 'landlord', 'admin'],
@@ -30,10 +31,24 @@ const userSchema = new mongoose.Schema(
     // Google OAuth
     isGoogleUser: { type: Boolean, default: false },
     googleId:     { type: String,  default: null },
+
+    // Admin actions
+    blocked:      { type: Boolean, default: false },
+    blockReason:  { type: String,  default: null },
+
+    // Notifications
+    notifications: [{
+      id: { type: String, required: true },
+      type: { type: String, required: true }, // 'property_approved', 'property_rejected', 'booking', etc.
+      title: { type: String, required: true },
+      message: { type: String, required: true },
+      propertyId: { type: String, default: null },
+      propertyTitle: { type: String, default: null },
+      read: { type: Boolean, default: false },
+      createdAt: { type: Date, default: Date.now }
+    }],
   },
   { timestamps: true }
 );
-
-userSchema.index({ email: 1 });
 
 export default mongoose.model('User', userSchema);

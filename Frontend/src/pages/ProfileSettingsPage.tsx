@@ -20,7 +20,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Badge } from '../components/ui/Badge';
 import { useAuth, UserRole } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 export function ProfileSettingsPage() {
   const {
     user,

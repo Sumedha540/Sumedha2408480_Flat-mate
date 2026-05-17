@@ -18,7 +18,7 @@ import { EyeIcon, EyeOffIcon, XIcon, MailIcon, LockIcon, UserIcon, PhoneIcon, Bu
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 export function BeOwnerPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');

@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, MailIcon, ArrowLeftIcon, LockIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
-import { toast } from 'sonner';
+import { toast } from '../../utils/toast';
 
 interface ForgotPasswordModalProps {
   isOpen: boolean;

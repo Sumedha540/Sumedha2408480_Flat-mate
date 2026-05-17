@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { HeartIcon, TrashIcon, HomeIcon } from 'lucide-react'
 import { PropertyCard } from '../components/PropertyCard'
 import { Button } from '../components/ui/Button'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 import { useNavigate } from 'react-router-dom'
 import { useFavorites } from '../contexts/FavoritesContext'
 
@@ -24,7 +24,7 @@ export function FavoritesPage() {
 
   const handleClearAll = () => {
     clearAll()
-    toast.success('All favorites cleared', { icon: '🗑️' })
+    toast.error('All favorites cleared', { icon: '🗑️' })
   }
 
   return (

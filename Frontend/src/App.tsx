@@ -68,8 +68,16 @@ export function App() {
             <ScrollToTop />
             <Toaster
               position="top-right"
+              duration={4000}
+              visibleToasts={5}
+              closeButton={false}
               toastOptions={{
-                style: { background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: '12px' },
+                style: {
+                  padding: 0,
+                  background: 'transparent',
+                  border: 'none',
+                  boxShadow: 'none',
+                },
               }}
             />
             <div className="min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">

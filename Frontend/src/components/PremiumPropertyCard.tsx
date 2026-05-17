@@ -15,7 +15,7 @@ import {
   DownloadIcon,
   CreditCardIcon,
 } from 'lucide-react'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PremiumPropertyCardProps {
@@ -44,35 +44,57 @@ const PROPERTY_DETAILS = {
 }
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
-const PLANS = [
-  {
-    id: 'monthly',
-    label: 'Monthly',
-    amount: 1000,
-    display: 'NPR 1,000',
-    period: '/month',
-    save: '',
-    popular: false,
-  },
-  {
-    id: 'quarterly',
-    label: 'Quarterly',
-    amount: 2500,
-    display: 'NPR 2,500',
-    period: '/3 months',
-    save: 'Save 17%',
-    popular: true,
-  },
-  {
-    id: 'yearly',
-    label: 'Yearly',
-    amount: 9000,
-    display: 'NPR 9,000',
-    period: '/year',
-    save: 'Save 25%',
-    popular: false,
-  },
-]
+// Helper function to get pricing from localStorage
+const getPricingFromStorage = () => {
+  try {
+    const stored = localStorage.getItem('fm_subscription_pricing')
+    if (stored) {
+      const pricing = JSON.parse(stored)
+      return {
+        monthly: pricing.monthly || 999,
+        quarterly: pricing.quarterly || 2499,
+        yearly: pricing.yearly || 8999,
+      }
+    }
+  } catch (error) {
+    console.error('Error reading pricing from localStorage:', error)
+  }
+  return { monthly: 999, quarterly: 2499, yearly: 8999 }
+}
+
+const createPlans = () => {
+  const pricing = getPricingFromStorage()
+  return [
+    {
+      id: 'monthly',
+      label: 'Monthly',
+      amount: pricing.monthly,
+      display: `NPR ${pricing.monthly.toLocaleString()}`,
+      period: '/month',
+      save: '',
+      popular: false,
+    },
+    {
+      id: 'quarterly',
+      label: 'Quarterly',
+      amount: pricing.quarterly,
+      display: `NPR ${pricing.quarterly.toLocaleString()}`,
+      period: '/3 months',
+      save: 'Save 17%',
+      popular: true,
+    },
+    {
+      id: 'yearly',
+      label: 'Yearly',
+      amount: pricing.yearly,
+      display: `NPR ${pricing.yearly.toLocaleString()}`,
+      period: '/year',
+      save: 'Save 25%',
+      popular: false,
+    },
+  ]
+}
+
 
 // ─── PDF Receipt (opens print dialog — user saves as PDF) ─────────────────────
 function printReceipt(data: {
@@ -239,6 +261,14 @@ export function PremiumPropertyCard({ image, propertyId = PROPERTY_DETAILS.id }:
   const [orderTime, setOrderTime] = useState('')
   const [form,      setForm]      = useState({ name: '', email: '', phone: '' })
   const [isUnlocked, setIsUnlocked] = useState(false)  // Track if THIS property is unlocked
+  const [plans, setPlans] = useState(createPlans())  // Dynamic plans from localStorage
+
+  // Update plans when modal opens (in case admin changed pricing)
+  useEffect(() => {
+    if (open) {
+      setPlans(createPlans())
+    }
+  }, [open])
 
   // Check if THIS specific property is already unlocked (from localStorage)
   useEffect(() => {
@@ -254,7 +284,7 @@ export function PremiumPropertyCard({ image, propertyId = PROPERTY_DETAILS.id }:
     return () => { document.body.style.overflow = '' }
   }, [open])
 
-  const selectedPlan = PLANS.find(p => p.id === plan)!
+  const selectedPlan = plans.find(p => p.id === plan)!
 
   const handleCardClick = () => {
     // If already unlocked, navigate to property detail page
@@ -550,7 +580,7 @@ export function PremiumPropertyCard({ image, propertyId = PROPERTY_DETAILS.id }:
                           transition={{ duration: 0.22 }}
                           className="space-y-3"
                         >
-                          {PLANS.map(p => (
+                          {plans.map(p => (
                             <button
                               key={p.id}
                               type="button"

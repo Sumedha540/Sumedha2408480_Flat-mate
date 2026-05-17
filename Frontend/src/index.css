@@ -240,3 +240,29 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 ::-webkit-scrollbar-thumb:hover {
   background: #2F7D5F;
 }
+
+/* ─── Sonner Toast Styles ─────────────────────────────────────────────────── */
+
+/* Strip sonner's default wrapper styles — our SonnerToast component handles everything */
+[data-sonner-toast] {
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
+}
+
+[data-sonner-toaster] {
+  top: 1rem !important;
+  right: 1rem !important;
+}
+
+/* Hide sonner's default close button */
+[data-sonner-toast] [data-close-button] {
+  display: none !important;
+}
+
+[data-sonner-toaster] {
+  top: 1rem !important;
+  right: 1rem !important;
+}

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth, UserRole } from '../contexts/AuthContext';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 import {
   ShieldCheckIcon, UsersIcon, HomeIcon,
   MailIcon, LockIcon, EyeIcon, EyeOffIcon,
@@ -405,7 +405,25 @@ export function LoginPage() {
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-                        <div className="relative"><LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" /><input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" required autoComplete="current-password" className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-button-primary transition-colors text-sm" /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}</button></div>
+                        <div className="relative">
+                          <LockIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                          <input 
+                            type={showPassword ? 'text' : 'password'} 
+                            value={password} 
+                            onChange={e => setPassword(e.target.value)} 
+                            placeholder="Enter your password" 
+                            required 
+                            autoComplete="current-password" 
+                            className="w-full pl-10 pr-10 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-button-primary transition-colors text-sm" 
+                          />
+                          <button 
+                            type="button" 
+                            onClick={() => setShowPassword(!showPassword)} 
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                          >
+                            {showPassword ? <EyeOffIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
+                          </button>
+                        </div>
                       </div>
                       <label className="flex items-center gap-3 cursor-pointer">
                         <div className="relative flex-shrink-0 w-5 h-5">

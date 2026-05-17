@@ -7,7 +7,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 const TOTAL_STEPS = 5;
 export function PostPropertyPage() {
   const navigate = useNavigate();

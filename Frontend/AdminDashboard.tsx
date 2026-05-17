@@ -65,7 +65,10 @@ import {
   ChevronLeftIcon, ChevronRightIcon,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import { toast } from 'sonner'
+import { useTheme } from '../contexts/ThemeContext'
+import { toast } from '../utils/toast'
+import { AdminHistorySection } from '../components/AdminHistorySection'
+import { AddPropertyModalAdmin } from '../components/AddPropertyModalAdmin'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const ls  = (k: string, fb = '[]') => { try { return JSON.parse(localStorage.getItem(k) || fb) } catch { return JSON.parse(fb) } }
@@ -77,14 +80,14 @@ const saveBlockedOwners = (ids: string[]) => setLS('fm_blocked_owners', ids)
 
 // ─── Theme helpers ─────────────────────────────────────────────────────────────
 const THEMES: Record<string, { primary: string; button: string; label: string }> = {
-  green:  { primary:'#1A5C41', button:'#2F7D5F', label:'Forest Green' },
-  blue:   { primary:'#1E3A8A', button:'#2563EB', label:'Ocean Blue' },
-  purple: { primary:'#4C1D95', button:'#7C3AED', label:'Royal Purple' },
-  rose:   { primary:'#9F1239', button:'#E11D48', label:'Rose Red' },
-  amber:  { primary:'#92400E', button:'#D97706', label:'Golden Amber' },
+  lavender: { primary:'#7C3AED', button:'#A78BFA', label:'Lavender' },
+  ocean:    { primary:'#0C4A6E', button:'#0284C7', label:'Ocean Blue' },
+  purple:   { primary:'#6B21A8', button:'#9333EA', label:'Purple' },
+  emerald:  { primary:'#065F46', button:'#10B981', label:'Emerald Green' },
+  diamond:  { primary:'#475569', button:'#94A3B8', label:'Diamond' },
 }
 function applyTheme(key: string) {
-  const t = THEMES[key] || THEMES.green
+  const t = THEMES[key] || THEMES.emerald
   document.documentElement.style.setProperty('--color-primary', t.primary)
   document.documentElement.style.setProperty('--color-button-primary', t.button)
   setLS('fm_theme', { key })
@@ -177,7 +180,7 @@ function ProfitBarChart({ data }: { data:typeof MONTHLY_INCOME }) {
       {data.map((d,i) => (
         <div key={d.m} className="flex-1 flex flex-col items-center gap-0.5 group relative">
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
-            रू {(d.income/1000).toFixed(0)}K
+            NPR {(d.income/1000).toFixed(0)}K
           </div>
           <motion.div initial={{height:0}} animate={{height:`${(d.income/max)*100}%`}}
             transition={{delay:i*0.08,duration:0.6,ease:[0.16,1,0.3,1]}}
@@ -352,6 +355,7 @@ function AddUserModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(u:any)=>voi
   const validate = () => {
     const e: Record<string,string> = {}
     if (!form.firstName.trim()) e.firstName = 'First name required'
+    if (!form.lastName.trim()) e.lastName = 'Last name required'
     if (!form.email.trim() || !/\S+@\S+\.\S+/.test(form.email)) e.email = 'Valid email required'
     if (form.phone && !/^\+?[\d\s\-]{7,}$/.test(form.phone)) e.phone = 'Valid phone required'
     setErrors(e); return Object.keys(e).length === 0
@@ -361,13 +365,98 @@ function AddUserModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(u:any)=>voi
     e.preventDefault()
     if (!validate()) return
     setSaving(true)
+    
     try {
-      await new Promise(r=>setTimeout(r,700))
-      onAdd({...form, id:`u${Date.now()}`, joined:new Date().toISOString().split('T')[0], lastAccess:new Date().toISOString().split('T')[0], reports:0,billings:0,bookings:0,muted:false,blocked:false,archived:false,reportReason:''})
-      toast.success('User added successfully!')
-      onClose()
-    } catch { toast.error('Failed to add user') }
-    finally { setSaving(false) }
+      // Try to call backend API first
+      try {
+        const response = await fetch('http://localhost:5000/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            firstName: form.firstName,
+            lastName: form.lastName,
+            email: form.email,
+            phone: form.phone,
+            role: form.role,
+            status: form.status
+          }),
+          signal: AbortSignal.timeout(5000) // 5 second timeout
+        })
+
+        const data = await response.json()
+
+        if (response.ok && data.success) {
+          // Backend success - add user from backend response
+          onAdd(data.user)
+          toast.success('User added successfully! Default password: password123')
+          onClose()
+          return
+        } else {
+          // Backend returned error
+          console.error('Backend error:', data)
+          toast.error(data.message || 'Failed to add user')
+          setSaving(false)
+          return
+        }
+      } catch (fetchError) {
+        // Backend not available or endpoint not found - use local storage fallback
+        console.log('Backend unavailable, using local storage:', fetchError)
+        
+        // Create user object locally
+        const newUser = {
+          id: `local-${Date.now()}`,
+          _id: `local-${Date.now()}`,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          email: form.email,
+          phone: form.phone || 'N/A',
+          role: form.role,
+          status: form.status,
+          joined: new Date().toISOString().split('T')[0],
+          lastAccess: new Date().toISOString().split('T')[0],
+          reports: 0,
+          billings: 0,
+          bookings: 0,
+          muted: false,
+          blocked: false,
+          archived: false,
+          reportReason: '',
+          isGoogleUser: false,
+          isLocalUser: true // Flag to indicate this is a local user
+        }
+        
+        // Save to localStorage
+        try {
+          const existingUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
+          
+          // Check for duplicate email
+          if (existingUsers.some((u: any) => u.email.toLowerCase() === form.email.toLowerCase())) {
+            toast.error('Email already exists')
+            setSaving(false)
+            return
+          }
+          
+          existingUsers.push(newUser)
+          localStorage.setItem('fm_local_users', JSON.stringify(existingUsers))
+          
+          // Add to state
+          onAdd(newUser)
+          toast.success('User added successfully! (Stored locally - will sync when backend is restarted)')
+          onClose()
+        } catch (storageError) {
+          console.error('Storage error:', storageError)
+          toast.error('Failed to save user')
+          setSaving(false)
+        }
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error)
+      toast.error('An unexpected error occurred')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -383,7 +472,7 @@ function AddUserModal({ onClose, onAdd }: { onClose:()=>void; onAdd:(u:any)=>voi
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-3">
-            {[{k:'firstName',pl:'Ram',lbl:'First Name *'},{k:'lastName',pl:'Thapa',lbl:'Last Name'}].map(f=>(
+            {[{k:'firstName',pl:'Ram',lbl:'First Name *'},{k:'lastName',pl:'Thapa',lbl:'Last Name *'}].map(f=>(
               <div key={f.k}>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{f.lbl}</label>
                 <input value={(form as any)[f.k]} onChange={e=>setForm({...form,[f.k]:e.target.value})} placeholder={f.pl}
@@ -528,7 +617,7 @@ function UserDetailModal({ user, bookings, onClose }: { user:any; bookings:any[]
             <div className="bg-gray-50 rounded-xl p-3"><span className="text-gray-500">Last Access</span><p className="font-bold text-gray-900 mt-0.5">{daysSince(user.lastAccess)}</p></div>
           </div>
           <div className="grid grid-cols-3 gap-3">
-            {[{l:'Bookings',v:user.bookings,c:'bg-blue-50 text-blue-700'},{l:'Billings',v:user.billings,c:'bg-green-50 text-green-700'},{l:'Reports',v:user.reports,c:'bg-red-50 text-red-700'}].map(s=>(
+            {[{l:'Bookings',v:ub.length,c:'bg-blue-50 text-blue-700'},{l:'Billings',v:user.billings,c:'bg-green-50 text-green-700'},{l:'Reports',v:user.reports,c:'bg-red-50 text-red-700'}].map(s=>(
               <div key={s.l} className={`${s.c} rounded-xl p-3 text-center`}>
                 <p className="text-xl font-black">{s.v}</p>
                 <p className="text-xs font-semibold">{s.l}</p>
@@ -566,6 +655,7 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
   const [galleryOpen, setGalleryOpen] = useState(false)
   const [galleryIndex, setGalleryIndex] = useState(0)
   const [galleryImages, setGalleryImages] = useState<string[]>([])
+  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
 
   // Keyboard navigation for gallery
   useEffect(() => {
@@ -617,15 +707,18 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
     return () => clearInterval(interval);
   }, []);
 
-  const updateStatus = async (propId: string, status: 'approved' | 'rejected') => {
+  const updateStatus = async (propId: string, status: 'approved' | 'rejected', reason?: string) => {
     try {
       const endpoint = status === 'approved' 
         ? `http://localhost:5000/api/properties/${propId}/approve`
         : `http://localhost:5000/api/properties/${propId}/reject`;
       
+      const body = status === 'rejected' ? { reason: reason || 'Not specified' } : {};
+      
       const response = await fetch(endpoint, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
@@ -641,7 +734,7 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
           const ownerNotifs = ls('fm_owner_notifs');
           const notifMsg = status === 'approved' 
             ? `Your property "${property.title}" has been approved and is now live!`
-            : `Your property "${property.title}" was not approved.`;
+            : `Your property "${property.title}" was rejected. Reason: ${reason || 'Not specified'}`;
           
           ownerNotifs.unshift({
             id: Date.now().toString(),
@@ -657,7 +750,9 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
         
         toast.success(`Property ${status}!`);
       } else {
-        toast.error('Failed to update property');
+        const errorData = await response.json();
+        console.error('Server error:', errorData);
+        toast.error(errorData.message || 'Failed to update property');
       }
     } catch (error: any) {
       console.error('Error updating property:', error);
@@ -698,13 +793,26 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {(['all', 'pending', 'approved', 'rejected'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-4 py-1.5 rounded-full text-xs font-semibold border-2 capitalize transition-all ${filter === f ? 'bg-button-primary text-white border-button-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-button-primary/40'}`}>
-            {f}{f === 'pending' && pendingCount > 0 ? ` (${pendingCount})` : ''}
-          </button>
-        ))}
+      <div className="flex gap-2 mb-4 flex-wrap items-center justify-between">
+        <div className="flex gap-2 flex-wrap">
+          {(['all', 'pending', 'approved', 'rejected'] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold border-2 capitalize transition-all ${filter === f ? 'bg-button-primary text-white border-button-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-button-primary/40'}`}>
+              {f}{f === 'pending' && pendingCount > 0 ? ` (${pendingCount})` : ''}
+            </button>
+          ))}
+        </div>
+        
+        {/* Add Property Button */}
+        <motion.button
+          whileHover={{ scale: 1.02 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={() => setShowAddPropertyModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-button-primary text-white rounded-xl text-sm font-bold hover:bg-button-primary/90 transition-all shadow-md"
+        >
+          <PlusIcon className="w-4 h-4" />
+          Add Property
+        </motion.button>
       </div>
 
       {/* Properties list */}
@@ -746,7 +854,7 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
                       {ownerBlocked && <span className="text-[10px] bg-red-100 text-red-600 font-bold px-2 py-0.5 rounded-full">Owner Blocked</span>}
                     </div>
                     <p className="text-xs text-gray-500 truncate">{p.location} · Owner: {p.ownerName || 'Unknown'}</p>
-                    <p className="text-xs text-button-primary font-semibold mt-0.5">रू {Number(p.rent).toLocaleString()}/mo · {p.type} · {p.beds || p.bedrooms || '?'} bed</p>
+                    <p className="text-xs text-button-primary font-semibold mt-0.5">NPR {Number(p.rent).toLocaleString()}/mo · {p.type} · {p.beds || p.bedrooms || '?'} bed</p>
                   </div>
 
                   {/* Status badge */}
@@ -770,7 +878,12 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
                           Approve
                         </motion.button>
                         <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                          onClick={() => updateStatus(p.id || p._id, 'rejected')}
+                          onClick={() => {
+                            const reason = window.prompt('Enter rejection reason (optional):');
+                            if (reason !== null) { // null means cancelled
+                              updateStatus(p.id || p._id, 'rejected', reason);
+                            }
+                          }}
                           className="px-3 py-1.5 bg-red-400 text-white text-xs font-bold rounded-xl hover:bg-red-500 transition-all">
                           Reject
                         </motion.button>
@@ -778,7 +891,12 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
                     )}
                     {isApproved && (
                       <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-                        onClick={() => updateStatus(p.id || p._id, 'rejected')}
+                        onClick={() => {
+                          const reason = window.prompt('Enter rejection reason (optional):');
+                          if (reason !== null) {
+                            updateStatus(p.id || p._id, 'rejected', reason);
+                          }
+                        }}
                         className="px-3 py-1.5 border border-red-200 text-red-600 text-xs font-semibold rounded-xl hover:bg-red-50 transition-all">
                         Revoke
                       </motion.button>
@@ -869,7 +987,7 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
                     {previewProperty.location}
                   </p>
                   <p className="text-2xl font-black text-button-primary mt-2">
-                    रू {Number(previewProperty.rent).toLocaleString()}<span className="text-sm font-normal text-gray-500">/month</span>
+                    NPR {Number(previewProperty.rent).toLocaleString()}<span className="text-sm font-normal text-gray-500">/month</span>
                   </p>
                 </div>
 
@@ -1043,8 +1161,11 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
                       </motion.button>
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                         onClick={() => {
-                          updateStatus(previewProperty.id || previewProperty._id, 'rejected');
-                          setPreviewProperty(null);
+                          const reason = window.prompt('Enter rejection reason (optional):');
+                          if (reason !== null) {
+                            updateStatus(previewProperty.id || previewProperty._id, 'rejected', reason);
+                            setPreviewProperty(null);
+                          }
                         }}
                         className="flex-1 py-3 bg-red-500 text-white font-bold rounded-xl hover:bg-red-600 transition-all">
                         ✗ Reject Property
@@ -1054,8 +1175,11 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
                   {previewProperty.status === 'approved' && (
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={() => {
-                        updateStatus(previewProperty.id || previewProperty._id, 'rejected');
-                        setPreviewProperty(null);
+                        const reason = window.prompt('Enter rejection reason (optional):');
+                        if (reason !== null) {
+                          updateStatus(previewProperty.id || previewProperty._id, 'rejected', reason);
+                          setPreviewProperty(null);
+                        }
                       }}
                       className="flex-1 py-3 border-2 border-red-500 text-red-600 font-bold rounded-xl hover:bg-red-50 transition-all">
                       Revoke Approval
@@ -1131,6 +1255,19 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
           </div>
         )}
       </AnimatePresence>
+      
+      {/* Add Property Modal */}
+      <AnimatePresence>
+        {showAddPropertyModal && (
+          <AddPropertyModalAdmin
+            onClose={() => setShowAddPropertyModal(false)}
+            onAdd={(newProperty) => {
+              setProperties(prev => [newProperty, ...prev])
+              toast.success('Property added successfully!')
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -1139,6 +1276,19 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
 export function AdminDashboard() {
   const {user, logout} = useAuth()
   const navigate = useNavigate()
+
+  // Apply saved font size on mount
+  useEffect(() => {
+    const savedFontSize = localStorage.getItem('fm_font_size') || 'medium'
+    const root = document.documentElement
+    if (savedFontSize === 'small') {
+      root.style.fontSize = '14px'
+    } else if (savedFontSize === 'large') {
+      root.style.fontSize = '18px'
+    } else {
+      root.style.fontSize = '16px'
+    }
+  }, [])
 
   // Role verification - redirect if not admin
   useEffect(() => {
@@ -1158,9 +1308,36 @@ export function AdminDashboard() {
     }
   }, [user, navigate]);
 
+  // Show loading while checking auth
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-button-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Show access denied if not admin
+  if (user.role !== 'admin') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-red-600 text-xl font-bold mb-2">Access Denied</p>
+          <p className="text-gray-600">Redirecting...</p>
+        </div>
+      </div>
+    )
+  }
+
   const [activeTab, setActiveTab] = useState('overview')
   const [mobileOpen, setMobileOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [currentFontSize, setCurrentFontSize] = useState<'small' | 'medium' | 'large'>(() => {
+    return (localStorage.getItem('fm_font_size') || 'medium') as 'small' | 'medium' | 'large'
+  })
 
   // Users state
   const [users, setUsers] = useState(INIT_USERS)
@@ -1172,6 +1349,7 @@ export function AdminDashboard() {
   const [showAddUser, setShowAddUser] = useState(false)
   const [detailUser, setDetailUser] = useState<any>(null)
   const [blockModalUser, setBlockModalUser] = useState<any>(null)
+  const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
   const filterRef = useRef<HTMLDivElement>(null)
 
   // Fetch users from backend
@@ -1182,15 +1360,35 @@ export function AdminDashboard() {
         if (response.ok) {
           const data = await response.json();
           if (data.success && data.users) {
-            setUsers(data.users);
+            // Merge backend users with local users
+            const localUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
+            
+            // Filter out local users that might have been synced to backend
+            const uniqueLocalUsers = localUsers.filter((localUser: any) => 
+              !data.users.some((backendUser: any) => 
+                backendUser.email.toLowerCase() === localUser.email.toLowerCase()
+              )
+            )
+            
+            // Combine backend users with remaining local users
+            const allUsers = [...data.users, ...uniqueLocalUsers]
+            setUsers(allUsers);
           }
         } else {
           console.error('Failed to fetch users from backend');
-          // Keep using INIT_USERS as fallback
+          // Load local users only
+          const localUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
+          if (localUsers.length > 0) {
+            setUsers([...INIT_USERS, ...localUsers])
+          }
         }
       } catch (error) {
         console.error('Error fetching users:', error);
-        // Keep using INIT_USERS as fallback
+        // Load local users as fallback
+        const localUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
+        if (localUsers.length > 0) {
+          setUsers([...INIT_USERS, ...localUsers])
+        }
       }
     };
 
@@ -1201,8 +1399,21 @@ export function AdminDashboard() {
   }, []);
 
   // Bookings
-  const [bookings, setBookings] = useState<any[]>(() => getBookings())
+  const [bookings, setBookings] = useState<any[]>(() => {
+    const existingBookings = getBookings()
+    // Add timestamps to bookings that don't have them (migration)
+    const now = Date.now()
+    return existingBookings.map((b: any) => ({
+      ...b,
+      timestamp: b.timestamp || now - 86400000 // Default to 1 day ago for existing bookings
+    }))
+  })
   const [dismissedBookings, setDismissedBookings] = useState<string[]>(() => ls('fm_dismissed_bookings','[]'))
+  const [lastVisitedBookings, setLastVisitedBookings] = useState<number>(() => {
+    const stored = ls('fm_last_visited_bookings', '0')
+    // If never visited before, initialize to current time so existing bookings don't show as new
+    return stored === 0 ? Date.now() : stored
+  })
 
   // Requirements
   const [reqList, setReqList] = useState<any[]>(() => getRequirements())
@@ -1218,18 +1429,93 @@ export function AdminDashboard() {
 
   // Contact messages
   const [contactMessages, setContactMessages] = useState<any[]>([])
+  
+  // Properties (for account stats)
+  const [properties, setProperties] = useState<any[]>([])
   const [loadingMessages, setLoadingMessages] = useState(false)
   const [selectedMessage, setSelectedMessage] = useState<any>(null)
   const [showAllMessages, setShowAllMessages] = useState(false)
+  const [lastVisitedUsers, setLastVisitedUsers] = useState<number>(() => {
+    const stored = ls('fm_last_visited_users', '0')
+    // If never visited before, initialize to current time so existing users don't show as new
+    return stored === 0 ? Date.now() : stored
+  })
 
   // Theme & settings
-  const [theme, setTheme] = useState<string>(() => ls('fm_theme','{"key":"green"}').key || 'green')
-  const [darkMode, setDarkMode] = useState(false)
-  const [notifSound, setNotifSound] = useState(true)
-  const [compactView, setCompactView] = useState(false)
+  const [theme, setTheme] = useState<string>(() => ls('fm_theme','{"key":"emerald"}').key || 'emerald')
+  const { isDark, toggleTheme } = useTheme()
+  const [settingsTab, setSettingsTab] = useState<'theme'|'profile'|'notifications'|'subscription'>('theme')
+  const [subscriptionPricing, setSubscriptionPricing] = useState(() => ls('fm_subscription_pricing', '{"monthly":999,"quarterly":2499,"yearly":8999}'))
+  const [editingPricing, setEditingPricing] = useState(false)
+  const [tempPricing, setTempPricing] = useState(subscriptionPricing)
+  
+  // Profile editing states
+  const [profileForm, setProfileForm] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    role: 'admin',
+    phone: '',
+    profilePicture: ''
+  })
+  const [savingProfile, setSavingProfile] = useState(false)
 
   // Apply theme on mount
   useEffect(() => { applyTheme(theme) }, [theme])
+
+  // Initialize lastVisited timestamps in localStorage if they don't exist
+  useEffect(() => {
+    const storedBookings = ls('fm_last_visited_bookings', '0')
+    const storedUsers = ls('fm_last_visited_users', '0')
+    
+    if (storedBookings === 0) {
+      setLS('fm_last_visited_bookings', lastVisitedBookings)
+    }
+    if (storedUsers === 0) {
+      setLS('fm_last_visited_users', lastVisitedUsers)
+    }
+  }, [])
+
+  // Initialize profile form with user data from localStorage
+  useEffect(() => {
+    if (user) {
+      // Load from localStorage
+      const storedUser = JSON.parse(localStorage.getItem('flatmate_user') || '{}')
+      
+      setProfileForm({
+        firstName: storedUser.name?.split(' ')[0] || user.name?.split(' ')[0] || '',
+        lastName: storedUser.name?.split(' ').slice(1).join(' ') || user.name?.split(' ').slice(1).join(' ') || '',
+        email: storedUser.email || user.email || '',
+        role: storedUser.role || user.role || 'admin',
+        phone: storedUser.phone || (user as any).phone || '',
+        profilePicture: storedUser.profilePicture || (user as any).profilePicture || ''
+      })
+    }
+  }, [user])
+
+  // Fetch user ID from backend using email
+  const getUserId = async (): Promise<string | null> => {
+    if (!user?.email) return null
+
+    // Check if ID is already in user object
+    const userId = (user as any)?.id || (user as any)?._id
+    if (userId) return userId
+
+    // Fetch from backend using email
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/email/${encodeURIComponent(user.email)}`)
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.user) {
+          return data.user.id || data.user._id || null
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching user ID:', error)
+    }
+
+    return null
+  }
 
   // Fetch contact messages
   useEffect(() => {
@@ -1266,6 +1552,25 @@ export function AdminDashboard() {
     }
   }, [user])
 
+  // Fetch properties for overview stats
+  useEffect(() => {
+    const fetchProperties = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/properties/all')
+        if (response.ok) {
+          const data = await response.json()
+          setProperties(data.properties || [])
+        }
+      } catch (error) {
+        console.error('❌ Properties fetch error:', error)
+      }
+    }
+
+    if (user?.role === 'admin') {
+      fetchProperties()
+    }
+  }, [user])
+
   // Refresh bookings + admin notifs + contact messages every 5s
   useEffect(() => {
     const fetchContactMessagesRefresh = async () => {
@@ -1288,8 +1593,40 @@ export function AdminDashboard() {
       }
     }
 
+    const fetchPropertiesRefresh = async () => {
+      if (user?.role !== 'admin') return
+
+      try {
+        const response = await fetch('http://localhost:5000/api/properties/all')
+        if (response.ok) {
+          const data = await response.json()
+          setProperties(data.properties || [])
+        }
+      } catch (error) {
+        console.error('❌ Properties refresh error:', error)
+      }
+    }
+
     const id = setInterval(() => {
-      setBookings(getBookings())
+      const freshBookings = getBookings()
+      // Add timestamps to new bookings that don't have them
+      // But preserve existing timestamps to avoid marking old bookings as new
+      setBookings(prevBookings => {
+        const bookingsWithTimestamps = freshBookings.map((b: any) => {
+          // Check if this booking already exists in previous state
+          const existing = prevBookings.find((pb: any) => 
+            (pb.receiptId && pb.receiptId === b.receiptId) || 
+            (pb.propertyId && pb.propertyId === b.propertyId)
+          )
+          // If it exists, keep its timestamp; otherwise it's new, use current time
+          return {
+            ...b,
+            timestamp: existing?.timestamp || b.timestamp || Date.now()
+          }
+        })
+        return bookingsWithTimestamps
+      })
+      
       // Check for new property submissions from owners
       const ownerNotifs = ls('fm_admin_notifs')
       if (ownerNotifs.length > 0) {
@@ -1298,8 +1635,9 @@ export function AdminDashboard() {
           setAdminOwnerNotifs(ownerNotifs)
         }
       }
-      // Refresh contact messages
+      // Refresh contact messages and properties
       fetchContactMessagesRefresh()
+      fetchPropertiesRefresh()
     }, 5000)
     return () => clearInterval(id)
   }, [user])
@@ -1313,14 +1651,112 @@ export function AdminDashboard() {
     return () => document.removeEventListener('mousedown', fn)
   }, [])
 
+  // Track when admin visits bookings or users sections
+  useEffect(() => {
+    if (activeTab === 'bookings') {
+      const now = Date.now()
+      setLastVisitedBookings(now)
+      setLS('fm_last_visited_bookings', now)
+    } else if (activeTab === 'users') {
+      const now = Date.now()
+      setLastVisitedUsers(now)
+      setLS('fm_last_visited_users', now)
+    }
+  }, [activeTab])
+
+  // Profile picture upload handler
+  const handleProfilePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error('Image size must be less than 5MB')
+      return
+    }
+
+    const reader = new FileReader()
+    reader.onloadend = () => {
+      setProfileForm(prev => ({ ...prev, profilePicture: reader.result as string }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  // Save profile handler
+  const handleSaveProfile = async () => {
+    // Validation
+    if (!profileForm.firstName.trim() || !profileForm.lastName.trim()) {
+      toast.error('First name and last name are required')
+      return
+    }
+
+    setSavingProfile(true)
+    
+    try {
+      // Get user ID using the existing getUserId function
+      const userId = await getUserId()
+      
+      if (!userId) {
+        toast.error('Unable to retrieve user ID. Please try logging in again.')
+        setSavingProfile(false)
+        return
+      }
+
+      // Call backend API to update user profile
+      const response = await fetch(`http://localhost:5000/api/users/${userId}/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          firstName: profileForm.firstName,
+          lastName: profileForm.lastName,
+          phone: profileForm.phone,
+          profilePicture: profileForm.profilePicture
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to update profile')
+      }
+
+      // Update user data in localStorage with the response from backend
+      const authData = JSON.parse(localStorage.getItem('fm_auth') || '{}')
+      const updatedUser = {
+        ...authData.user,
+        name: `${profileForm.firstName} ${profileForm.lastName}`,
+        firstName: profileForm.firstName,
+        lastName: profileForm.lastName,
+        phone: profileForm.phone,
+        profilePicture: profileForm.profilePicture,
+        avatar: profileForm.profilePicture,
+        id: userId,
+        _id: userId
+      }
+      
+      // Update both localStorage keys
+      localStorage.setItem('flatmate_user', JSON.stringify(updatedUser))
+      authData.user = updatedUser
+      localStorage.setItem('fm_auth', JSON.stringify(authData))
+
+      toast.success('Profile updated successfully!')
+      setSavingProfile(false)
+      
+      // Reload page to reflect changes
+      setTimeout(() => {
+        window.location.reload()
+      }, 1000)
+    } catch (error: any) {
+      console.error('Error updating profile:', error)
+      toast.error(error.message || 'Failed to update profile')
+      setSavingProfile(false)
+    }
+  }
+
   const handleLogout = () => { 
     logout(); 
-    toast('Signed out', {
-      style: {
-        background: '#D1D5DB',
-        color: '#374151',
-      },
-    }); 
+    toast.removed('Signed out'); 
     navigate('/login') 
   }
 
@@ -1329,19 +1765,55 @@ export function AdminDashboard() {
     toast.success(`Theme changed to ${THEMES[key].label}!`)
   }
 
-  const blockOwner = (uid: string, reason = '') => {
+  const blockOwner = async (uid: string, reason = '') => {
     const u = users.find(x => x.id === uid)
     if (!u) return
     const isCurrentlyBlocked = u.blocked
     const newList = isCurrentlyBlocked ? blockedOwners.filter(b => b !== uid) : [...blockedOwners, uid]
     setBlockedOwners(newList)
     saveBlockedOwners(newList)
+    
     // Save name map
     const ownerMap: Record<string,string> = {}
     users.forEach(u => { if (u.role === 'owner') ownerMap[u.id] = `${u.firstName} ${u.lastName}` })
     setLS('fm_owner_name_map', ownerMap)
-    setUsers(prev => prev.map(x => x.id === uid ? { ...x, blocked: !x.blocked, reportReason: reason || x.reportReason } : x))
-    toast.success(isCurrentlyBlocked ? 'Owner unblocked — properties visible again' : 'Owner blocked — properties hidden from users')
+    
+    // Update local state
+    setUsers(prev => prev.map(x => x.id === uid ? { 
+      ...x, 
+      blocked: !x.blocked, 
+      blockReason: !x.blocked ? reason : '',
+      reportReason: reason || x.reportReason 
+    } : x))
+    
+    // Save to backend
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/${uid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          blocked: !isCurrentlyBlocked,
+          blockReason: !isCurrentlyBlocked ? reason : ''
+        })
+      })
+      
+      if (!response.ok) {
+        console.error('Failed to update block status in backend')
+      }
+    } catch (error) {
+      console.error('Error updating block status:', error)
+    }
+    
+    // Also save to localStorage as backup
+    const localUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
+    const updatedLocalUsers = localUsers.map((lu: any) => 
+      lu.id === uid ? { ...lu, blocked: !isCurrentlyBlocked, blockReason: !isCurrentlyBlocked ? reason : '' } : lu
+    )
+    localStorage.setItem('fm_local_users', JSON.stringify(updatedLocalUsers))
+    
+    toast.success(isCurrentlyBlocked ? 'User unblocked — access restored' : 'User blocked — access restricted')
   }
 
   const handleBlockFromReport = (uid: string, reason: string) => {
@@ -1352,16 +1824,77 @@ export function AdminDashboard() {
 
   const muteUser   = (uid: string) => setUsers(prev => prev.map(u => u.id === uid ? {...u, muted: !u.muted} : u))
   const archiveUser= (uid: string) => setUsers(prev => prev.map(u => u.id === uid ? {...u, archived: !u.archived} : u))
-  const deleteUser = (uid: string) => { 
-    setUsers(prev => prev.filter(u => u.id !== uid)); 
-    toast('User removed', {
-      style: {
-        background: '#6B7280',
-        color: 'white',
-      },
-    })
+  
+  const deleteUser = async (uid: string) => { 
+    try {
+      // Check if it's a local user
+      const user = users.find(u => u.id === uid)
+      if (user && user.isLocalUser) {
+        // Delete from localStorage
+        const localUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
+        const updatedLocalUsers = localUsers.filter((u: any) => u.id !== uid)
+        localStorage.setItem('fm_local_users', JSON.stringify(updatedLocalUsers))
+        
+        setUsers(prev => prev.filter(u => u.id !== uid))
+        toast('User removed', {
+          style: {
+            background: '#6B7280',
+            color: 'white',
+          },
+        })
+        return
+      }
+      
+      // Try to delete from backend
+      const response = await fetch(`http://localhost:5000/api/users/${uid}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        setUsers(prev => prev.filter(u => u.id !== uid))
+        toast('User removed', {
+          style: {
+            background: '#6B7280',
+            color: 'white',
+          },
+        })
+      } else {
+        toast.error('Failed to delete user')
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      // If backend fails, still remove from local state
+      setUsers(prev => prev.filter(u => u.id !== uid))
+      toast('User removed from local view', {
+        style: {
+          background: '#6B7280',
+          color: 'white',
+        },
+      })
+    }
   }
-  const approveUser= (uid: string) => { setUsers(prev => prev.map(u => u.id === uid ? {...u, status:'active'} : u)); toast.success('User approved') }
+  
+  const approveUser = async (uid: string) => { 
+    try {
+      const response = await fetch(`http://localhost:5000/api/users/${uid}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ isVerified: true })
+      })
+      
+      if (response.ok) {
+        setUsers(prev => prev.map(u => u.id === uid ? {...u, status:'active'} : u))
+        toast.success('User approved')
+      } else {
+        toast.error('Failed to approve user')
+      }
+    } catch (error) {
+      console.error('Error approving user:', error)
+      toast.error('Failed to approve user')
+    }
+  }
 
   const dismissBooking = (rid: string) => {
     const updated = [...dismissedBookings, rid]
@@ -1369,6 +1902,18 @@ export function AdminDashboard() {
     setLS('fm_dismissed_bookings', updated)
   }
   const visibleBookings = bookings.filter((b:any) => !dismissedBookings.includes(b.receiptId || b.propertyId || ''))
+  
+  // Calculate new bookings (only those added after last visit)
+  const newBookingsCount = visibleBookings.filter((b:any) => {
+    const bookingTime = b.timestamp || 0
+    return bookingTime > lastVisitedBookings
+  }).length
+  
+  // Calculate new users (only those added after last visit)
+  const newUsersCount = users.filter((u:any) => {
+    const userJoinedTime = new Date(u.joined).getTime()
+    return userJoinedTime > lastVisitedUsers
+  }).length
 
   const approveReq = (id: string) => {
     const updated = reqList.map((r:any) => r.id === id ? {...r, status:'approved'} : r)
@@ -1414,6 +1959,17 @@ export function AdminDashboard() {
   const totalExpense = MONTHLY_INCOME.reduce((s,m) => s+m.expense, 0)
   const profit       = totalIncome - totalExpense
   const pendingReqs  = reqList.filter((r:any) => r.status === 'pending').length
+  
+  // Calculate unread notifications count for admin
+  const clearedNotifs = ls('fm_admin_cleared_notifs', '[]') as string[]
+  const readNotifs = ls('fm_admin_read_notifs', '[]') as string[]
+  const pendingProperties = properties.filter(p => p.status === 'pending')
+  const visiblePendingProperties = pendingProperties.filter(p => 
+    !clearedNotifs.includes(p.id || p._id)
+  )
+  const unreadNotificationsCount = visiblePendingProperties.filter(p => 
+    !readNotifs.includes(p.id || p._id)
+  ).length
 
   const TABS = [
     {id:'overview',  label:'Overview',   icon:HomeIcon},
@@ -1421,7 +1977,8 @@ export function AdminDashboard() {
     {id:'bookings',  label:'Bookings',   icon:CalendarIcon},
     {id:'properties',label:'Properties', icon:BuildingIcon},
     {id:'analytics', label:'Analytics',  icon:BarChart3Icon},
-    {id:'alerts',    label:'Security',   icon:ShieldAlertIcon},
+    {id:'history',   label:'History',    icon:ClockIcon},
+    {id:'alerts',    label:'Notifications',   icon:BellIcon},
     {id:'settings',  label:'Settings',   icon:SettingsIcon},
   ]
 
@@ -1432,7 +1989,8 @@ export function AdminDashboard() {
     bookings:   {title:`Hello, ${user?.name?.split(' ')[0] || 'Admin'} `, sub:'View and manage all bookings'},
     properties: {title:`Hello, ${user?.name?.split(' ')[0] || 'Admin'} `, sub:'Property listing management'},
     analytics:  {title:`Hello, ${user?.name?.split(' ')[0] || 'Admin'} `, sub:'Platform analytics and insights'},
-    alerts:     {title:`Hello, ${user?.name?.split(' ')[0] || 'Admin'} `, sub:'Security alerts and monitoring'},
+    history:    {title:`Hello, ${user?.name?.split(' ')[0] || 'Admin'} `, sub:'Full platform activity and transaction history'},
+    alerts:     {title:`Hello, ${user?.name?.split(' ')[0] || 'Admin'} `, sub:'Recent alerts and updates'},
     settings:   {title:`Hello, ${user?.name?.split(' ')[0] || 'Admin'} `, sub:'Customize your dashboard'},
   }
 
@@ -1445,14 +2003,15 @@ export function AdminDashboard() {
         {/* KPI — soft pastel gradient cards */}
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
           {[
-            {label:'Total Users',    value:users.length,          icon:UsersIcon,        bg:'bg-gradient-to-br from-blue-50 to-sky-100',     ic:'bg-blue-100 text-blue-600',   border:'border-blue-100',  vc:'text-blue-800',  sub:'↑ 12% this month'},
-            {label:'Active Bookings',value:visibleBookings.length, icon:CalendarIcon,    bg:'bg-gradient-to-br from-pink-50 to-rose-100',    ic:'bg-pink-100 text-pink-600',   border:'border-pink-100',  vc:'text-pink-800',  sub:`${visibleBookings.filter((b:any)=>b.status==='confirmed').length} confirmed`},
-            {label:'Monthly Profit', value:`रू ${(profit/1000).toFixed(0)}K`,icon:DollarSignIcon, bg:'bg-gradient-to-br from-amber-50 to-yellow-100',ic:'bg-amber-100 text-amber-600', border:'border-amber-100', vc:'text-amber-800', sub:'↑ 8.3% vs last month'},
-            {label:'Pending Review', value:pendingReqs,            icon:ClipboardListIcon,bg:'bg-gradient-to-br from-green-50 to-emerald-100',ic:'bg-green-100 text-green-600', border:'border-green-100',  vc:'text-green-800', sub:'requirements awaiting'},
+            {label:'Total Users',    value:users.length,          icon:UsersIcon,        bg:'bg-gradient-to-br from-blue-50 to-sky-100',     ic:'bg-blue-100 text-blue-600',   border:'border-blue-100',  vc:'text-blue-800',  sub:'↑ 12% this month', tab:'users'},
+            {label:'Active Bookings',value:visibleBookings.length, icon:CalendarIcon,    bg:'bg-gradient-to-br from-pink-50 to-rose-100',    ic:'bg-pink-100 text-pink-600',   border:'border-pink-100',  vc:'text-pink-800',  sub:`${visibleBookings.filter((b:any)=>b.status==='confirmed').length} confirmed`, tab:'bookings'},
+            {label:'Monthly Profit', value:`NPR ${(profit/1000).toFixed(0)}K`,icon:DollarSignIcon, bg:'bg-gradient-to-br from-amber-50 to-yellow-100',ic:'bg-amber-100 text-amber-600', border:'border-amber-100', vc:'text-amber-800', sub:'↑ 8.3% vs last month', tab:null},
+            {label:'Total Properties', value:properties.length,            icon:BuildingIcon,bg:'bg-gradient-to-br from-green-50 to-emerald-100',ic:'bg-green-100 text-green-600', border:'border-green-100',  vc:'text-green-800', sub:'all listings', tab:'properties'},
           ].map((s,i) => (
             <motion.div key={s.label} initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} transition={{delay:i*0.07}}
               whileHover={{y:-3,boxShadow:'0 8px 24px rgba(0,0,0,0.07)'}}
-              className={`${s.bg} border ${s.border} rounded-2xl p-4 cursor-pointer transition-all`}>
+              onClick={()=>s.tab&&setActiveTab(s.tab)}
+              className={`${s.bg} border ${s.border} rounded-2xl p-4 ${s.tab?'cursor-pointer':'cursor-default'} transition-all`}>
               <div className="flex items-center justify-between mb-3">
                 <div className={`w-8 h-8 bg-white/80 rounded-xl flex items-center justify-center shadow-sm ${s.ic}`}>
                   <s.icon className="w-4 h-4"/>
@@ -1463,6 +2022,25 @@ export function AdminDashboard() {
               <p className="text-[10px] text-gray-500 mt-0.5 font-medium">{s.label}</p>
             </motion.div>
           ))}
+        </div>
+
+        {/* Quick Actions */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-sm font-bold text-gray-900 mb-1">Quick Actions</h3>
+              <p className="text-xs text-gray-600">Manage your platform efficiently</p>
+            </div>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowAddPropertyModal(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-button-primary text-white rounded-xl text-sm font-bold hover:bg-button-primary/90 transition-all shadow-md"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Add Property
+            </motion.button>
+          </div>
         </div>
 
         {/* Owner new property alert */}
@@ -1494,6 +2072,22 @@ export function AdminDashboard() {
             </div>
             <button onClick={()=>{setActiveTab('bookings');setAdminOwnerNotifs(prev=>prev.map((n:any)=>n.type==='booking'?{...n,read:true}:n));setLS('fm_admin_notifs',adminOwnerNotifs.map((n:any)=>n.type==='booking'?{...n,read:true}:n))}}
               className="px-3 py-1.5 bg-emerald-600 text-white text-[10px] font-bold rounded-lg hover:bg-emerald-700 transition-all">Review</button>
+          </motion.div>
+        )}
+
+        {/* Tenant verification alert */}
+        {adminOwnerNotifs.filter((n:any)=>n.type==='tenant_verification'&&!n.read).length>0&&(
+          <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}}
+            className="bg-amber-50 border border-amber-200 rounded-2xl p-3 flex items-center gap-3">
+            <div className="w-8 h-8 bg-amber-100 rounded-xl flex items-center justify-center flex-shrink-0">
+              <ShieldCheckIcon className="w-4 h-4 text-amber-600"/>
+            </div>
+            <div className="flex-1">
+              <p className="text-xs font-bold text-amber-800">{adminOwnerNotifs.filter((n:any)=>n.type==='tenant_verification'&&!n.read).length} tenant verification request(s)</p>
+              <p className="text-[10px] text-amber-600">{adminOwnerNotifs.find((n:any)=>n.type==='tenant_verification'&&!n.read)?.msg}</p>
+            </div>
+            <button onClick={()=>{setActiveTab('users');setAdminOwnerNotifs(prev=>prev.map((n:any)=>n.type==='tenant_verification'?{...n,read:true}:n));setLS('fm_admin_notifs',adminOwnerNotifs.map((n:any)=>n.type==='tenant_verification'?{...n,read:true}:n))}}
+              className="px-3 py-1.5 bg-amber-600 text-white text-[10px] font-bold rounded-lg hover:bg-amber-700 transition-all">Review</button>
           </motion.div>
         )}
 
@@ -1556,7 +2150,7 @@ export function AdminDashboard() {
               <h3 className="font-bold text-gray-900 text-sm">Total Income (P&L)</h3>
               <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">+18%</span>
             </div>
-            <p className="text-base font-black text-emerald-600 mb-0.5">रू {(profit/1000).toFixed(0)}K profit</p>
+            <p className="text-base font-black text-emerald-600 mb-0.5">NPR {(profit/1000).toFixed(0)}K profit</p>
             <div className="flex gap-4 text-xs mb-2">
               <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-emerald-500 rounded inline-block"/>Income</span>
               <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-red-300 rounded inline-block"/>Expense</span>
@@ -1685,6 +2279,95 @@ export function AdminDashboard() {
     // ── USERS ─────────────────────────────────────────────────────────────────
     case 'users': return (
       <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}>
+        {/* Pending Verification Requests */}
+        {adminOwnerNotifs.filter((n:any)=>n.type==='tenant_verification'&&n.tenantEmail).length>0&&(
+          <div className="mb-6 p-4 bg-amber-50 border-2 border-amber-200 rounded-2xl">
+            <div className="flex items-center gap-2 mb-4">
+              <ShieldCheckIcon className="w-5 h-5 text-amber-600"/>
+              <h3 className="font-bold text-amber-900">Pending Verification Requests ({adminOwnerNotifs.filter((n:any)=>n.type==='tenant_verification'&&n.tenantEmail).length})</h3>
+            </div>
+            <div className="space-y-3">
+              {adminOwnerNotifs.filter((n:any)=>n.type==='tenant_verification'&&n.tenantEmail).map((notif:any)=>{
+                const tenantProfile = JSON.parse(localStorage.getItem(`fm_profile_${notif.tenantEmail}`) || '{}')
+                return (
+                  <div key={notif.id} className="bg-white border border-amber-200 rounded-xl p-4">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <p className="font-bold text-gray-900">{tenantProfile.form?.name || 'Unknown User'}</p>
+                          <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full">Pending</span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-1">Email: {notif.tenantEmail}</p>
+                        <p className="text-xs text-gray-500">Submitted: {new Date(notif.timestamp).toLocaleString()}</p>
+                        
+                        {/* OCR Extracted Data */}
+                        {notif.ocrData && (
+                          <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
+                            <p className="text-xs font-semibold text-green-900 mb-2">Extracted Information (OCR):</p>
+                            <div className="space-y-1 text-xs text-green-700">
+                              {notif.ocrData.name && <p>• Name: {notif.ocrData.name}</p>}
+                              {notif.ocrData.citizenshipNo && <p>• Citizenship No: {notif.ocrData.citizenshipNo}</p>}
+                              {notif.ocrData.dob && <p>• Date of Birth: {notif.ocrData.dob}</p>}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="flex flex-col gap-2">
+                        {tenantProfile.citizenshipDoc && (
+                          <button
+                            onClick={() => {
+                              // Open document in new window
+                              const win = window.open()
+                              if (win) {
+                                win.document.write(`<img src="${tenantProfile.citizenshipDoc}" style="max-width:100%;height:auto;" />`)
+                              }
+                            }}
+                            className="px-3 py-1.5 bg-blue-600 text-white text-xs font-bold rounded-lg hover:bg-blue-700 transition-all">
+                            View Document
+                          </button>
+                        )}
+                        <button
+                          onClick={() => {
+                            // Approve verification
+                            const updatedProfile = { ...tenantProfile, verificationStatus: 'verified' }
+                            localStorage.setItem(`fm_profile_${notif.tenantEmail}`, JSON.stringify(updatedProfile))
+                            
+                            // Remove notification
+                            const updatedNotifs = adminOwnerNotifs.filter((n:any) => n.id !== notif.id)
+                            setAdminOwnerNotifs(updatedNotifs)
+                            setLS('fm_admin_notifs', updatedNotifs)
+                            
+                            toast.success('Tenant verified successfully!')
+                          }}
+                          className="px-3 py-1.5 bg-green-600 text-white text-xs font-bold rounded-lg hover:bg-green-700 transition-all">
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Reject verification
+                            const updatedProfile = { ...tenantProfile, verificationStatus: 'rejected' }
+                            localStorage.setItem(`fm_profile_${notif.tenantEmail}`, JSON.stringify(updatedProfile))
+                            
+                            // Remove notification
+                            const updatedNotifs = adminOwnerNotifs.filter((n:any) => n.id !== notif.id)
+                            setAdminOwnerNotifs(updatedNotifs)
+                            setLS('fm_admin_notifs', updatedNotifs)
+                            
+                            toast.error('Verification rejected')
+                          }}
+                          className="px-3 py-1.5 bg-red-600 text-white text-xs font-bold rounded-lg hover:bg-red-700 transition-all">
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Sub-tabs — green bg, white text when active; white bg, green text when inactive */}
         <div className="flex items-center gap-2 mb-5 pb-3 border-b border-gray-100 overflow-x-auto">
           {(['users','reviews','reports'] as const).map(t=>{
@@ -1754,7 +2437,7 @@ export function AdminDashboard() {
                       <input type="checkbox" checked={selected.length===filtered.length&&filtered.length>0} onChange={toggleAll}
                         className="w-4 h-4 rounded border-2 border-gray-300 checked:bg-button-primary checked:border-button-primary cursor-pointer"/>
                     </th>
-                    {['User','Email','Contact','Role','Status','Registered','Last Access','Actions'].map(h=>(
+                    {['User','Email','Contact','Role','Status','Registered','Last Access','Reason','Actions'].map(h=>(
                       <th key={h} className="p-3 text-left text-xs font-bold text-gray-500 uppercase tracking-wider whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -1784,7 +2467,7 @@ export function AdminDashboard() {
                         <td className="p-3 text-xs text-gray-500">{u.email}</td>
                         <td className="p-3 text-xs text-gray-500">{u.phone}</td>
                         <td className="p-3">
-                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='owner'?'bg-blue-100 text-blue-700':'bg-gray-100 text-gray-700'}`}>
+                          <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='owner'||u.role==='landlord'?'bg-orange-100 text-orange-700':'bg-green-100 text-green-700'}`}>
                             {u.role}
                           </span>
                         </td>
@@ -1793,6 +2476,15 @@ export function AdminDashboard() {
                         </td>
                         <td className="p-3 text-xs text-gray-400 whitespace-nowrap">{daysSince(u.joined)}</td>
                         <td className="p-3 text-xs text-gray-400 whitespace-nowrap">{daysSince(u.lastAccess)}</td>
+                        <td className="p-3 text-xs text-gray-500 max-w-xs">
+                          {u.blocked && u.blockReason ? (
+                            <span className="text-red-600 font-medium" title={u.blockReason}>
+                              {u.blockReason.length > 50 ? u.blockReason.substring(0, 50) + '...' : u.blockReason}
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">—</span>
+                          )}
+                        </td>
                         <td className="p-3">
                           <div className="flex items-center gap-1">
                             <button onClick={()=>setDetailUser(u)} title="View" className="p-1.5 text-gray-400 hover:text-button-primary hover:bg-button-primary/10 rounded-lg transition-colors"><EyeIcon className="w-3.5 h-3.5"/></button>
@@ -1831,7 +2523,7 @@ export function AdminDashboard() {
                   <p className="text-gray-600 text-xs">{r.comment}</p>
                   <div className="flex items-center justify-between mt-2">
                     <span className="text-[10px] text-gray-400">{r.time}</span>
-                    <button onClick={()=>toast.success('Review removed')} className="text-xs text-red-500 font-semibold hover:underline">Remove</button>
+                    <button onClick={()=>toast.removed('Review removed')} className="text-xs text-red-500 font-semibold hover:underline">Remove</button>
                   </div>
                 </div>
               </motion.div>
@@ -1846,13 +2538,13 @@ export function AdminDashboard() {
               <motion.div key={u.id} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:i*0.06}}
                 className="bg-white rounded-2xl border border-red-100 shadow-sm p-4">
                 <div className="flex items-start gap-3 mb-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-black text-white ${u.role==='owner'?'bg-blue-500':u.role==='admin'?'bg-purple-500':'bg-emerald-500'}`}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-black text-white ${u.role==='owner'||u.role==='landlord'?'bg-orange-500':u.role==='admin'?'bg-purple-500':'bg-green-500'}`}>
                     {u.firstName.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-bold text-gray-900 text-sm">{u.firstName} {u.lastName}</p>
-                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='owner'?'bg-blue-100 text-blue-700':'bg-emerald-100 text-emerald-700'}`}>{u.role}</span>
+                      <span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${u.role==='admin'?'bg-purple-100 text-purple-700':u.role==='owner'||u.role==='landlord'?'bg-orange-100 text-orange-700':'bg-green-100 text-green-700'}`}>{u.role}</span>
                       <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-red-100 text-red-700">{u.reports} report{u.reports>1?'s':''}</span>
                       {u.blocked&&<span className="text-xs font-bold px-2 py-0.5 rounded-full bg-gray-800 text-white">Blocked</span>}
                     </div>
@@ -1919,7 +2611,7 @@ export function AdminDashboard() {
                     <td className="p-3 text-xs text-gray-700 max-w-[150px] truncate">{b.propertyTitle}</td>
                     <td className="p-3 text-xs text-gray-700">{b.customerName}</td>
                     <td className="p-3"><span className={`text-xs font-bold px-2 py-0.5 rounded-full capitalize ${b.paymentType==='advance'?'bg-blue-100 text-blue-700':b.paymentType==='full'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-600'}`}>{b.paymentType||'cash'}</span></td>
-                    <td className="p-3 text-xs font-bold text-gray-900">{b.amount>0?`रू ${b.amount?.toLocaleString()}`:'Cash'}</td>
+                    <td className="p-3 text-xs font-bold text-gray-900">{b.amount>0?`NPR ${b.amount?.toLocaleString()}`:'Cash'}</td>
                     <td className="p-3"><span className={`text-xs font-bold px-2 py-0.5 rounded-full ${b.status==='confirmed'?'bg-green-100 text-green-700':'bg-amber-100 text-amber-700'}`}>{b.status}</span></td>
                     <td className="p-3 text-xs text-gray-400">{b.moveInDate}</td>
                     <td className="p-3">
@@ -1937,13 +2629,13 @@ export function AdminDashboard() {
         {visibleBookings.length>0&&(
           <div className="grid grid-cols-3 gap-4 mt-4">
             {[
-              {label:'Total Bookings',value:visibleBookings.length,color:'from-blue-500 to-blue-600'},
-              {label:'Confirmed',     value:visibleBookings.filter((b:any)=>b.status==='confirmed').length,color:'from-emerald-500 to-emerald-600'},
-              {label:'Total Revenue', value:`रू ${visibleBookings.reduce((s:number,b:any)=>s+(b.amount||0),0).toLocaleString()}`,color:'from-purple-500 to-purple-600'},
+              {label:'Total Bookings',value:visibleBookings.length,color:'from-blue-100 to-blue-200'},
+              {label:'Confirmed',     value:visibleBookings.filter((b:any)=>b.status==='confirmed').length,color:'from-green-100 to-green-200'},
+              {label:'Total Revenue', value:`NPR ${visibleBookings.reduce((s:number,b:any)=>s+(b.amount||0),0).toLocaleString()}`,color:'from-purple-100 to-purple-200'},
             ].map(s=>(
-              <div key={s.label} className={`bg-gradient-to-br ${s.color} rounded-2xl p-4 text-center text-white`}>
-                <p className="text-xl font-black">{s.value}</p>
-                <p className="text-xs font-semibold text-white/80">{s.label}</p>
+              <div key={s.label} className={`bg-gradient-to-br ${s.color} rounded-2xl p-4 text-center`}>
+                <p className="text-xl font-black text-gray-800">{s.value}</p>
+                <p className="text-xs font-semibold text-gray-600">{s.label}</p>
               </div>
             ))}
           </div>
@@ -1964,17 +2656,17 @@ export function AdminDashboard() {
         {/* Top KPIs */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            {label:'Total Revenue',value:`रू ${(totalIncome/1000).toFixed(0)}K`,icon:DollarSignIcon,color:'from-emerald-500 to-teal-600'},
-            {label:'Net Profit',   value:`रू ${(profit/1000).toFixed(0)}K`,     icon:TrendingUpIcon, color:'from-blue-500 to-indigo-600'},
-            {label:'Total Users',  value:users.length,                           icon:UsersIcon,      color:'from-purple-500 to-violet-600'},
-            {label:'Avg. Rating',  value:'4.3 ★',                                icon:StarIcon,       color:'from-amber-500 to-orange-600'},
+            {label:'Total Revenue',value:`NPR ${(totalIncome/1000).toFixed(0)}K`,icon:DollarSignIcon,color:'from-green-100 to-green-200'},
+            {label:'Net Profit',   value:`NPR ${(profit/1000).toFixed(0)}K`,     icon:TrendingUpIcon, color:'from-blue-100 to-blue-200'},
+            {label:'Total Users',  value:users.length,                           icon:UsersIcon,      color:'from-purple-100 to-purple-200'},
+            {label:'Avg. Rating',  value:'4.3 ★',                                icon:StarIcon,       color:'from-orange-100 to-orange-200'},
           ].map((s,i)=>(
             <motion.div key={s.label} initial={{opacity:0,y:16}} animate={{opacity:1,y:0}} transition={{delay:i*0.07}}
               whileHover={{y:-3,boxShadow:'0 8px 24px rgba(0,0,0,0.12)'}}
-              className={`bg-gradient-to-br ${s.color} rounded-2xl p-4 text-white shadow-sm`}>
-              <s.icon className="w-5 h-5 text-white/80 mb-2"/>
-              <p className="text-xl font-black">{s.value}</p>
-              <p className="text-xs text-white/70 mt-0.5">{s.label}</p>
+              className={`bg-gradient-to-br ${s.color} rounded-2xl p-4 shadow-sm`}>
+              <s.icon className="w-5 h-5 text-gray-600 mb-2"/>
+              <p className="text-xl font-black text-gray-800">{s.value}</p>
+              <p className="text-xs text-gray-600 mt-0.5">{s.label}</p>
             </motion.div>
           ))}
         </div>
@@ -2067,115 +2759,569 @@ export function AdminDashboard() {
       </motion.div>
     )
 
-    // ── SECURITY ──────────────────────────────────────────────────────────────
-    case 'alerts': return (
-      <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}>
-        <div className="space-y-3">
-          {ALERTS_INIT.map((a,i)=>(
-            <motion.div key={a.id} initial={{opacity:0,y:8}} animate={{opacity:1,y:0}} transition={{delay:i*0.07}}
-              className={`flex items-start gap-4 p-4 rounded-2xl border ${a.severity==='high'?'bg-red-50 border-red-200':a.severity==='medium'?'bg-amber-50 border-amber-200':'bg-blue-50 border-blue-200'}`}>
-              <AlertTriangleIcon className={`w-5 h-5 flex-shrink-0 mt-0.5 ${a.severity==='high'?'text-red-600':a.severity==='medium'?'text-amber-600':'text-blue-600'}`}/>
-              <div className="flex-1">
-                <p className="font-bold text-gray-900 text-sm">{a.msg}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{a.time}</p>
-              </div>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${a.severity==='high'?'bg-red-500 text-white':a.severity==='medium'?'bg-amber-500 text-white':'bg-blue-500 text-white'}`}>
-                {a.severity}
-              </span>
-            </motion.div>
-          ))}
-        </div>
+    // ── HISTORY ───────────────────────────────────────────────────────────────
+    case 'history': return (
+      <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} className="space-y-5">
+        <AdminHistorySection users={users} bookings={visibleBookings} properties={properties} totalIncome={totalIncome} profit={profit} />
       </motion.div>
     )
 
+    // ── NOTIFICATIONS ──────────────────────────────────────────────────────────────
+    case 'alerts': {
+      // Get pending properties that haven't been cleared
+      const clearedNotifs = ls('fm_admin_cleared_notifs', '[]') as string[]
+      const readNotifs = ls('fm_admin_read_notifs', '[]') as string[]
+      const pendingProperties = properties.filter(p => p.status === 'pending')
+      const visiblePendingProperties = pendingProperties.filter(p => 
+        !clearedNotifs.includes(p.id || p._id)
+      )
+      const unreadCount = visiblePendingProperties.filter(p => 
+        !readNotifs.includes(p.id || p._id)
+      ).length
+
+      const handleMarkAllRead = () => {
+        const allPendingIds = visiblePendingProperties.map(p => p.id || p._id)
+        const currentRead = ls('fm_admin_read_notifs', '[]') as string[]
+        const updatedRead = [...new Set([...currentRead, ...allPendingIds])]
+        setLS('fm_admin_read_notifs', updatedRead)
+        
+        toast('All notifications marked as read', {
+          style: {
+            background: '#2F7D5F',
+            color: 'white',
+          },
+        })
+        
+        // Force re-render
+        setActiveTab('alerts')
+      }
+
+      const handleClearAll = () => {
+        const allPendingIds = visiblePendingProperties.map(p => p.id || p._id)
+        const currentCleared = ls('fm_admin_cleared_notifs', '[]') as string[]
+        const updatedCleared = [...new Set([...currentCleared, ...allPendingIds])]
+        setLS('fm_admin_cleared_notifs', updatedCleared)
+        
+        toast('All notifications cleared', {
+          style: {
+            background: '#6B7280',
+            color: 'white',
+          },
+        })
+        
+        // Force re-render
+        setActiveTab('alerts')
+      }
+
+      return (
+        <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+              Notifications {unreadCount > 0 && (
+                <span className="ml-2 text-xs font-bold px-2 py-0.5 rounded-full bg-red-500 text-white">
+                  {unreadCount}
+                </span>
+              )}
+            </p>
+            {visiblePendingProperties.length > 0 && (
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleMarkAllRead}
+                  className="text-xs text-button-primary font-medium hover:underline">
+                  Mark all read
+                </button>
+                <span className="text-gray-300">|</span>
+                <button 
+                  onClick={handleClearAll}
+                  className="text-xs text-red-500 font-medium hover:underline">
+                  Clear all
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Pending Properties Notifications */}
+          {visiblePendingProperties.length === 0 ? (
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 border border-gray-100 dark:border-gray-700 shadow-sm text-center">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mx-auto mb-4">
+                <BellIcon className="w-8 h-8 text-gray-400 dark:text-gray-500" />
+              </div>
+              <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">No notifications</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">You're all caught up! Check back later for updates.</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {visiblePendingProperties.map((property, i) => {
+                const isRead = readNotifs.includes(property.id || property._id)
+                return (
+                  <motion.div 
+                    key={property.id || property._id} 
+                    initial={{opacity:0,y:8}} 
+                    animate={{opacity:1,y:0}} 
+                    transition={{delay:i*0.07}}
+                    className={`flex items-start gap-4 p-4 rounded-2xl border hover:shadow-md transition-all ${
+                      isRead 
+                        ? 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700' 
+                        : 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800'
+                    }`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                      isRead 
+                        ? 'bg-gray-200 dark:bg-gray-700' 
+                        : 'bg-amber-100 dark:bg-amber-900/30'
+                    }`}>
+                      <BuildingIcon className={`w-5 h-5 ${
+                        isRead 
+                          ? 'text-gray-500 dark:text-gray-400' 
+                          : 'text-amber-600 dark:text-amber-400'
+                      }`}/>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className={`font-bold text-sm mb-1 ${
+                        isRead 
+                          ? 'text-gray-600 dark:text-gray-400' 
+                          : 'text-gray-900 dark:text-white'
+                      }`}>
+                        New Property Pending Approval
+                      </p>
+                      <p className={`text-xs mb-2 ${
+                        isRead 
+                          ? 'text-gray-500 dark:text-gray-500' 
+                          : 'text-gray-700 dark:text-gray-300'
+                      }`}>
+                        <span className="font-semibold">{property.ownerName}</span> submitted: "{property.title}" in {property.location}
+                      </p>
+                      <div className={`flex items-center gap-2 text-xs ${
+                        isRead 
+                          ? 'text-gray-400 dark:text-gray-600' 
+                          : 'text-gray-500 dark:text-gray-400'
+                      }`}>
+                        <ClockIcon className="w-3 h-3" />
+                        <span>{new Date(property.createdAt).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${
+                        isRead 
+                          ? 'bg-gray-300 text-gray-600' 
+                          : 'bg-amber-500 text-white'
+                      }`}>
+                        Pending
+                      </span>
+                      <button
+                        onClick={() => {
+                          // Mark as read when clicking review
+                          const currentRead = ls('fm_admin_read_notifs', '[]') as string[]
+                          if (!currentRead.includes(property.id || property._id)) {
+                            setLS('fm_admin_read_notifs', [...currentRead, property.id || property._id])
+                          }
+                          setActiveTab('properties')
+                          // Need to set filter in properties panel - will be handled by parent state
+                        }}
+                        className="text-xs text-button-primary font-semibold hover:underline whitespace-nowrap">
+                        Review →
+                      </button>
+                    </div>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Info Box */}
+          {visiblePendingProperties.length > 0 && (
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+              <div className="flex items-start gap-3">
+                <AlertTriangleIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"/>
+                <div>
+                  <p className="font-semibold text-blue-900 dark:text-blue-300 text-sm mb-1">
+                    {visiblePendingProperties.length} {visiblePendingProperties.length === 1 ? 'Property' : 'Properties'} Awaiting Review
+                  </p>
+                  <p className="text-xs text-blue-700 dark:text-blue-400">
+                    These properties are waiting for your approval. Review them in the Properties section to approve or reject.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </motion.div>
+      )
+    }
+
     // ── SETTINGS ──────────────────────────────────────────────────────────────
     case 'settings': return (
-      <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} className="space-y-6 max-w-2xl">
-
-        {/* Theme Customization */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <PaletteIcon className="w-5 h-5 text-button-primary"/>
-            <h3 className="font-bold text-gray-900">Theme Color</h3>
-            <span className="text-xs text-gray-400 ml-auto">Changes entire website color</span>
-          </div>
-          <div className="grid grid-cols-5 gap-3">
-            {Object.entries(THEMES).map(([key,t])=>(
-              <motion.button key={key} whileHover={{scale:1.08}} whileTap={{scale:0.95}}
-                onClick={()=>handleThemeChange(key)}
-                className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${theme===key?'border-gray-800 shadow-md':'border-gray-200 hover:border-gray-400'}`}>
-                <div className="w-10 h-10 rounded-xl shadow-md" style={{background:`linear-gradient(135deg, ${t.primary}, ${t.button})`}}/>
-                <span className="text-[10px] font-semibold text-gray-600">{t.label}</span>
-                {theme===key&&<span className="text-[10px] bg-gray-900 text-white px-1.5 py-0.5 rounded-full font-bold">Active</span>}
-              </motion.button>
-            ))}
+      <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}} className="flex gap-6 max-w-6xl">
+        
+        {/* Settings Sidebar */}
+        <div className="w-64 flex-shrink-0">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-4 sticky top-6">
+            <h3 className="font-bold text-gray-900 dark:text-white mb-4 px-2">Settings</h3>
+            <nav className="space-y-1">
+              {[
+                {id:'theme' as const, label:'Theme', icon:PaletteIcon},
+                {id:'profile' as const, label:'Profile', icon:UsersIcon},
+                {id:'notifications' as const, label:'Notifications', icon:BellIcon},
+                {id:'subscription' as const, label:'Manage Subscription', icon:DollarSignIcon},
+              ].map(item=>(
+                <button key={item.id} onClick={()=>setSettingsTab(item.id)}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left ${
+                    settingsTab===item.id
+                      ?'bg-button-primary text-white shadow-sm'
+                      :'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}>
+                  <item.icon className="w-4 h-4"/>
+                  <span className="font-medium text-sm">{item.label}</span>
+                </button>
+              ))}
+            </nav>
           </div>
         </div>
 
-        {/* Display Preferences */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center gap-2 mb-5">
-            <SunIcon className="w-5 h-5 text-button-primary"/>
-            <h3 className="font-bold text-gray-900">Display Preferences</h3>
-          </div>
-          <div className="space-y-4">
-            {[
-              {label:'Dark Mode', desc:'Switch to dark color scheme', state:darkMode, toggle:()=>setDarkMode(v=>!v), icon:MoonIcon},
-              {label:'Compact View', desc:'Show more data with smaller spacing', state:compactView, toggle:()=>setCompactView(v=>!v), icon:BarChart3Icon},
-              {label:'Notification Sound', desc:'Play sound for new alerts', state:notifSound, toggle:()=>setNotifSound(v=>!v), icon:BellRingIcon},
-            ].map(s=>(
-              <div key={s.label} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
-                    <s.icon className="w-4 h-4 text-button-primary"/>
+        {/* Settings Content */}
+        <div className="flex-1 space-y-6">
+          
+          {/* THEME SECTION */}
+          {settingsTab==='theme'&&(
+            <>
+              {/* Display Preferences */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <SunIcon className="w-5 h-5 text-button-primary"/>
+                  <h3 className="font-bold text-gray-900 dark:text-white">Display Preferences</h3>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
+                        <MoonIcon className="w-4 h-4 text-button-primary"/>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">Dark Mode</p>
+                        <p className="text-xs text-gray-400">Switch to dark color scheme</p>
+                      </div>
+                    </div>
+                    <motion.button whileTap={{scale:0.9}} onClick={()=>{
+                      toggleTheme();
+                      setTimeout(() => {
+                        if (!isDark) {
+                          toast('Dark mode enabled', {
+                            style: {
+                              background: '#2F7D5F',
+                              color: 'white',
+                            },
+                          });
+                        } else {
+                          toast('Dark mode disabled', {
+                            style: {
+                              background: '#D1D5DB',
+                              color: '#374151',
+                            },
+                          });
+                        }
+                      }, 100);
+                    }}
+                      className={`w-12 h-6 rounded-full transition-all relative ${isDark?'bg-button-primary':'bg-gray-300 dark:bg-gray-600'}`}>
+                      <motion.div animate={{x: isDark ? 24 : 2}}
+                        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"/>
+                    </motion.button>
                   </div>
-                  <div>
-                    <p className="font-semibold text-gray-900 text-sm">{s.label}</p>
-                    <p className="text-xs text-gray-400">{s.desc}</p>
+
+                  {/* Font Size Selector */}
+                  <div className="p-3 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-8 h-8 bg-button-primary/10 rounded-lg flex items-center justify-center">
+                        <svg className="w-4 h-4 text-button-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">Font Size</p>
+                        <p className="text-xs text-gray-400">Adjust text size for readability</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      {(['small', 'medium', 'large'] as const).map((size) => {
+                        return (
+                          <button
+                            key={size}
+                            onClick={() => {
+                              localStorage.setItem('fm_font_size', size)
+                              setCurrentFontSize(size)
+                              const root = document.documentElement
+                              if (size === 'small') root.style.fontSize = '14px'
+                              else if (size === 'large') root.style.fontSize = '18px'
+                              else root.style.fontSize = '16px'
+                              toast.success(`Font size changed to ${size}`)
+                            }}
+                            className={`flex-1 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                              currentFontSize === size
+                                ? 'bg-button-primary text-white shadow-sm'
+                                : 'bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-500'
+                            }`}>
+                            <span className="capitalize">{size}</span>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
                 </div>
-                <motion.button whileTap={{scale:0.9}} onClick={()=>{s.toggle();toast.success(`${s.label} ${s.state?'disabled':'enabled'}`)}}
-                  className={`w-12 h-6 rounded-full transition-all relative ${s.state?'bg-button-primary':'bg-gray-300'}`}>
-                  <motion.div animate={{x: s.state ? 24 : 2}}
-                    className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"/>
-                </motion.button>
               </div>
-            ))}
-          </div>
-        </div>
+            </>
+          )}
 
-        {/* Admin Profile */}
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <h3 className="font-bold text-gray-900 mb-5">Admin Profile</h3>
-          <div className="space-y-3">
-            {[{label:'Full Name',val:user?.name||'Admin'},{label:'Email',val:user?.email||'admin@flatmate.com.np'},{label:'Role',val:'Administrator'}].map(f=>(
-              <div key={f.label}>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">{f.label}</label>
-                <input defaultValue={f.val} className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all bg-white"/>
-              </div>
-            ))}
-            <motion.button whileHover={{scale:1.01}} whileTap={{scale:0.98}}
-              onClick={()=>toast.success('Profile saved!')}
-              className="px-6 py-2.5 bg-button-primary text-white font-bold rounded-xl hover:bg-button-primary/90 text-sm transition-all">
-              Save Changes
-            </motion.button>
-          </div>
-        </div>
+          {/* PROFILE SECTION */}
+          {settingsTab==='profile'&&(
+            <>
+              {/* Profile Information */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+                <h3 className="font-bold text-gray-900 dark:text-white mb-5">Admin Profile</h3>
+                
+                {/* Profile Picture */}
+                <div className="flex items-center gap-6 mb-6 pb-6 border-b border-gray-100 dark:border-gray-700">
+                  <div className="relative">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-gradient-to-br from-button-primary to-primary flex items-center justify-center text-white text-3xl font-bold shadow-lg">
+                      {profileForm.profilePicture ? (
+                        <img src={profileForm.profilePicture} alt="Profile" className="w-full h-full object-cover"/>
+                      ) : (
+                        <span>{profileForm.firstName.charAt(0) || 'A'}</span>
+                      )}
+                    </div>
+                    <label htmlFor="profile-pic-upload" className="absolute bottom-0 right-0 w-8 h-8 bg-button-primary rounded-full flex items-center justify-center cursor-pointer hover:bg-button-primary/90 transition-all shadow-md">
+                      <PlusIcon className="w-4 h-4 text-white"/>
+                      <input id="profile-pic-upload" type="file" accept="image/*" onChange={handleProfilePictureUpload} className="hidden"/>
+                    </label>
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-900 dark:text-white text-lg">{profileForm.firstName} {profileForm.lastName}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{profileForm.email}</p>
+                    <p className="text-xs text-gray-400 mt-1">Click the + icon to upload a new photo</p>
+                  </div>
+                </div>
 
-        {/* Danger Zone */}
-        <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-6">
-          <h3 className="font-bold text-red-600 mb-4 flex items-center gap-2"><AlertTriangleIcon className="w-4 h-4"/>Danger Zone</h3>
-          <div className="space-y-3">
-            {[
-              {label:'Clear All Bookings', desc:'Remove all booking records from system', action:()=>{setLS('fm_bookings',[]);setBookings([]);toast.success('Bookings cleared')}},
-              {label:'Reset Blocked Owners', desc:'Unblock all blocked owners', action:()=>{saveBlockedOwners([]);setBlockedOwners([]);setUsers(prev=>prev.map(u=>({...u,blocked:false})));toast.success('All owners unblocked')}},
-            ].map(a=>(
-              <div key={a.label} className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
-                <div><p className="font-semibold text-gray-900 text-sm">{a.label}</p><p className="text-xs text-gray-400">{a.desc}</p></div>
-                <button onClick={a.action} className="px-3 py-1.5 bg-red-500 text-white text-xs font-bold rounded-lg hover:bg-red-600 transition-all">Execute</button>
+                {/* Profile Form */}
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">First Name</label>
+                      <input value={profileForm.firstName} onChange={(e)=>setProfileForm({...profileForm, firstName:e.target.value})}
+                        className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all"/>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Last Name</label>
+                      <input value={profileForm.lastName} onChange={(e)=>setProfileForm({...profileForm, lastName:e.target.value})}
+                        className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl text-sm focus:outline-none focus:border-button-primary transition-all"/>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email</label>
+                    <input 
+                      type="email" 
+                      value={profileForm.email} 
+                      readOnly
+                      disabled
+                      className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400 rounded-xl text-sm cursor-not-allowed"/>
+                    <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Role</label>
+                    <div className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-100 rounded-xl text-sm bg-gray-50">
+                      <span className="text-gray-700 dark:text-gray-300 font-medium">
+                        {profileForm.role === 'admin' ? 'Administrator' : profileForm.role === 'tenant' ? 'Tenant' : 'Landlord'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <motion.button whileHover={{scale:1.01}} whileTap={{scale:0.98}}
+                    onClick={handleSaveProfile}
+                    disabled={savingProfile}
+                    className="px-6 py-2.5 bg-button-primary text-white font-bold rounded-xl hover:bg-button-primary/90 text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                    {savingProfile ? 'Saving...' : 'Save Changes'}
+                  </motion.button>
+                </div>
               </div>
-            ))}
-          </div>
+            </>
+          )}
+
+          {/* NOTIFICATIONS SECTION */}
+          {settingsTab==='notifications'&&(
+            <>
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+                <div className="flex items-center gap-2 mb-5">
+                  <BellIcon className="w-5 h-5 text-button-primary"/>
+                  <h3 className="font-bold text-gray-900 dark:text-white">Notification Preferences</h3>
+                </div>
+                
+                <div className="space-y-3">
+                  {/* Property Approval Notification */}
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-all">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center">
+                        <BuildingIcon className="w-5 h-5 text-green-600 dark:text-green-400"/>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 dark:text-white text-sm">Property Approval Notifications</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Get notified when a new property is submitted for approval</p>
+                      </div>
+                    </div>
+                    <motion.button 
+                      whileTap={{scale:0.9}} 
+                      onClick={()=>{
+                        const currentValue = localStorage.getItem('fm_admin_notify_property_approval') === 'true';
+                        const newValue = !currentValue;
+                        localStorage.setItem('fm_admin_notify_property_approval', String(newValue));
+                        
+                        if (newValue) {
+                          toast('Property approval notifications enabled', {
+                            style: {
+                              background: '#2F7D5F',
+                              color: 'white',
+                            },
+                          });
+                        } else {
+                          toast('Property approval notifications disabled', {
+                            style: {
+                              background: '#6B7280',
+                              color: 'white',
+                            },
+                          });
+                        }
+                        
+                        // Force re-render
+                        setSettingsTab('notifications');
+                      }}
+                      className={`w-12 h-6 rounded-full transition-all relative ${
+                        localStorage.getItem('fm_admin_notify_property_approval') === 'true'
+                          ? 'bg-button-primary' 
+                          : 'bg-gray-300 dark:bg-gray-600'
+                      }`}>
+                      <motion.div 
+                        animate={{
+                          x: localStorage.getItem('fm_admin_notify_property_approval') === 'true' ? 24 : 2
+                        }}
+                        className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm"/>
+                    </motion.button>
+                  </div>
+                </div>
+
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangleIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"/>
+                    <div>
+                      <p className="font-semibold text-blue-900 dark:text-blue-300 text-sm mb-1">About Notifications</p>
+                      <p className="text-xs text-blue-700 dark:text-blue-400">
+                        When enabled, you'll receive notifications when property owners submit new properties for approval. 
+                        This helps you stay on top of pending approvals and respond quickly to property submissions.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* SUBSCRIPTION SECTION */}
+          {settingsTab==='subscription'&&(
+            <>
+              {/* Subscription Statistics */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-2">
+                    <DollarSignIcon className="w-5 h-5 text-button-primary"/>
+                    <h3 className="font-bold text-gray-900 dark:text-white">Subscription Overview</h3>
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    {label:'Active subscriptions', value:'24', icon:CheckCircleIcon, color:'text-green-600'},
+                    {label:'Monthly revenue', value:'₹23,976', icon:TrendingUpIcon, color:'text-blue-600'},
+                    {label:'Premium properties', value:'18', icon:StarIcon, color:'text-amber-600'},
+                  ].map(stat=>(
+                    <div key={stat.label} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                      <div className="flex items-center gap-2 mb-2">
+                        <stat.icon className={`w-4 h-4 ${stat.color}`}/>
+                        <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">{stat.label}</span>
+                      </div>
+                      <p className="text-xl font-bold text-gray-900 dark:text-white">{stat.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Pricing Management */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+                <div className="flex items-center justify-between mb-5">
+                  <h3 className="font-bold text-gray-900 dark:text-white">Premium Property Pricing</h3>
+                  {!editingPricing ? (
+                    <motion.button whileHover={{scale:1.02}} whileTap={{scale:0.98}}
+                      onClick={()=>{setEditingPricing(true);setTempPricing(subscriptionPricing)}}
+                      className="px-4 py-2 bg-button-primary text-white text-sm font-bold rounded-lg hover:bg-button-primary/90 transition-all">
+                      Edit Pricing
+                    </motion.button>
+                  ) : (
+                    <div className="flex gap-2">
+                      <motion.button whileHover={{scale:1.02}} whileTap={{scale:0.98}}
+                        onClick={()=>{
+                          setSubscriptionPricing(tempPricing);
+                          setLS('fm_subscription_pricing', tempPricing);
+                          setEditingPricing(false);
+                          toast.success('Pricing updated successfully!');
+                        }}
+                        className="px-4 py-2 bg-button-primary text-white text-sm font-bold rounded-lg hover:bg-button-primary/90 transition-all shadow-sm">
+                        Save Changes
+                      </motion.button>
+                      <motion.button whileHover={{scale:1.02}} whileTap={{scale:0.98}}
+                        onClick={()=>{setEditingPricing(false);setTempPricing(subscriptionPricing)}}
+                        className="px-4 py-2 bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-white text-sm font-bold rounded-lg hover:bg-gray-300 dark:hover:bg-gray-500 transition-all">
+                        Cancel
+                      </motion.button>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    {id:'monthly', label:'Monthly Plan', period:'per month', bg:'bg-gradient-to-br from-yellow-50 to-amber-100 dark:from-yellow-900/20 dark:to-amber-900/20', badge:''},
+                    {id:'quarterly', label:'Quarterly Plan', period:'per 3 months', bg:'bg-gradient-to-br from-blue-50 to-sky-100 dark:from-blue-900/20 dark:to-sky-900/20', badge:'Save 17%'},
+                    {id:'yearly', label:'Yearly Plan', period:'per year', bg:'bg-gradient-to-br from-pink-50 to-rose-100 dark:from-pink-900/20 dark:to-rose-900/20', badge:'Save 25%'},
+                  ].map(plan=>(
+                    <div key={plan.id} className={`p-5 rounded-xl transition-all ${plan.bg}`}>
+                      <div className="text-center mb-4">
+                        <h4 className="font-bold text-gray-900 dark:text-white text-sm mb-1">{plan.label}</h4>
+                        <p className="text-xs text-gray-400">{plan.period}</p>
+                        {plan.badge&&<span className="inline-block mt-2 px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 text-[10px] font-bold rounded-full">{plan.badge}</span>}
+                      </div>
+                      
+                      {editingPricing ? (
+                        <div className="space-y-2">
+                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400">Price (₹)</label>
+                          <input type="number" value={tempPricing[plan.id]}
+                            onChange={(e)=>setTempPricing({...tempPricing, [plan.id]:parseInt(e.target.value)||0})}
+                            className="w-full px-3 py-2 border-2 border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-lg text-center text-xl font-bold focus:outline-none focus:border-button-primary transition-all"/>
+                        </div>
+                      ) : (
+                        <div className="text-center">
+                          <p className="text-3xl font-black text-gray-900 dark:text-white">₹{subscriptionPricing[plan.id]}</p>
+                          <p className="text-xs text-gray-400 mt-1">{plan.period}</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangleIcon className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5"/>
+                    <div>
+                      <p className="font-semibold text-blue-900 dark:text-blue-300 text-sm mb-1">Pricing Information</p>
+                      <p className="text-xs text-blue-700 dark:text-blue-400">These prices apply to premium property listings. Owners can choose any plan to feature their properties with enhanced visibility and priority placement.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+
         </div>
       </motion.div>
     )
@@ -2187,10 +3333,10 @@ export function AdminDashboard() {
   const currentHeader = pageHeaderMap[activeTab] || pageHeaderMap.overview
 
   return (
-    <main className="min-h-screen bg-gray-50 flex">
+    <main className="min-h-screen bg-gray-50 dark:bg-gray-900 flex">
 
       {/* SIDEBAR */}
-      <aside className={`${sidebarCollapsed?'w-16':'w-64'} bg-white border-r border-gray-100 min-h-screen sticky top-0 hidden lg:flex flex-col transition-all duration-300 flex-shrink-0 z-20`}>
+      <aside className={`${sidebarCollapsed?'w-16':'w-64'} bg-white dark:bg-gray-800 border-r border-gray-100 dark:border-gray-700 min-h-screen sticky top-0 hidden lg:flex flex-col transition-all duration-300 flex-shrink-0 z-20`}>
         <div className="p-4 flex flex-col h-full">
           <div className="flex items-center justify-between mb-6">
             {!sidebarCollapsed&&(
@@ -2198,22 +3344,26 @@ export function AdminDashboard() {
                 <div className="w-8 h-8 bg-gradient-to-br from-button-primary to-primary rounded-xl flex items-center justify-center">
                   <span className="text-white font-bold text-sm">F</span>
                 </div>
-                <span className="text-primary font-black text-base">Flat-Mate</span>
+                <span className="text-primary dark:text-white font-black text-base">Flat-Mate</span>
               </div>
             )}
-            <button onClick={()=>setSidebarCollapsed(v=>!v)} className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors ml-auto">
-              <MenuIcon className="w-4 h-4 text-gray-500"/>
+            <button onClick={()=>setSidebarCollapsed(v=>!v)} className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors ml-auto">
+              <MenuIcon className="w-4 h-4 text-gray-500 dark:text-gray-400"/>
             </button>
           </div>
 
           {!sidebarCollapsed&&(
-            <div className="flex items-center gap-2.5 mb-5 p-3 bg-gradient-to-r from-button-primary/5 to-blue-50 rounded-xl border border-button-primary/10">
-              <div className="w-9 h-9 bg-button-primary rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0">
-                {(user?.name||'A').charAt(0)}
+            <div className="flex items-center gap-2.5 mb-5 p-3 bg-gradient-to-r from-button-primary/5 to-blue-50 dark:from-button-primary/10 dark:to-blue-900/20 rounded-xl border border-button-primary/10 dark:border-button-primary/20">
+              <div className="w-9 h-9 bg-button-primary rounded-full flex items-center justify-center text-white font-black text-sm flex-shrink-0 overflow-hidden">
+                {profileForm.profilePicture ? (
+                  <img src={profileForm.profilePicture} alt="Profile" className="w-full h-full object-cover"/>
+                ) : (
+                  <span>{(user?.name||'A').charAt(0)}</span>
+                )}
               </div>
               <div className="min-w-0">
-                <p className="font-bold text-gray-900 text-sm truncate">{user?.name||'Admin'}</p>
-                <p className="text-[10px] text-gray-400">Administrator</p>
+                <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{user?.name||'Admin'}</p>
+                <p className="text-[10px] text-gray-400 dark:text-gray-500">Administrator</p>
               </div>
             </div>
           )}
@@ -2226,13 +3376,14 @@ export function AdminDashboard() {
                 <motion.button key={tab.id} whileHover={{x:sidebarCollapsed?0:3}} whileTap={{scale:0.98}}
                   onClick={()=>setActiveTab(tab.id)}
                   title={sidebarCollapsed?tab.label:undefined}
-                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${isActive?'bg-button-primary/10 text-button-primary font-bold':'text-gray-600 hover:bg-gray-50'}`}>
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${isActive?'bg-button-primary/10 dark:bg-button-primary/20 text-button-primary dark:text-button-primary font-bold':'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'}`}>
                   <Icon className="w-4 h-4 flex-shrink-0"/>
                   {!sidebarCollapsed&&(
                     <>
                       <span>{tab.label}</span>
-                      {tab.id==='users'&&pendingReqs>0&&<span className="ml-auto w-5 h-5 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{pendingReqs}</span>}
-                      {tab.id==='bookings'&&visibleBookings.length>0&&<span className="ml-auto w-5 h-5 bg-emerald-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{visibleBookings.length}</span>}
+                      {tab.id==='users'&&newUsersCount>0&&<span className="ml-auto w-5 h-5 bg-amber-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{newUsersCount}</span>}
+                      {tab.id==='bookings'&&newBookingsCount>0&&<span className="ml-auto w-5 h-5 bg-emerald-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{newBookingsCount}</span>}
+                      {tab.id==='alerts'&&unreadNotificationsCount>0&&<span className="ml-auto w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">{unreadNotificationsCount}</span>}
                     </>
                   )}
                 </motion.button>
@@ -2240,9 +3391,9 @@ export function AdminDashboard() {
             })}
           </nav>
 
-          <div className="pt-4 border-t border-gray-100">
+          <div className="pt-4 border-t border-gray-100 dark:border-gray-700">
             <motion.button whileHover={{x:sidebarCollapsed?0:3}} onClick={handleLogout}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 hover:bg-red-50 transition-all">
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all">
               <LogOutIcon className="w-4 h-4 flex-shrink-0"/>
               {!sidebarCollapsed&&'Sign Out'}
             </motion.button>
@@ -2252,29 +3403,33 @@ export function AdminDashboard() {
 
       {/* MAIN */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="bg-white border-b border-gray-100 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30">
+        <header className="bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 px-4 sm:px-6 py-3.5 flex items-center justify-between sticky top-0 z-30">
           <div className="flex items-center gap-3">
-            <button onClick={()=>setMobileOpen(v=>!v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 border border-gray-200">
-              <MenuIcon className="w-5 h-5 text-gray-600"/>
+            <button onClick={()=>setMobileOpen(v=>!v)} className="lg:hidden p-1.5 rounded-xl bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600">
+              <MenuIcon className="w-5 h-5 text-gray-600 dark:text-gray-300"/>
             </button>
             <div>
-              <h1 className="text-base font-black text-primary">{currentHeader.title}</h1>
-              <p className="text-[11px] text-gray-400">{currentHeader.sub}</p>
+              <h1 className="text-base font-black text-primary dark:text-white">{currentHeader.title}</h1>
+              <p className="text-[11px] text-gray-400 dark:text-gray-500">{currentHeader.sub}</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button onClick={()=>{setBookings(getBookings());setReqList(getRequirements());toast.success('Data refreshed')}}
-              className="p-2 text-gray-400 hover:text-button-primary hover:bg-button-primary/10 rounded-xl transition-colors">
+              className="p-2 text-gray-400 dark:text-gray-500 hover:text-button-primary hover:bg-button-primary/10 dark:hover:bg-button-primary/20 rounded-xl transition-colors">
               <RefreshCcwIcon className="w-4 h-4"/>
             </button>
             <div className="relative">
-              <button className="p-2 text-gray-400 hover:text-button-primary hover:bg-button-primary/10 rounded-xl transition-colors">
+              <button className="p-2 text-gray-400 dark:text-gray-500 hover:text-button-primary hover:bg-button-primary/10 dark:hover:bg-button-primary/20 rounded-xl transition-colors">
                 <BellIcon className="w-4 h-4"/>
               </button>
               {pendingReqs>0&&<span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">{pendingReqs}</span>}
             </div>
-            <div className="w-8 h-8 bg-button-primary rounded-full flex items-center justify-center text-white font-black text-sm cursor-pointer" onClick={()=>setActiveTab('settings')}>
-              {(user?.name||'A').charAt(0)}
+            <div className="w-8 h-8 bg-button-primary rounded-full flex items-center justify-center text-white font-black text-sm cursor-pointer overflow-hidden" onClick={()=>setActiveTab('settings')}>
+              {profileForm.profilePicture ? (
+                <img src={profileForm.profilePicture} alt="Profile" className="w-full h-full object-cover"/>
+              ) : (
+                <span>{(user?.name||'A').charAt(0)}</span>
+              )}
             </div>
           </div>
         </header>
@@ -2282,12 +3437,12 @@ export function AdminDashboard() {
         <AnimatePresence>
           {mobileOpen&&(
             <motion.div initial={{height:0,opacity:0}} animate={{height:'auto',opacity:1}} exit={{height:0,opacity:0}}
-              className="lg:hidden bg-white border-b border-gray-100 overflow-hidden">
+              className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700 overflow-hidden">
               <div className="px-4 py-3 flex flex-wrap gap-2">
                 {TABS.map(tab=>{
                   const Icon=tab.icon
                   return <button key={tab.id} onClick={()=>{setActiveTab(tab.id);setMobileOpen(false)}}
-                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all ${activeTab===tab.id?'bg-button-primary text-white':'bg-gray-100 text-gray-600'}`}>
+                    className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all ${activeTab===tab.id?'bg-button-primary text-white':'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}>
                     <Icon className="w-3.5 h-3.5"/>{tab.label}
                   </button>
                 })}
@@ -2458,6 +3613,19 @@ export function AdminDashboard() {
           </motion.div>
         </div>
       )}
+      
+      {/* Add Property Modal - Global */}
+      <AnimatePresence>
+        {showAddPropertyModal && (
+          <AddPropertyModalAdmin
+            onClose={() => setShowAddPropertyModal(false)}
+            onAdd={(newProperty) => {
+              toast.success('Property added successfully!')
+              setShowAddPropertyModal(false)
+            }}
+          />
+        )}
+      </AnimatePresence>
     </main>
   )
 }

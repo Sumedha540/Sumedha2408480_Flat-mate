@@ -360,7 +360,7 @@ router.post('/verify-google-otp', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════════════════════
 router.post('/google-login', async (req, res) => {
   try {
-    const { idToken } = req.body;
+    const { idToken, role } = req.body;
 
     const ticket = await client.verifyIdToken({
       idToken,
@@ -375,6 +375,18 @@ router.post('/google-login', async (req, res) => {
         message: 'No account found. Please sign up first.',
         shouldSignup: true,
       });
+    }
+
+    // ✅ Validate that the user's role matches what they selected
+    if (role) {
+      const normalizedRole = role === 'owner' ? 'landlord' : role;
+      const userRole = user.role === 'owner' ? 'landlord' : user.role;
+      if (normalizedRole !== userRole) {
+        return res.status(403).json({
+          message: `This account is registered as a ${user.role}, not a ${role}. Please select the correct role.`,
+          wrongRole: true,
+        });
+      }
     }
 
     const token = jwt.sign(

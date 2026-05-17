@@ -2,7 +2,7 @@ import React, { useEffect, useState, Component } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { SearchIcon, ClockIcon, XIcon, TrendingUpIcon, ArrowRightIcon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
+import { toast } from '../utils/toast';
 interface SearchHistory {
   query: string;
   timestamp: number;

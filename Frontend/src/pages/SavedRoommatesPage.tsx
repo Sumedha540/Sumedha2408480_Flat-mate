@@ -25,7 +25,7 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge'
 import { RoommateCard } from '../components/RoommateCard'
-import { toast } from 'sonner'
+import { toast } from '../utils/toast'
 interface SavedRoommate {
   id: string
   name: string
@@ -207,7 +207,7 @@ export function SavedRoommatesPage() {
 
   const handleRemove = (id: string) => {
     persist(savedRoommates.filter((r) => r.id !== id))
-    toast.success('Profile removed from saved list')
+    toast.removed('Profile removed from saved list')
   }
   const handleNavigateToMessages = (id: string, name: string) => {
     // Navigate to messages page - status will be updated only after actual message is sent
