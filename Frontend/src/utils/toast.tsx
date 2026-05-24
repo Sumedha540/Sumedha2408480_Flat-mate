@@ -6,62 +6,81 @@ import { SonnerToast } from '../components/SonnerToast'
 
 const DURATION = 4000
 
-export const toast = {
-  success: (message: string, opts?: ExternalToast) => {
+// Create a callable toast function that also has methods
+const createToast = () => {
+  // Default call - acts like sonner's default toast
+  const toastFn = (message: string | React.ReactNode, opts?: ExternalToast) => {
+    return sonner(message, {
+      duration: DURATION,
+      ...opts,
+    })
+  }
+
+  // Add methods
+  toastFn.success = (message: string, opts?: ExternalToast) => {
     sonner(<SonnerToast message={message} type="success" />, {
       duration: DURATION,
       ...opts,
-      // strip classNames/style so our component controls appearance
       className: undefined,
       style: undefined,
     })
-  },
+  }
 
-  error: (message: string, opts?: ExternalToast) => {
+  toastFn.error = (message: string, opts?: ExternalToast) => {
     sonner(<SonnerToast message={message} type="error" />, {
       duration: DURATION,
       ...opts,
       className: undefined,
       style: undefined,
     })
-  },
+  }
 
-  warning: (message: string, opts?: ExternalToast) => {
+  toastFn.warning = (message: string, opts?: ExternalToast) => {
     sonner(<SonnerToast message={message} type="warning" />, {
       duration: DURATION,
       ...opts,
       className: undefined,
       style: undefined,
     })
-  },
+  }
 
-  info: (message: string, opts?: ExternalToast) => {
+  toastFn.info = (message: string, opts?: ExternalToast) => {
     sonner(<SonnerToast message={message} type="info" />, {
       duration: DURATION,
       ...opts,
       className: undefined,
       style: undefined,
     })
-  },
+  }
 
-  removed: (message: string, opts?: ExternalToast) => {
+  toastFn.removed = (message: string, opts?: ExternalToast) => {
     sonner(<SonnerToast message={message} type="removed" />, {
       duration: DURATION,
       ...opts,
       className: undefined,
       style: undefined,
     })
-  },
+  }
 
-  deleted: (message: string, opts?: ExternalToast) => {
-    // deleted = red, same as error
+  toastFn.deleted = (message: string, opts?: ExternalToast) => {
     sonner(<SonnerToast message={message} type="error" />, {
       duration: DURATION,
       ...opts,
       className: undefined,
       style: undefined,
     })
-  },
+  }
 
-  dismiss: sonner.dismiss,
+  toastFn.loading = (message: string, opts?: ExternalToast) => {
+    return sonner.loading(message, {
+      duration: DURATION,
+      ...opts,
+    })
+  }
+
+  toastFn.dismiss = sonner.dismiss
+
+  return toastFn
 }
+
+export const toast = createToast()

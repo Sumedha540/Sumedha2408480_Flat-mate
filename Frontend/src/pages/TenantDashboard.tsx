@@ -1198,7 +1198,8 @@ export function TenantDashboard() {
   const [searchQuery, setSearchQuery]     = useState('')
   const [message, setMessage]             = useState('')
   const [showInfo, setShowInfo]           = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Removed all auto-scroll logic - messages are now freely scrollable
 
   // Update tab when URL changes
   useEffect(() => { if (urlTab) setActiveTab(urlTab) }, [urlTab])
@@ -1219,33 +1220,6 @@ export function TenantDashboard() {
     }
   }, [activeTab, tenantNotifs.length, user?.email])
 
-  // Remove redirect - messages will be shown in dashboard
-  // useEffect(() => {
-  //   if (activeTab === 'messages') {
-  //     if (msgUserName) {
-  //       navigate(`/messages?userName=${encodeURIComponent(msgUserName)}${msgPropertyTitle ? `&propertyTitle=${encodeURIComponent(msgPropertyTitle)}` : ''}${msgUserId ? `&propertyId=${encodeURIComponent(msgUserId)}` : ''}`)
-  //     } else {
-  //       navigate('/messages')
-  //     }
-  //   }
-  // }, [activeTab, msgUserName, msgPropertyTitle, msgUserId, navigate])
-
-  // Auto-scroll for messages (only when messages change, not on initial load)
-  const prevMessagesLengthRef = useRef<number>(0)
-  useEffect(() => {
-    if (selectedConv?.messages) {
-      const currentLength = selectedConv.messages.length
-      // Only scroll if messages were added (not on initial load or conversation switch)
-      if (prevMessagesLengthRef.current > 0 && currentLength > prevMessagesLengthRef.current) {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-      }
-      prevMessagesLengthRef.current = currentLength
-    } else {
-      prevMessagesLengthRef.current = 0
-    }
-  }, [selectedConv?.messages?.length, selectedConv?.id])
-
-  // Polling mechanism for messages
   // Polling mechanism for messages - fetch on ALL tabs for badge count
   useEffect(() => {
     const fetchChats = async () => {
@@ -1376,16 +1350,22 @@ export function TenantDashboard() {
         });
         
         const userRole = (user.role === 'landlord' ? 'owner' : user.role) as 'tenant' | 'owner';
-        await sendMessage(selectedConv.id, {
+        const result = await sendMessage(selectedConv.id, {
           [type]: base64,
           senderName: user.name,
           senderRole: userRole
         });
         
+        if (!result) {
+          toast.dismiss(loadingToast);
+          toast.error(`Failed to send ${type}`);
+          return;
+        }
+        
         toast.dismiss(loadingToast);
         toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} sent!`);
         
-        // Refresh the conversation
+        // Refresh the conversation immediately
         const myChats = await getChats(user.name, userRole);
         const updated = myChats.find(c => c.id === selectedConv.id);
         if (updated) setSelectedConv(updated);
@@ -1589,7 +1569,7 @@ export function TenantDashboard() {
               </div>
 
               {/* CHAT AREA */}
-              <div className={`col-span-12 md:col-span-8 flex flex-col ${selectedConv ? 'flex' : 'hidden md:flex'}`}>
+              <div className={`col-span-12 md:col-span-8 flex flex-col h-[calc(100vh-12rem)] ${selectedConv ? 'flex' : 'hidden md:flex'}`}>
                 {selectedConv ? (
                   <>
                     {/* Chat header */}
@@ -1664,7 +1644,6 @@ export function TenantDashboard() {
                           </motion.div>
                         )})}
                       </AnimatePresence>
-                      <div ref={messagesEndRef} />
                     </div>
 
                     {/* Input - Fixed at bottom */}
@@ -1946,7 +1925,7 @@ export function TenantDashboard() {
                 <div className="flex items-center gap-1.5">
                   <p className="font-bold text-gray-900 dark:text-white text-sm truncate">{user?.name || 'User'}</p>
                   {verificationStatus === 'verified' && (
-                    <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" title="Verified Account" />
+                    <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0" />
                   )}
                 </div>
                 <p className="text-xs text-gray-400 capitalize">{user?.role || 'tenant'}</p>
@@ -2126,6 +2105,7 @@ export function TenantDashboard() {
                       
                       // Update state
                       setBookings(updatedBookings.filter((booking: any) => {
+                        if (!user) return false
                         const emailMatch = user.email && booking.customerEmail?.toLowerCase() === user.email.toLowerCase()
                         const nameMatch = user.name && booking.customerName?.toLowerCase().includes(user.name.toLowerCase())
                         return emailMatch || nameMatch

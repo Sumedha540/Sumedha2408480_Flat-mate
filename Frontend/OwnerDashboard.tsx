@@ -65,10 +65,11 @@ import {
 } from 'lucide-react'
 import { useAuth } from './src/contexts/AuthContext'
 import { useTheme } from './src/contexts/ThemeContext'
-import { toast } from 'sonner'
+import { toast } from './src/utils/toast'
 import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat, ChatMessage } from './src/utils/chatStorage'
 import { getProperties, createProperty, updateProperty, deleteProperty, Property } from './src/utils/propertyAPI'
 import { OwnerHistorySection } from './src/components/OwnerHistorySection'
+
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ls     = (k: string, fb = '[]') => { try { return JSON.parse(localStorage.getItem(k) || fb) } catch { return JSON.parse(fb) } }
@@ -1019,9 +1020,25 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
   const [search, setSearch] = useState('')
   const [showInfo, setShowInfo] = useState(false)
   const endRef = useRef<HTMLDivElement>(null)
+  const messagesContainerRef = useRef<HTMLDivElement>(null)
+  const prevMessageCountRef = useRef(0)
+  const shouldAutoScrollRef = useRef(true)
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Only auto-scroll on initial load or when user sends a message
+    if (!active?.messages) return;
+    
+    const messageCountIncreased = active.messages.length > prevMessageCountRef.current;
+    
+    // Only scroll if it's the first load or if we explicitly want to scroll
+    if (prevMessageCountRef.current === 0 || (messageCountIncreased && shouldAutoScrollRef.current)) {
+      setTimeout(() => {
+        endRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+    
+    prevMessageCountRef.current = active.messages.length;
+    shouldAutoScrollRef.current = false; // Disable auto-scroll after first time
   }, [active?.messages])
 
   useEffect(() => {
@@ -1029,9 +1046,9 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
       if (!user) return;
       const myChats = await getChats(user.name, 'owner');
       setConvs(myChats);
-      setActive((prev: Chat | null) => {
+      setActive(prev => {
         if (!prev) return null;
-        return myChats.find((c: Chat) => c.id === prev.id) || prev;
+        return myChats.find(c => c.id === prev.id) || prev;
       });
     };
     fetchChats();
@@ -1056,7 +1073,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
         setConvs(myChats);
         
         // Update active conversation with fresh data
-        const updated = myChats.find((c: Chat) => c.id === active.id);
+        const updated = myChats.find(c => c.id === active.id);
         if (updated) setActive(updated);
       }
     };
@@ -1067,6 +1084,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
     if (!input.trim() || !active || !user) return;
     const txt = input;
     setInput('');
+    shouldAutoScrollRef.current = true; // Enable auto-scroll when user sends a message
     await sendMessage(active.id, { text: txt, senderName: user.name, senderRole: 'owner' });
     
     // Send notification to tenant
@@ -1146,7 +1164,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
     }
     
     const myChats = await getChats(user.name, 'owner');
-    const updated = myChats.find((c: Chat) => c.id === active.id);
+    const updated = myChats.find(c => c.id === active.id);
     if (updated) setActive(updated);
   };
 
@@ -1204,7 +1222,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
       }
       
       const myChats = await getChats(user.name, 'owner');
-      const updated = myChats.find((c: Chat) => c.id === active.id);
+      const updated = myChats.find(c => c.id === active.id);
       if (updated) setActive(updated);
     };
     input.click();
@@ -1294,7 +1312,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
 
             <div className="flex-1 overflow-y-auto p-5 bg-gray-50 space-y-3">
               <AnimatePresence initial={false}>
-                {active.messages.map((m: ChatMessage) => {
+                {active.messages.map(m => {
                   const isOwn = m.senderRole === 'owner'
                   return (
                     <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -1313,10 +1331,9 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
                   )
                 })}
               </AnimatePresence>
-              <div ref={endRef} />
             </div>
 
-            <div className="p-4 bg-white border-t border-gray-100">
+            <div className="p-4 bg-white border-t border-gray-100 flex-shrink-0">
               <div className="flex gap-2 mb-3">
                  <button onClick={() => uploadFile('image')} className="p-2 text-gray-400 hover:text-button-primary hover:bg-button-primary/10 rounded-full"><ImageIcon className="w-5 h-5"/></button>
                  <button onClick={() => uploadFile('video')} className="p-2 text-gray-400 hover:text-button-primary hover:bg-button-primary/10 rounded-full"><VideoIcon className="w-5 h-5"/></button>
@@ -1341,18 +1358,13 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
   const [searchQuery, setSearchQuery]     = useState('')
   const [message, setMessage]             = useState('')
   const [showInfo, setShowInfo]           = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [selectedConv?.messages])
 
   useEffect(() => {
     const fetchChats = async () => {
       if (!user) return;
       const myChats = await getChats(user.name, 'owner');
       setConversations(myChats);
-      setSelectedConv((prev: Chat | null) => {
+      setSelectedConv(prev => {
         if (!prev) return null;
         return myChats.find((c: Chat) => c.id === prev.id) || prev;
       });
@@ -1379,7 +1391,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
         setConversations(myChats);
         
         // Update selected conversation with fresh data
-        const updated = myChats.find((c: Chat) => c.id === selectedConv.id);
+        const updated = myChats.find(c => c.id === selectedConv.id);
         if (updated) setSelectedConv(updated);
       }
     };
@@ -1482,54 +1494,84 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
     inp.onchange = async (e: any) => {
       const file = e.target.files?.[0];
       if (!file) return;
-      const url = URL.createObjectURL(file);
-      await sendMessage(selectedConv.id, { [type]: url, senderName: user.name, senderRole: 'owner' });
-      toast.success(`${type} sent!`);
       
-      // Send notification to tenant
+      // Show loading toast
+      const loadingToast = toast.loading(`Uploading ${type}...`);
+      
       try {
-        const tenantName = selectedConv.tenantName;
-        if (tenantName) {
-          const response = await fetch(`http://localhost:5000/api/users`);
-          if (response.ok) {
-            const users = await response.json();
-            const tenant = users.find((u: any) => {
-              const fullName = `${u.firstName} ${u.lastName}`.trim();
-              return fullName.toLowerCase() === tenantName.toLowerCase();
-            });
-            
-            if (tenant && tenant.email) {
-              const tenantEmail = tenant.email;
-              const notifEnabled = localStorage.getItem(`fm_tenant_notify_messages_${tenantEmail}`) === 'true';
+        // Convert file to base64
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+        
+        const result = await sendMessage(selectedConv.id, {
+          [type]: base64,
+          senderName: user.name,
+          senderRole: 'owner'
+        });
+        
+        if (!result) {
+          toast.dismiss(loadingToast);
+          toast.error(`Failed to send ${type}`);
+          return;
+        }
+        
+        toast.dismiss(loadingToast);
+        toast.success(`${type.charAt(0).toUpperCase() + type.slice(1)} sent!`);
+        
+        // Send notification to tenant
+        try {
+          const tenantName = selectedConv.tenantName;
+          if (tenantName) {
+            const response = await fetch(`http://localhost:5000/api/users`);
+            if (response.ok) {
+              const users = await response.json();
+              const tenant = users.find((u: any) => {
+                const fullName = `${u.firstName} ${u.lastName}`.trim();
+                return fullName.toLowerCase() === tenantName.toLowerCase();
+              });
               
-              if (notifEnabled) {
-                const tenantNotifs = JSON.parse(localStorage.getItem(`fm_tenant_notifs_${tenantEmail}`) || '[]');
-                const notification = {
-                  id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-                  type: 'message',
-                  title: 'New Message',
-                  message: `${user.name} sent you ${type === 'image' ? 'an image' : type === 'video' ? 'a video' : 'an audio file'}`,
-                  senderName: user.name,
-                  messageText: `[${type}]`,
-                  chatId: selectedConv.id,
-                  read: false,
-                  time: 'Just now',
-                  createdAt: new Date().toISOString()
-                };
-                tenantNotifs.unshift(notification);
-                localStorage.setItem(`fm_tenant_notifs_${tenantEmail}`, JSON.stringify(tenantNotifs));
-                window.dispatchEvent(new CustomEvent('tenantNotification', { detail: notification }));
+              if (tenant && tenant.email) {
+                const tenantEmail = tenant.email;
+                const notifEnabled = localStorage.getItem(`fm_tenant_notify_messages_${tenantEmail}`) === 'true';
+                
+                if (notifEnabled) {
+                  const tenantNotifs = JSON.parse(localStorage.getItem(`fm_tenant_notifs_${tenantEmail}`) || '[]');
+                  const notification = {
+                    id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                    type: 'message',
+                    title: 'New Message',
+                    message: `${user.name} sent you ${type === 'image' ? 'an image' : type === 'video' ? 'a video' : 'an audio file'}`,
+                    senderName: user.name,
+                    messageText: `[${type}]`,
+                    chatId: selectedConv.id,
+                    read: false,
+                    time: 'Just now',
+                    createdAt: new Date().toISOString()
+                  };
+                  tenantNotifs.unshift(notification);
+                  localStorage.setItem(`fm_tenant_notifs_${tenantEmail}`, JSON.stringify(tenantNotifs));
+                  window.dispatchEvent(new CustomEvent('tenantNotification', { detail: notification }));
+                }
               }
             }
           }
+        } catch (error) {
+          console.error('Error sending notification:', error);
         }
+        
+        // Refresh the conversation immediately
+        const myChats = await getChats(user.name, 'owner');
+        const updated = myChats.find((c: Chat) => c.id === selectedConv.id);
+        if (updated) setSelectedConv(updated);
       } catch (error) {
-        console.error('Error sending notification:', error);
+        toast.dismiss(loadingToast);
+        toast.error(`Failed to upload ${type}`);
+        console.error('Error uploading file:', error);
       }
-      
-      const myChats = await getChats(user.name, 'owner');
-      const updated = myChats.find((c: Chat) => c.id === selectedConv.id);
-      if (updated) setSelectedConv(updated);
     };
     inp.click();
   };
@@ -1553,7 +1595,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
   )
 
   return (
-    <div className="grid grid-cols-12 h-[600px] bg-white dark:bg-gray-800 shadow-sm rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
+    <div className="grid grid-cols-12 h-[calc(100vh-12rem)] bg-white dark:bg-gray-800 shadow-sm rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700">
       {/* Sidebar */}
       <div className={`col-span-12 md:col-span-4 border-r border-gray-100 dark:border-gray-700 flex flex-col bg-white dark:bg-gray-800 ${selectedConv ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-gray-100 dark:border-gray-700">
@@ -1568,8 +1610,8 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 ? (
             <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">No conversations yet</div>
-          ) : filtered.map((conv: Chat, idx: number) => {
-            const unread = conv.messages.filter((m: ChatMessage) => m.senderRole !== 'owner' && !m.seen).length
+          ) : filtered.map((conv, idx) => {
+            const unread = conv.messages.filter(m => m.senderRole !== 'owner' && !m.seen).length
             const lastMsg = conv.messages[conv.messages.length - 1]
             return (
               <motion.button key={conv.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
@@ -1594,10 +1636,11 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
       </div>
 
       {/* Chat area */}
-      <div className={`col-span-12 md:col-span-8 flex flex-col bg-white dark:bg-gray-800 ${selectedConv ? 'flex' : 'hidden md:flex'}`}>
+      <div className={`col-span-12 md:col-span-8 flex flex-col h-full bg-white dark:bg-gray-800 ${selectedConv ? 'flex' : 'hidden md:flex'}`}>
         {selectedConv ? (
           <>
-            <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800">
+            {/* Chat header - fixed */}
+            <div className="px-5 py-3.5 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-800 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <button onClick={() => setSelectedConv(null)} className="md:hidden p-1 text-gray-400 hover:text-gray-600">
                   <ArrowLeftIcon className="w-5 h-5" />
@@ -1621,7 +1664,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
             <AnimatePresence>
               {showInfo && (
                 <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }}
-                  className="bg-button-primary/5 border-b border-button-primary/10 px-5 py-3 overflow-hidden">
+                  className="bg-button-primary/5 border-b border-button-primary/10 px-5 py-3 overflow-hidden flex-shrink-0">
                   <div className="flex items-start justify-between">
                     <div>
                       <p className="font-black text-gray-900 text-sm">{selectedConv.tenantName}</p>
@@ -1633,9 +1676,10 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
               )}
             </AnimatePresence>
 
-            <div className="flex-1 overflow-y-auto p-5 bg-gray-50 dark:bg-gray-900 space-y-3">
+            {/* Messages - scrollable */}
+            <div className="flex-1 overflow-y-auto p-5 bg-gray-50 dark:bg-gray-900 space-y-3 min-h-0">
               <AnimatePresence initial={false}>
-                {selectedConv.messages.map((msg: ChatMessage) => {
+                {selectedConv.messages.map(msg => {
                   const isOwn = msg.senderRole === 'owner'
                   return (
                     <motion.div key={msg.id} initial={{ opacity: 0, y: 12, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1656,10 +1700,10 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
                   )
                 })}
               </AnimatePresence>
-              <div ref={messagesEndRef} />
             </div>
 
-            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+            {/* Input - fixed at bottom */}
+            <div className="p-4 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800 flex-shrink-0">
               <div className="flex items-center gap-2 mb-3">
                 {[{ icon: ImageIcon, type: 'image' }, { icon: VideoIcon, type: 'video' }, { icon: MicIcon, type: 'audio' }].map(btn => (
                   <motion.button key={btn.type} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
@@ -2643,7 +2687,7 @@ export function OwnerDashboard() {
     const fetchUnreadCount = async () => {
       if (!user) return;
       const myChats = await getChats(user.name, 'owner');
-      const count = myChats.filter((chat: Chat) => (chat.unreadCount || 0) > 0).length;
+      const count = myChats.filter(chat => (chat.unreadCount || 0) > 0).length;
       setMessageUnreadCount(count);
     };
     
@@ -3459,7 +3503,7 @@ export function OwnerDashboard() {
 
   // â”€â”€ MESSAGES â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   case 'messages': return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="h-full">
       <OwnerMessengerFull user={user} activeConvId={activeChatId} />
     </motion.div>
   )
