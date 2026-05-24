@@ -1449,6 +1449,9 @@ export function AdminDashboard() {
   const [editingPricing, setEditingPricing] = useState(false)
   const [tempPricing, setTempPricing] = useState(subscriptionPricing)
   
+  // Notification refresh counter to force re-render when notifications are marked as read
+  const [notifRefresh, setNotifRefresh] = useState(0)
+  
   // Profile editing states
   const [profileForm, setProfileForm] = useState({
     firstName: '',
@@ -1661,8 +1664,26 @@ export function AdminDashboard() {
       const now = Date.now()
       setLastVisitedUsers(now)
       setLS('fm_last_visited_users', now)
+    } else if (activeTab === 'alerts') {
+      // Auto-mark all visible pending properties as read when visiting notifications
+      setTimeout(() => {
+        const clearedNotifs = ls('fm_admin_cleared_notifs', '[]') as string[]
+        const pendingProperties = properties.filter(p => p.status === 'pending')
+        const visiblePendingProperties = pendingProperties.filter(p => 
+          !clearedNotifs.includes(p.id || p._id)
+        )
+        
+        if (visiblePendingProperties.length > 0) {
+          const allPendingIds = visiblePendingProperties.map(p => p.id || p._id)
+          const currentRead = ls('fm_admin_read_notifs', '[]') as string[]
+          const updatedRead = [...new Set([...currentRead, ...allPendingIds])]
+          setLS('fm_admin_read_notifs', updatedRead)
+          // Trigger re-render to update badge count
+          setNotifRefresh(prev => prev + 1)
+        }
+      }, 500) // Small delay to ensure smooth transition
     }
-  }, [activeTab])
+  }, [activeTab, properties])
 
   // Profile picture upload handler
   const handleProfilePictureUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -2792,8 +2813,8 @@ export function AdminDashboard() {
           },
         })
         
-        // Force re-render
-        setActiveTab('alerts')
+        // Trigger re-render to update badge count
+        setNotifRefresh(prev => prev + 1)
       }
 
       const handleClearAll = () => {
@@ -2809,8 +2830,8 @@ export function AdminDashboard() {
           },
         })
         
-        // Force re-render
-        setActiveTab('alerts')
+        // Trigger re-render to update badge count
+        setNotifRefresh(prev => prev + 1)
       }
 
       return (
@@ -2913,6 +2934,7 @@ export function AdminDashboard() {
                           const currentRead = ls('fm_admin_read_notifs', '[]') as string[]
                           if (!currentRead.includes(property.id || property._id)) {
                             setLS('fm_admin_read_notifs', [...currentRead, property.id || property._id])
+                            setNotifRefresh(prev => prev + 1)
                           }
                           setActiveTab('properties')
                           // Need to set filter in properties panel - will be handled by parent state

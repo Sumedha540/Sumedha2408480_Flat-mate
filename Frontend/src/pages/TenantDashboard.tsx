@@ -45,7 +45,7 @@ import {
   UserIcon, MailIcon, PhoneIcon as PhoneIconSolid, MapPinIcon, CameraIcon,
   ShieldCheckIcon, BedDoubleIcon, BathIcon, TrashIcon, BarChart2Icon,
   ThumbsUpIcon, ListIcon, SendIcon as SendIcon2, EyeIcon, MessageSquareIcon,
-  CheckIcon, SunIcon, MoonIcon, FileTextIcon,
+  CheckIcon, SunIcon, MoonIcon, FileTextIcon, AlertCircleIcon, LockIcon,
 } from 'lucide-react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -65,11 +65,7 @@ const mockBookings = [
   { id:'3', property:'Cozy Studio Room',      location:'Patan, Lalitpur',    date:'2024-01-20', status:'rejected', image:'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&auto=format&fit=crop', ownerName:'Sita Sharma' },
 ]
 
-const mockNotifications = [
-  { id:'1', title:'Booking Approved',    message:'Your booking for Modern 2BHK Apartment has been approved!', time:'1 hour ago',  type:'success' },
-  { id:'2', title:'New Property Match',  message:'A new property matching your preferences is available.',    time:'3 hours ago', type:'info' },
-  { id:'3', title:'Price Drop Alert',    message:'A property in your favorites has reduced its rent.',        time:'1 day ago',   type:'warning' },
-]
+// Removed mock notifications - only show real notifications from owners
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { label: string; cls: string }> = {
@@ -109,7 +105,11 @@ function formatMsgTime(dateStr: string): string {
 // ─── Inline Profile Settings ───────────────────────────────────────────────────
 function ProfileSettingsPanel() {
   const { user, updateUser } = useAuth()
-  const [form, setForm] = useState({ name: user?.name || '', email: user?.email || '', phone: '', address: '' })
+  const [form, setForm] = useState({ 
+    firstName: user?.name?.split(' ')[0] || '', 
+    lastName: user?.name?.split(' ').slice(1).join(' ') || '', 
+    email: user?.email || '' 
+  })
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -121,7 +121,19 @@ function ProfileSettingsPanel() {
     if (savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile)
-        setForm(parsed.form || form)
+        if (parsed.form) {
+          // Handle both old format (name) and new format (firstName, lastName)
+          if (parsed.form.firstName && parsed.form.lastName) {
+            setForm(parsed.form)
+          } else if (parsed.form.name) {
+            const nameParts = parsed.form.name.split(' ')
+            setForm({
+              firstName: nameParts[0] || '',
+              lastName: nameParts.slice(1).join(' ') || '',
+              email: parsed.form.email || user?.email || ''
+            })
+          }
+        }
         setProfilePhoto(parsed.photo || null)
       } catch {}
     }
@@ -131,31 +143,6 @@ function ProfileSettingsPanel() {
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
     return emailRegex.test(email)
-  }
-
-  // Validate phone (exactly 10 digits)
-  const validatePhone = (phone: string): boolean => {
-    const digits = phone.replace(/\D/g, '')
-    return digits.length === 10
-  }
-
-  // Validate address (must contain letters, numbers, and common address characters)
-  const validateAddress = (address: string): boolean => {
-    // Must be at least 5 characters
-    if (address.trim().length < 5) return false
-    
-    // Must contain at least one letter
-    if (!/[a-zA-Z]/.test(address)) return false
-    
-    // Must not be just random characters - should have spaces or commas (typical address format)
-    // Allow letters, numbers, spaces, commas, hyphens, periods, and forward slashes
-    const validAddressRegex = /^[a-zA-Z0-9\s,.\-/]+$/
-    if (!validAddressRegex.test(address)) return false
-    
-    // Should have at least one space or comma (typical address structure)
-    if (!/[\s,]/.test(address)) return false
-    
-    return true
   }
 
   // Handle photo upload
@@ -202,18 +189,12 @@ function ProfileSettingsPanel() {
     // Validate all fields
     const newErrors: Record<string, string> = {}
 
-    if (!form.name.trim()) {
-      newErrors.name = 'Name is required'
+    if (!form.firstName.trim()) {
+      newErrors.firstName = 'First name is required'
     }
 
-    if (form.phone && !validatePhone(form.phone)) {
-      newErrors.phone = 'Phone number must be exactly 10 digits'
-    }
-
-    if (!form.address.trim()) {
-      newErrors.address = 'Address is required'
-    } else if (!validateAddress(form.address)) {
-      newErrors.address = 'Please enter a valid address (e.g., "123 Main St, Kathmandu")'
+    if (!form.lastName.trim()) {
+      newErrors.lastName = 'Last name is required'
     }
 
     if (Object.keys(newErrors).length > 0) {
@@ -234,6 +215,9 @@ function ProfileSettingsPanel() {
       profileData.updatedAt = new Date().toISOString()
       localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
       
+      // Combine first and last name for backend
+      const fullName = `${form.firstName} ${form.lastName}`.trim()
+      
       // Update name in backend database
       try {
         const response = await fetch(`http://localhost:5000/api/users/email/${user?.email}`, {
@@ -242,15 +226,13 @@ function ProfileSettingsPanel() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            name: form.name,
-            phone: form.phone,
-            address: form.address
+            name: fullName
           })
         })
 
         if (response.ok) {
           // Update the user context with new name
-          updateUser({ name: form.name, phone: form.phone })
+          updateUser({ name: fullName })
         } else {
           console.warn('Failed to update user in database, but localStorage updated')
         }
@@ -268,17 +250,6 @@ function ProfileSettingsPanel() {
     } catch (error) {
       setSaving(false)
       toast.error('Failed to save profile')
-    }
-  }
-
-  const handlePhoneChange = (value: string) => {
-    // Only allow digits and limit to 10
-    const digits = value.replace(/\D/g, '').slice(0, 10)
-    setForm({ ...form, phone: digits })
-    
-    // Clear error when user starts typing
-    if (errors.phone) {
-      setErrors({ ...errors, phone: '' })
     }
   }
 
@@ -310,7 +281,7 @@ function ProfileSettingsPanel() {
           />
         </div>
         <div>
-          <p className="font-bold text-gray-900 dark:text-white text-lg">{form.name || user?.name}</p>
+          <p className="font-bold text-gray-900 dark:text-white text-lg">{`${form.firstName} ${form.lastName}`.trim() || user?.name}</p>
           <p className="text-sm text-gray-500 dark:text-gray-400 capitalize">{user?.email}</p>
           <p className="text-xs text-gray-400 mt-1">Click the camera icon to upload a new photo</p>
         </div>
@@ -319,28 +290,48 @@ function ProfileSettingsPanel() {
       {/* Form */}
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Name Field */}
+          {/* First Name Field */}
           <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Full Name *</label>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">First Name *</label>
             <div className="relative">
               <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               <input 
                 type="text" 
-                value={form.name} 
-                placeholder="Your full name"
+                value={form.firstName} 
+                placeholder="Your first name"
                 onChange={e => {
-                  setForm({...form, name: e.target.value})
-                  if (errors.name) setErrors({...errors, name: ''})
+                  setForm({...form, firstName: e.target.value})
+                  if (errors.firstName) setErrors({...errors, firstName: ''})
                 }}
                 className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
-                  errors.name ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
+                  errors.firstName ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
                 }`} />
             </div>
-            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+            {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
+          </div>
+
+          {/* Last Name Field */}
+          <div>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Last Name *</label>
+            <div className="relative">
+              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              <input 
+                type="text" 
+                value={form.lastName} 
+                placeholder="Your last name"
+                onChange={e => {
+                  setForm({...form, lastName: e.target.value})
+                  if (errors.lastName) setErrors({...errors, lastName: ''})
+                }}
+                className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
+                  errors.lastName ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
+                }`} />
+            </div>
+            {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
           </div>
 
           {/* Email Field */}
-          <div>
+          <div className="sm:col-span-2">
             <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Email (Cannot be changed)</label>
             <div className="relative">
               <MailIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -351,48 +342,6 @@ function ProfileSettingsPanel() {
                 disabled
                 className="w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all bg-gray-100 dark:bg-gray-700 dark:text-gray-400 border-gray-200 dark:border-gray-600 cursor-not-allowed" />
             </div>
-          </div>
-
-          {/* Phone Field */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Phone (10 digits)</label>
-            <div className="relative">
-              <PhoneIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              <input 
-                type="tel" 
-                value={form.phone} 
-                placeholder="98XXXXXXXX"
-                maxLength={10}
-                inputMode="numeric"
-                onChange={e => handlePhoneChange(e.target.value)}
-                className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
-                  errors.phone ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
-                }`} />
-            </div>
-            {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
-            {form.phone && !errors.phone && (
-              <p className="text-gray-400 text-xs mt-1">{form.phone.length}/10 digits</p>
-            )}
-          </div>
-
-          {/* Address Field */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Address *</label>
-            <div className="relative">
-              <MapPinIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              <input 
-                type="text" 
-                value={form.address} 
-                placeholder="Your address"
-                onChange={e => {
-                  setForm({...form, address: e.target.value})
-                  if (errors.address) setErrors({...errors, address: ''})
-                }}
-                className={`w-full pl-9 pr-4 py-2.5 border-2 rounded-xl text-sm focus:outline-none transition-all dark:bg-gray-700 dark:text-white ${
-                  errors.address ? 'border-red-300 bg-red-50 focus:border-red-400' : 'border-gray-200 dark:border-gray-600 focus:border-button-primary'
-                }`} />
-            </div>
-            {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
           </div>
         </div>
       </div>
@@ -408,281 +357,397 @@ function ProfileSettingsPanel() {
 // ─── Verification Settings Panel ───────────────────────────────────────────────
 function VerificationSettingsPanel() {
   const { user } = useAuth()
-  const [verificationStatus, setVerificationStatus] = useState<'unverified' | 'pending' | 'verified' | 'rejected'>('unverified')
   const [citizenshipDoc, setCitizenshipDoc] = useState<string | null>(null)
-  const [uploadingDoc, setUploadingDoc] = useState(false)
-  const [processingOCR, setProcessingOCR] = useState(false)
-  const [ocrData, setOcrData] = useState<{ name?: string; citizenshipNo?: string; dob?: string } | null>(null)
-  const [form, setForm] = useState({ name: user?.name || '' })
+  const [isVerified, setIsVerified] = useState(false)
+  const [verificationStatus, setVerificationStatus] = useState<'none' | 'pending' | 'verified'>('none')
+  const citizenshipInputRef = React.useRef<HTMLInputElement>(null)
 
   // Load verification data from localStorage
   useEffect(() => {
-    const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+    const savedProfile = localStorage.getItem(`fm_tenant_profile_${user?.email}`)
     if (savedProfile) {
       try {
         const parsed = JSON.parse(savedProfile)
-        setVerificationStatus(parsed.verificationStatus || 'unverified')
         setCitizenshipDoc(parsed.citizenshipDoc || null)
-        setOcrData(parsed.ocrData || null)
-        if (parsed.form) {
-          setForm({ name: parsed.form.name || user?.name || '' })
-        }
+        setIsVerified(parsed.isVerified || false)
+        setVerificationStatus(parsed.verificationStatus || 'none')
       } catch {}
     }
-  }, [user?.email, user?.name])
-
-  // OCR Processing Function
-  const processOCR = async (imageData: string) => {
-    setProcessingOCR(true)
-    try {
-      // Dynamically import Tesseract
-      const Tesseract = await import('tesseract.js')
-      
-      const { data: { text } } = await Tesseract.recognize(
-        imageData,
-        'eng',
-        {
-          logger: (m) => {
-            if (m.status === 'recognizing text') {
-              console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`)
-            }
-          }
-        }
-      )
-
-      // Extract information from OCR text
-      const extractedData: { name?: string; citizenshipNo?: string; dob?: string } = {}
-      
-      // Try to extract name (usually after "Name:" or "नाम:")
-      const nameMatch = text.match(/(?:Name|नाम)[:\s]+([A-Za-z\s]+)/i)
-      if (nameMatch) {
-        extractedData.name = nameMatch[1].trim()
-      }
-
-      // Try to extract citizenship number
-      const citizenshipMatch = text.match(/(?:Citizenship|नागरिकता)\s*(?:No|नं)[:\s]*([0-9\-\/]+)/i)
-      if (citizenshipMatch) {
-        extractedData.citizenshipNo = citizenshipMatch[1].trim()
-      }
-
-      // Try to extract date of birth
-      const dobMatch = text.match(/(?:Date of Birth|जन्म मिति)[:\s]*([0-9\/\-]+)/i)
-      if (dobMatch) {
-        extractedData.dob = dobMatch[1].trim()
-      }
-
-      setOcrData(extractedData)
-      
-      // Save OCR data to localStorage
-      try {
-        const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
-        const profileData = savedProfile ? JSON.parse(savedProfile) : {}
-        profileData.ocrData = extractedData
-        localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
-      } catch {}
-
-      toast.success('Document processed successfully!')
-      setProcessingOCR(false)
-      return extractedData
-    } catch (error) {
-      console.error('OCR Error:', error)
-      toast.error('Failed to process document. Please try again.')
-      setProcessingOCR(false)
-      return null
-    }
-  }
+  }, [user?.email])
 
   // Handle citizenship document upload
-  const handleCitizenshipUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleCitizenshipUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
 
-    // Check file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error('File size must be less than 5MB')
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Document size must be less than 10MB')
       return
     }
 
-    // Check file type (only images for OCR)
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file for OCR processing')
+    // Check file type (images and PDFs)
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      toast.error('Please select an image or PDF file')
       return
     }
-
-    setUploadingDoc(true)
 
     // Convert to base64
     const reader = new FileReader()
-    reader.onload = async (event) => {
+    reader.onload = (event) => {
       const base64 = event.target?.result as string
       setCitizenshipDoc(base64)
+      setVerificationStatus('pending')
       
       // Save to localStorage
       try {
-        const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
+        const savedProfile = localStorage.getItem(`fm_tenant_profile_${user?.email}`)
         const profileData = savedProfile ? JSON.parse(savedProfile) : {}
         profileData.citizenshipDoc = base64
+        profileData.verificationStatus = 'pending'
         profileData.updatedAt = new Date().toISOString()
-        localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
-        
-        toast.success('Citizenship document uploaded successfully!')
+        localStorage.setItem(`fm_tenant_profile_${user?.email}`, JSON.stringify(profileData))
+        window.dispatchEvent(new Event('profilePhotoUpdated'))
       } catch {}
       
-      setUploadingDoc(false)
-
-      // Process OCR automatically
-      await processOCR(base64)
+      // Auto-verify after 2 seconds (simulating admin review)
+      setTimeout(() => {
+        setIsVerified(true)
+        setVerificationStatus('verified')
+        
+        try {
+          const savedProfile = localStorage.getItem(`fm_tenant_profile_${user?.email}`)
+          const profileData = savedProfile ? JSON.parse(savedProfile) : {}
+          profileData.isVerified = true
+          profileData.verificationStatus = 'verified'
+          profileData.verifiedAt = new Date().toISOString()
+          localStorage.setItem(`fm_tenant_profile_${user?.email}`, JSON.stringify(profileData))
+          
+          // Update user in flatmate_user
+          const userStr = localStorage.getItem('flatmate_user')
+          if (userStr) {
+            const currentUser = JSON.parse(userStr)
+            currentUser.isVerified = true
+            localStorage.setItem('flatmate_user', JSON.stringify(currentUser))
+          }
+          
+          window.dispatchEvent(new Event('profilePhotoUpdated'))
+          window.dispatchEvent(new Event('storage'))
+        } catch {}
+        
+        toast('✓ Verification complete! You now have a verified badge', {
+          style: {
+            background: '#2563EB',
+            color: 'white',
+          },
+          duration: 4000,
+        })
+      }, 2000)
+      
+      toast('Citizenship document uploaded! Verifying...', {
+        style: {
+          background: '#F59E0B',
+          color: 'white',
+        },
+      })
     }
     reader.onerror = () => {
-      toast.error('Failed to read file')
-      setUploadingDoc(false)
+      toast.error('Failed to read document file')
     }
     reader.readAsDataURL(file)
   }
 
-  // Submit for verification
-  const submitForVerification = async () => {
-    if (!citizenshipDoc) {
-      toast.error('Please upload your citizenship document')
-      return
-    }
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <ShieldCheckIcon className="w-5 h-5 text-blue-600"/>
+        <h3 className="font-bold text-gray-900 dark:text-white">Account Verification</h3>
+      </div>
+      
+      {/* Verification Status Banner */}
+      {verificationStatus === 'verified' && (
+        <div className="mb-5 p-4 bg-gradient-to-r from-blue-50 to-green-50 dark:from-blue-900/20 dark:to-green-900/20 border-2 border-blue-200 dark:border-blue-700 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                Verified Tenant
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-full">
+                  <ShieldCheckIcon className="w-3 h-3" />
+                  VERIFIED
+                </span>
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Your account is verified. Property owners can see your verified badge.</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {verificationStatus === 'pending' && (
+        <div className="mb-5 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 border-2 border-yellow-200 dark:border-yellow-700 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+              <ClockIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">Verification Pending</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Your document is being reviewed. This usually takes a few seconds.</p>
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {verificationStatus === 'none' && (
+        <div className="mb-5 p-4 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900/20 border-2 border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+              <AlertCircleIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">Not Verified</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Upload your citizenship document to get verified and build trust with property owners.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
-    setVerificationStatus('pending')
-    
-    // Save to localStorage
+      {/* Benefits Section */}
+      <div className="mb-5 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
+        <p className="text-xs font-bold text-blue-900 dark:text-blue-300 mb-3">Benefits of Verification:</p>
+        <div className="space-y-2">
+          {[
+            'Get a blue verified badge visible to all property owners',
+            'Build trust and credibility with landlords',
+            'Increase booking approval rates by up to 40%',
+            'Stand out from unverified tenants',
+          ].map((benefit, idx) => (
+            <div key={idx} className="flex items-start gap-2">
+              <CheckCircleIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-700 dark:text-gray-300">{benefit}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Upload Section */}
+      <div className="space-y-4">
+        <div>
+          <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-2">
+            Upload Citizenship Document
+          </label>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-3">
+            Upload a clear photo or scan of your citizenship certificate. Accepted formats: JPG, PNG, PDF (max 10MB)
+          </p>
+          
+          {citizenshipDoc ? (
+            <div className="p-4 bg-green-50 dark:bg-green-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-green-100 dark:bg-green-800 rounded-lg flex items-center justify-center">
+                    <FileTextIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-gray-900 dark:text-white">Document Uploaded</p>
+                    <p className="text-[10px] text-gray-500 dark:text-gray-400">Citizenship certificate</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      // Open document in new tab/modal
+                      const isPDF = citizenshipDoc.startsWith('data:application/pdf')
+                      if (isPDF) {
+                        // For PDF, open in new tab
+                        const newWindow = window.open()
+                        if (newWindow) {
+                          newWindow.document.write(`
+                            <html>
+                              <head><title>Citizenship Document</title></head>
+                              <body style="margin:0">
+                                <iframe src="${citizenshipDoc}" style="width:100%;height:100vh;border:none"></iframe>
+                              </body>
+                            </html>
+                          `)
+                        }
+                      } else {
+                        // For images, open in new tab
+                        const newWindow = window.open()
+                        if (newWindow) {
+                          newWindow.document.write(`
+                            <html>
+                              <head><title>Citizenship Document</title></head>
+                              <body style="margin:0;display:flex;align-items:center;justify-content:center;background:#000">
+                                <img src="${citizenshipDoc}" style="max-width:100%;max-height:100vh;object-fit:contain" />
+                              </body>
+                            </html>
+                          `)
+                        }
+                      }
+                    }}
+                    className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 font-semibold flex items-center gap-1"
+                  >
+                    <EyeIcon className="w-3.5 h-3.5" />
+                    View
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCitizenshipDoc(null)
+                      setVerificationStatus('none')
+                      setIsVerified(false)
+                      try {
+                        const savedProfile = localStorage.getItem(`fm_tenant_profile_${user?.email}`)
+                        if (savedProfile) {
+                          const parsed = JSON.parse(savedProfile)
+                          parsed.citizenshipDoc = null
+                          parsed.verificationStatus = 'none'
+                          parsed.isVerified = false
+                          localStorage.setItem(`fm_tenant_profile_${user?.email}`, JSON.stringify(parsed))
+                          
+                          // Update user in flatmate_user
+                          const userStr = localStorage.getItem('flatmate_user')
+                          if (userStr) {
+                            const currentUser = JSON.parse(userStr)
+                            currentUser.isVerified = false
+                            localStorage.setItem('flatmate_user', JSON.stringify(currentUser))
+                          }
+                          
+                          window.dispatchEvent(new Event('profilePhotoUpdated'))
+                        }
+                      } catch {}
+                      toast('Document removed', { style: { background: '#D1D5DB', color: '#374151' } })
+                    }}
+                    className="text-xs text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 font-semibold"
+                  >
+                    Remove
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <input
+                ref={citizenshipInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={handleCitizenshipUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => citizenshipInputRef.current?.click()}
+                className="w-full p-6 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group"
+              >
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-12 h-12 bg-blue-100 dark:bg-blue-800 rounded-full flex items-center justify-center group-hover:bg-blue-200 dark:group-hover:bg-blue-700 transition-colors">
+                    <FileTextIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">Click to upload citizenship</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">JPG, PNG or PDF (max 10MB)</p>
+                </div>
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Security Note */}
+        <div className="p-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl">
+          <div className="flex items-start gap-2">
+            <LockIcon className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">Your data is secure</p>
+              <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-0.5">
+                Your citizenship document is encrypted and stored securely. It will only be used for verification purposes and will not be shared with anyone.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ─── Notification Settings Panel ───────────────────────────────────────────────
+function NotificationSettingsPanel() {
+  const { user } = useAuth()
+  const [messageNotifications, setMessageNotifications] = useState(() => {
     try {
-      const savedProfile = localStorage.getItem(`fm_profile_${user?.email}`)
-      const profileData = savedProfile ? JSON.parse(savedProfile) : {}
-      profileData.verificationStatus = 'pending'
-      profileData.citizenshipDoc = citizenshipDoc
-      profileData.ocrData = ocrData
-      profileData.submittedAt = new Date().toISOString()
-      localStorage.setItem(`fm_profile_${user?.email}`, JSON.stringify(profileData))
-      
-      // Notify admin with OCR data
-      const adminNotifs = JSON.parse(localStorage.getItem('fm_admin_notifs') || '[]')
-      localStorage.setItem('fm_admin_notifs', JSON.stringify([{
-        id: Date.now().toString(),
-        type: 'tenant_verification',
-        title: 'Tenant Verification Request',
-        msg: `${form.name} submitted citizenship for verification${ocrData?.citizenshipNo ? ` (Citizenship No: ${ocrData.citizenshipNo})` : ''}`,
-        time: 'Just now',
-        read: false,
-        tenantEmail: user?.email,
-        ocrData: ocrData,
-        timestamp: Date.now()
-      }, ...adminNotifs]))
-      
-      // Dispatch event to update verification status in sidebar
-      window.dispatchEvent(new Event('profilePhotoUpdated'))
-      
-      toast.success('Verification request submitted! Admin will review your document.')
+      const saved = localStorage.getItem(`fm_tenant_notify_messages_${user?.email}`)
+      return saved === 'true'
     } catch {
-      toast.error('Failed to submit verification request')
+      return false
+    }
+  })
+
+  const handleToggleMessageNotifications = () => {
+    const newValue = !messageNotifications
+    setMessageNotifications(newValue)
+    localStorage.setItem(`fm_tenant_notify_messages_${user?.email}`, String(newValue))
+    
+    if (newValue) {
+      toast('Message notifications enabled', {
+        style: {
+          background: '#2F7D5F',
+          color: 'white',
+        },
+      })
+    } else {
+      toast('Message notifications disabled', {
+        style: {
+          background: '#6B7280',
+          color: 'white',
+        },
+      })
     }
   }
 
   return (
     <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
-      <div className="flex items-center justify-between mb-5">
-        <div className="flex items-center gap-2">
-          <ShieldCheckIcon className="w-5 h-5 text-button-primary"/>
-          <h3 className="font-bold text-gray-900 dark:text-white">Account Verification</h3>
-        </div>
-        {verificationStatus === 'verified' && (
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-green-100 dark:bg-green-900/30 rounded-full">
-            <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400" />
-            <span className="text-xs font-bold text-green-700 dark:text-green-400">Verified</span>
-          </div>
-        )}
-        {verificationStatus === 'pending' && (
-          <div className="flex items-center gap-1.5 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full">
-            <ClockIcon className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-            <span className="text-xs font-bold text-amber-700 dark:text-amber-400">Pending</span>
-          </div>
-        )}
+      <div className="flex items-center gap-2 mb-5">
+        <BellIcon className="w-5 h-5 text-button-primary"/>
+        <h3 className="font-bold text-gray-900 dark:text-white">Notification Preferences</h3>
       </div>
-
-      {verificationStatus === 'unverified' || verificationStatus === 'rejected' ? (
-        <div className="space-y-4">
-          <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-xl">
-            <div className="flex items-start gap-2">
-              <InfoIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-sm font-semibold text-blue-900 dark:text-blue-300 mb-2">Why verify your account?</p>
-                <ul className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
-                  <li>• Build trust with property owners</li>
-                  <li>• Get a verified badge on your profile</li>
-                  <li>• Increase booking approval chances</li>
-                </ul>
-              </div>
+      
+      <div className="space-y-4">
+        {/* Message Notifications */}
+        <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+          <div className="flex items-center gap-3 flex-1">
+            <div className="w-10 h-10 bg-button-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
+              <MailIcon className="w-5 h-5 text-button-primary"/>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-gray-900 dark:text-white text-sm">Owner Messages</p>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Get notified when you receive a message from the owner</p>
             </div>
           </div>
-
-          <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border border-gray-200 dark:border-gray-600">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-900 dark:text-white">Citizenship Document</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">Upload your citizenship card (front & back)</p>
-              </div>
-              {citizenshipDoc && (
-                <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" />
-              )}
-            </div>
-            <label className="block">
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleCitizenshipUpload}
-                className="hidden"
-                disabled={uploadingDoc || processingOCR}
-              />
-              <div className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-600 hover:bg-gray-100 dark:hover:bg-gray-500 rounded-lg cursor-pointer transition-colors border border-gray-200 dark:border-gray-500">
-                <FileTextIcon className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-                  {uploadingDoc ? 'Uploading...' : processingOCR ? 'Processing OCR...' : citizenshipDoc ? 'Change Document' : 'Upload Document'}
-                </span>
-              </div>
-            </label>
-
-            {/* OCR Extracted Data */}
-            {ocrData && (
-              <div className="mt-3 p-3 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg">
-                <div className="flex items-start gap-2 mb-2">
-                  <CheckCircleIcon className="w-4 h-4 text-green-600 dark:text-green-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs font-semibold text-green-900 dark:text-green-300">Document Information Extracted</p>
-                </div>
-                <div className="space-y-1 text-xs text-green-700 dark:text-green-400">
-                  {ocrData.name && <p>• Name: {ocrData.name}</p>}
-                  {ocrData.citizenshipNo && <p>• Citizenship No: {ocrData.citizenshipNo}</p>}
-                  {ocrData.dob && <p>• Date of Birth: {ocrData.dob}</p>}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <motion.button
-            whileHover={{ scale: 1.01 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={submitForVerification}
-            disabled={!citizenshipDoc || uploadingDoc}
-            className="w-full px-4 py-3 bg-button-primary text-white font-bold rounded-xl text-sm hover:bg-button-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-md">
-            {uploadingDoc ? 'Uploading...' : 'Submit for Verification'}
+          <motion.button 
+            whileTap={{ scale: 0.9 }} 
+            onClick={handleToggleMessageNotifications}
+            className={`w-12 h-6 rounded-full transition-all relative flex-shrink-0 ml-3 ${
+              messageNotifications ? 'bg-button-primary' : 'bg-gray-300 dark:bg-gray-600'
+            }`}>
+            <motion.div 
+              animate={{ x: messageNotifications ? 24 : 2 }}
+              transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+              className="absolute top-1 w-4 h-4 bg-white rounded-full shadow-sm" />
           </motion.button>
         </div>
-      ) : verificationStatus === 'pending' ? (
-        <div className="text-center py-8">
-          <ClockIcon className="w-12 h-12 text-amber-500 dark:text-amber-400 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Verification in Progress</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Admin is reviewing your document. This usually takes 24-48 hours.</p>
+
+        {/* Info Box */}
+        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+          <div className="flex items-start gap-3">
+            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <p className="font-semibold text-blue-900 dark:text-blue-300 text-sm mb-1">About Notifications</p>
+              <p className="text-xs text-blue-700 dark:text-blue-400">
+                Enable notifications to stay updated when property owners send you messages. You can change these settings anytime.
+              </p>
+            </div>
+          </div>
         </div>
-      ) : (
-        <div className="text-center py-8">
-          <CheckCircleIcon className="w-12 h-12 text-green-500 dark:text-green-400 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-gray-900 dark:text-white mb-1">Account Verified!</p>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Your account has been verified. You now have a verified badge.</p>
-        </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -888,6 +953,46 @@ export function TenantDashboard() {
   const [userNotifs, setUserNotifs] = useState<any[]>(() => {
     try { return JSON.parse(localStorage.getItem(`fm_notifs_${user?.name || 'user'}`) || '[]') } catch { return [] }
   })
+  
+  // ── Tenant message notifications from localStorage ──
+  const [tenantNotifs, setTenantNotifs] = useState<any[]>(() => {
+    try { 
+      return JSON.parse(localStorage.getItem(`fm_tenant_notifs_${user?.email}`) || '[]') 
+    } catch { 
+      return [] 
+    }
+  })
+
+  // Listen for new notifications from owner
+  useEffect(() => {
+    const handleNewNotification = (event: any) => {
+      const notification = event.detail
+      setTenantNotifs(prev => [notification, ...prev])
+      
+      // Show toast notification
+      toast(notification.message, {
+        duration: 5000,
+        style: {
+          background: '#2F7D5F',
+          color: 'white',
+        },
+      })
+    }
+
+    window.addEventListener('tenantNotification', handleNewNotification)
+    return () => window.removeEventListener('tenantNotification', handleNewNotification)
+  }, [])
+
+  // Reload tenant notifications from localStorage periodically
+  useEffect(() => {
+    const interval = setInterval(() => {
+      try {
+        const notifs = JSON.parse(localStorage.getItem(`fm_tenant_notifs_${user?.email}`) || '[]')
+        setTenantNotifs(notifs)
+      } catch {}
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [user?.email])
 
   // ── Bookings from localStorage ──
   const [bookings, setBookings] = useState<any[]>([])
@@ -1073,12 +1178,14 @@ export function TenantDashboard() {
     localStorage.setItem('fm_requirements', JSON.stringify(updated))
   }
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [cancelModalOpen, setCancelModalOpen] = useState(false)
+  const [bookingToCancel, setBookingToCancel] = useState<any>(null)
 
   // Read tab from URL param (set by "Chat with Owner" / message icon / Find Roommate message)
   const urlTab = searchParams.get('tab')
   const fromPage = searchParams.get('from') || 'properties'
   const [activeTab, setActiveTab] = useState(urlTab || 'overview')
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'verification' | 'display'>('profile')
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'verification' | 'display' | 'notifications'>('profile')
 
   // Messages params from PropertyDetailPage / FindRoommatePage (must be declared before useEffect)
   const msgUserId        = searchParams.get('userId')        || undefined
@@ -1095,6 +1202,22 @@ export function TenantDashboard() {
 
   // Update tab when URL changes
   useEffect(() => { if (urlTab) setActiveTab(urlTab) }, [urlTab])
+
+  // Auto-mark all notifications as read when visiting notifications tab
+  useEffect(() => {
+    if (activeTab === 'notifications' && tenantNotifs.length > 0) {
+      // Wait 500ms before marking as read (so user sees them first)
+      const timer = setTimeout(() => {
+        const hasUnread = tenantNotifs.some(n => !n.read)
+        if (hasUnread) {
+          const updatedNotifs = tenantNotifs.map(n => ({ ...n, read: true }))
+          setTenantNotifs(updatedNotifs)
+          localStorage.setItem(`fm_tenant_notifs_${user?.email}`, JSON.stringify(updatedNotifs))
+        }
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [activeTab, tenantNotifs.length, user?.email])
 
   // Remove redirect - messages will be shown in dashboard
   // useEffect(() => {
@@ -1123,6 +1246,7 @@ export function TenantDashboard() {
   }, [selectedConv?.messages?.length, selectedConv?.id])
 
   // Polling mechanism for messages
+  // Polling mechanism for messages - fetch on ALL tabs for badge count
   useEffect(() => {
     const fetchChats = async () => {
       if (!user) return;
@@ -1139,19 +1263,30 @@ export function TenantDashboard() {
       }
     };
 
-    if (activeTab === 'messages') {
-      fetchChats();
-      const interval = setInterval(fetchChats, 3000);
-      return () => clearInterval(interval);
-    }
-  }, [user, selectedConv?.id, activeTab]);
+    // Fetch immediately on mount
+    fetchChats();
+    
+    // Poll every 3 seconds regardless of active tab (for badge count)
+    const interval = setInterval(fetchChats, 3000);
+    return () => clearInterval(interval);
+  }, [user, selectedConv?.id]);
 
-  // Mark messages as seen
+  // Mark messages as seen and refresh conversations
   useEffect(() => {
     const markSeen = async () => {
       if (selectedConv && user && activeTab === 'messages') {
         const userRole = (user.role === 'landlord' ? 'owner' : user.role) as 'tenant' | 'owner';
         await markChatAsSeen(selectedConv.id, userRole);
+        
+        // Immediately refresh conversations to update badge count
+        const myChats = await getChats(user.name, userRole);
+        setConversations(myChats);
+        
+        // Update selected conversation with fresh data
+        const updated = myChats.find(c => c.id === selectedConv.id);
+        if (updated) {
+          setSelectedConv(updated);
+        }
       }
     };
     markSeen();
@@ -1185,6 +1320,14 @@ export function TenantDashboard() {
     { id:'notifications',  label:'Notifications',     icon: BellIcon },
     { id:'settings',       label:'Settings',          icon: SettingsIcon },
   ]
+
+  // Calculate unread message count
+  const unreadMessageCount = conversations.reduce((total, conv) => {
+    return total + (conv.unreadCount || 0)
+  }, 0)
+
+  // Calculate unread notification count
+  const unreadNotificationCount = tenantNotifs.filter(n => !n.read).length
 
   const handleLogout = () => {
     logout()
@@ -1361,6 +1504,18 @@ export function TenantDashboard() {
                            b.paymentType === 'full' ? '💳 Full Payment' : 
                            b.paymentType}
                         </span>
+                      )}
+                      {/* Cancel Button - Only for cash on arrival */}
+                      {b.paymentType === 'cash' && b.status === 'confirmed' && (
+                        <button
+                          onClick={() => {
+                            setBookingToCancel(b)
+                            setCancelModalOpen(true)
+                          }}
+                          className="mt-1 px-3 py-1 text-xs font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          Cancel Booking
+                        </button>
                       )}
                     </div>
                   </div>
@@ -1556,28 +1711,61 @@ export function TenantDashboard() {
         )
 
       case 'notifications':
-        const allNotifs = userNotifs || []
-        const allNotifsDisplay = [...mockNotifications, ...allNotifs.map(n => ({ id:n.id, title:n.title, message:n.message, time:n.time, type:n.type }))]
+        // Only show real notifications: tenant message notifications + user notifications
+        const allNotifs = [...tenantNotifs, ...(userNotifs || [])]
+        
         return (
           <motion.div initial={{ opacity:0, y:16 }} animate={{ opacity:1, y:0 }}>
             <h2 className="text-xl font-bold text-primary dark:text-white mb-6">Notifications</h2>
-            {allNotifsDisplay.length === 0 ? (
+            {allNotifs.length === 0 ? (
               <div className="text-center py-12 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
                 <BellIcon className="w-12 h-12 text-gray-200 dark:text-gray-600 mx-auto mb-3" />
                 <p className="text-gray-400 dark:text-gray-500">No notifications yet.</p>
               </div>
             ) : (
               <div className="space-y-3">
-                {allNotifsDisplay.map(n => (
+                {allNotifs.map(n => (
                   <div key={n.id} className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm flex gap-4">
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${n.type==='success' ? 'bg-green-100' : n.type==='warning' ? 'bg-yellow-100' : 'bg-blue-100'}`}>
-                      {n.type==='success' ? <CheckCircleIcon className="w-5 h-5 text-green-600" /> : n.type==='warning' ? <ClockIcon className="w-5 h-5 text-yellow-600" /> : <BellIcon className="w-5 h-5 text-blue-600" />}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      n.type==='message' ? 'bg-purple-100 dark:bg-purple-900/30' :
+                      n.type==='success' ? 'bg-green-100 dark:bg-green-900/30' : 
+                      n.type==='warning' ? 'bg-yellow-100 dark:bg-yellow-900/30' : 
+                      'bg-blue-100 dark:bg-blue-900/30'
+                    }`}>
+                      {n.type==='message' ? <MailIcon className="w-5 h-5 text-purple-600 dark:text-purple-400" /> :
+                       n.type==='success' ? <CheckCircleIcon className="w-5 h-5 text-green-600 dark:text-green-400" /> : 
+                       n.type==='warning' ? <ClockIcon className="w-5 h-5 text-yellow-600 dark:text-yellow-400" /> : 
+                       <BellIcon className="w-5 h-5 text-blue-600 dark:text-blue-400" />}
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <p className="font-bold text-gray-900 dark:text-white text-sm">{n.title}</p>
-                      <p className="text-gray-500 dark:text-gray-400 text-xs">{n.message}</p>
+                      <p className="text-gray-500 dark:text-gray-400 text-xs break-words">{n.message}</p>
                       <p className="text-gray-400 dark:text-gray-500 text-xs mt-0.5">{n.time}</p>
                     </div>
+                    {n.type === 'message' && n.chatId && (
+                      <button
+                        onClick={() => {
+                          // Mark this notification as read
+                          const updatedNotifs = tenantNotifs.map(notif => 
+                            notif.id === n.id ? { ...notif, read: true } : notif
+                          )
+                          setTenantNotifs(updatedNotifs)
+                          localStorage.setItem(`fm_tenant_notifs_${user?.email}`, JSON.stringify(updatedNotifs))
+                          
+                          // Navigate to messages
+                          setActiveTab('messages')
+                          // Navigate to the specific chat
+                          setTimeout(() => {
+                            const chatElement = document.querySelector(`[data-chat-id="${n.chatId}"]`)
+                            if (chatElement) {
+                              chatElement.scrollIntoView({ behavior: 'smooth', block: 'center' })
+                            }
+                          }, 100)
+                        }}
+                        className="px-4 py-2 bg-button-primary text-white text-sm font-semibold rounded-xl hover:bg-button-primary/90 transition-all flex-shrink-0 shadow-sm">
+                        View
+                      </button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -1597,6 +1785,7 @@ export function TenantDashboard() {
                   {[
                     { id: 'profile' as const, label: 'Profile', icon: UserIcon },
                     { id: 'verification' as const, label: 'Verification', icon: ShieldCheckIcon },
+                    { id: 'notifications' as const, label: 'Notifications', icon: BellIcon },
                     { id: 'display' as const, label: 'Display', icon: SunIcon },
                   ].map(item => (
                     <button 
@@ -1619,6 +1808,7 @@ export function TenantDashboard() {
             <div className="flex-1 space-y-6">
               {settingsTab === 'profile' && <ProfileSettingsPanel />}
               {settingsTab === 'verification' && <VerificationSettingsPanel />}
+              {settingsTab === 'notifications' && <NotificationSettingsPanel />}
               {settingsTab === 'display' && <DisplayPreferencesPanel />}
             </div>
           </motion.div>
@@ -1767,6 +1957,7 @@ export function TenantDashboard() {
             <nav className="space-y-1 flex-1">
               {tabs.map(tab => {
                 const Icon = tab.icon
+                const badgeCount = tab.id === 'messages' ? unreadMessageCount : tab.id === 'notifications' ? unreadNotificationCount : 0
                 return (
                   <motion.button key={tab.id} whileHover={{ x:3 }} whileTap={{ scale:0.98 }}
                     onClick={() => setActiveTab(tab.id)}
@@ -1776,7 +1967,12 @@ export function TenantDashboard() {
                         : 'text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                     }`}>
                     <Icon className="w-4 h-4 flex-shrink-0" />
-                    {tab.label}
+                    <span className="flex-1 text-left">{tab.label}</span>
+                    {badgeCount > 0 && (
+                      <span className="ml-auto w-5 h-5 bg-red-500 text-white text-[10px] rounded-full flex items-center justify-center font-bold">
+                        {badgeCount}
+                      </span>
+                    )}
                   </motion.button>
                 )
               })}
@@ -1846,10 +2042,16 @@ export function TenantDashboard() {
                 <div className="px-4 py-3 flex flex-wrap gap-2">
                   {tabs.map(tab => {
                     const Icon = tab.icon
+                    const badgeCount = tab.id === 'messages' ? unreadMessageCount : tab.id === 'notifications' ? unreadNotificationCount : 0
                     return (
                       <button key={tab.id} onClick={() => { setActiveTab(tab.id); setMobileMenuOpen(false) }}
-                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all ${activeTab===tab.id ? 'bg-button-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
+                        className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all relative ${activeTab===tab.id ? 'bg-button-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                         <Icon className="w-3.5 h-3.5" /> {tab.label}
+                        {badgeCount > 0 && (
+                          <span className="ml-1 w-4 h-4 bg-red-500 text-white text-[9px] rounded-full flex items-center justify-center font-bold">
+                            {badgeCount}
+                          </span>
+                        )}
                       </button>
                     )
                   })}
@@ -1868,6 +2070,89 @@ export function TenantDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Cancel Booking Confirmation Modal */}
+      <AnimatePresence>
+        {cancelModalOpen && bookingToCancel && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setCancelModalOpen(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              transition={{ type: 'spring', duration: 0.3 }}
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center">
+                  <AlertCircleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 dark:text-white">Cancel Booking</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">This action cannot be undone</p>
+                </div>
+              </div>
+
+              <div className="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                <p className="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                  Are you sure you want to cancel your booking for:
+                </p>
+                <p className="font-bold text-gray-900 dark:text-white">{bookingToCancel.propertyTitle}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  Receipt: {bookingToCancel.receiptId}
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setCancelModalOpen(false)}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Keep Booking
+                </button>
+                <button
+                  onClick={() => {
+                    try {
+                      // Remove booking from localStorage
+                      const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
+                      const updatedBookings = allBookings.filter((booking: any) => booking.receiptId !== bookingToCancel.receiptId)
+                      localStorage.setItem('fm_bookings', JSON.stringify(updatedBookings))
+                      
+                      // Update state
+                      setBookings(updatedBookings.filter((booking: any) => {
+                        const emailMatch = user.email && booking.customerEmail?.toLowerCase() === user.email.toLowerCase()
+                        const nameMatch = user.name && booking.customerName?.toLowerCase().includes(user.name.toLowerCase())
+                        return emailMatch || nameMatch
+                      }))
+                      
+                      // Dispatch events to update property cards
+                      window.dispatchEvent(new Event('bookingAdded'))
+                      window.dispatchEvent(new Event('storage'))
+                      
+                      setCancelModalOpen(false)
+                      setBookingToCancel(null)
+                      
+                      toast.success('Booking cancelled successfully')
+                    } catch (error) {
+                      console.error('Error cancelling booking:', error)
+                      toast.error('Failed to cancel booking')
+                    }
+                  }}
+                  className="flex-1 px-4 py-2.5 bg-red-600 text-white font-semibold rounded-xl hover:bg-red-700 transition-colors"
+                >
+                  Yes, Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   )
 }

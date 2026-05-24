@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import {
@@ -6,6 +6,7 @@ import {
   MapIcon, DoorOpenIcon, HomeIcon, Building2Icon, BuildingIcon,
   UsersIcon, InfoIcon, LightbulbIcon, SearchIcon, XIcon,
   ChevronDownIcon, MapPinIcon, BedDoubleIcon, SlidersHorizontalIcon, CheckIcon,
+  NavigationIcon, AlertCircleIcon,
 } from 'lucide-react'
 import { PropertyCard } from '../components/PropertyCard'
 import { Button } from '../components/ui/Button'
@@ -54,6 +55,16 @@ const LOCS   = ['Kathmandu','Lalitpur','Bhaktapur','Pokhara','Chitwan','Dharan']
 const TYPES  = ['Apartment','Studio','House','Flat','Room']
 const BEDS   = [1,2,3,4]
 const RENTS  = [8000,10000,12000,15000,18000,20000,25000,28000,32000,35000,40000,45000,55000,65000]
+
+// Coordinates for major cities (for location-based filtering)
+const CITY_COORDS: Record<string, [number, number]> = {
+  Kathmandu: [27.7172, 85.3240],
+  Lalitpur:  [27.6644, 85.3188],
+  Bhaktapur: [27.6710, 85.4298],
+  Pokhara:   [28.2096, 83.9856],
+  Chitwan:   [27.5291, 84.3542],
+  Dharan:    [26.8120, 87.2836],
+}
 
 // Build 120 properties — one for every (location × type × bed) combo
 const allProperties = (() => {
@@ -202,6 +213,44 @@ export function PropertiesPage() {
   const [showSortMenu,   setShowSortMenu]   = useState(false)
   const [ownerProperties, setOwnerProperties] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  
+  // User location state for nearby properties
+  const [userLocation, setUserLocation] = useState<{lat: number; lng: number} | null>(null)
+  const [locationError, setLocationError] = useState<string | null>(null)
+
+  // Get user's location on mount
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          })
+          setLocationError(null)
+        },
+        (error) => {
+          console.log('Geolocation error:', error.message)
+          setLocationError('Unable to get your location')
+        }
+      )
+    } else {
+      setLocationError('Geolocation not supported')
+    }
+  }, [])
+
+  // Calculate distance between two coordinates (Haversine formula)
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Earth's radius in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon/2) * Math.sin(dLon/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c; // Distance in km
+  }
 
   useEffect(() => {
     const loc = searchParams.get('location')
@@ -253,6 +302,7 @@ export function PropertiesPage() {
       bedrooms: op.beds || op.bedrooms || 1,
       bathrooms: op.baths || op.bathrooms || 1,
       ownerName: op.ownerName,
+      ownerEmail: op.ownerEmail,
       views: op.views || 0,
       isPremium: op.isPremium || false,
       createdAt: -1, // Always sort to top (newest)
@@ -324,6 +374,30 @@ export function PropertiesPage() {
     setActiveCategory('all');     setDisplayCount(9)
     navigate('/properties', { replace: true })
   }
+
+  // Calculate nearby properties based on user location
+  const nearbyProperties = useMemo(() => {
+    if (!userLocation) return []
+    
+    // Add coordinates to properties that don't have them (use city defaults)
+    const propertiesWithCoords = sorted.map(p => {
+      if (p.lat && p.lng) return p
+      const cityCoords = CITY_COORDS[p.location] || [27.7172, 85.3240]
+      return { ...p, lat: cityCoords[0], lng: cityCoords[1] }
+    })
+    
+    // Calculate distance for each property
+    const withDistance = propertiesWithCoords.map(p => ({
+      ...p,
+      distance: calculateDistance(userLocation.lat, userLocation.lng, p.lat, p.lng)
+    }))
+    
+    // Filter properties within 10km and sort by distance
+    return withDistance
+      .filter(p => p.distance <= 10)
+      .sort((a, b) => a.distance - b.distance)
+      .slice(0, 8) // Show top 8 nearest properties
+  }, [userLocation, sorted])
 
   return (
     <main className="min-h-screen bg-background-light dark:bg-gray-900 pb-16 transition-colors duration-300">
@@ -480,20 +554,62 @@ export function PropertiesPage() {
           </div>
         </section>
 
-        {/* ── MOST LIKED ───────────────────────────────────────────────────── */}
+        {/* ── PROPERTIES NEAR YOUR LOCATION ───────────────────────────────── */}
         {!hasFilters && activeCategory === 'all' && (
           <section className="mb-14">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold text-primary">Most Liked Properties</h2>
-              <Button variant="ghost" size="sm">View All</Button>
+              <div className="flex items-center gap-3">
+                <div className="bg-button-primary/10 p-2.5 rounded-xl">
+                  <NavigationIcon className="w-5 h-5 text-button-primary" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-primary">Properties Near Your Location</h2>
+                  <p className="text-sm text-gray-500 mt-0.5">
+                    {userLocation 
+                      ? `Showing properties within 10km of your location` 
+                      : locationError 
+                        ? 'Enable location access to see nearby properties'
+                        : 'Getting your location...'}
+                  </p>
+                </div>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {allProperties.slice(0, 4).map(p => (
-                <motion.div key={`liked-${p.id}`} whileHover={{ y:-8 }} transition={{ duration:0.3 }}>
-                  <PropertyCard {...p} />
-                </motion.div>
-              ))}
-            </div>
+            
+            {userLocation && nearbyProperties.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {nearbyProperties.map(p => (
+                  <motion.div key={`nearby-${p.id}`} whileHover={{ y:-8 }} transition={{ duration:0.3 }}>
+                    <div className="relative">
+                      <PropertyCard {...p} />
+                      {/* Distance badge */}
+                      <div className="absolute top-3 right-3 bg-button-primary text-white px-2.5 py-1 rounded-full text-xs font-bold shadow-lg flex items-center gap-1">
+                        <MapPinIcon className="w-3 h-3" />
+                        {p.distance < 1 
+                          ? `${Math.round(p.distance * 1000)}m away` 
+                          : `${p.distance.toFixed(1)}km away`}
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            ) : userLocation && nearbyProperties.length === 0 ? (
+              <Card className="p-8 text-center bg-gray-50 border-gray-200">
+                <MapPinIcon className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+                <p className="text-gray-600 font-medium">No properties found within 10km of your location</p>
+                <p className="text-sm text-gray-500 mt-1">Try browsing all properties below</p>
+              </Card>
+            ) : locationError ? (
+              <Card className="p-8 text-center bg-yellow-50 border-yellow-200">
+                <AlertCircleIcon className="w-12 h-12 text-yellow-600 mx-auto mb-3" />
+                <p className="text-gray-700 font-medium">Location access is disabled</p>
+                <p className="text-sm text-gray-600 mt-1">Enable location permissions in your browser to see nearby properties</p>
+              </Card>
+            ) : (
+              <Card className="p-8 text-center bg-gray-50 border-gray-200">
+                <div className="animate-spin w-8 h-8 border-4 border-button-primary border-t-transparent rounded-full mx-auto mb-3" />
+                <p className="text-gray-600 font-medium">Getting your location...</p>
+              </Card>
+            )}
           </section>
         )}
 

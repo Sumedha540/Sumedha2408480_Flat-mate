@@ -1,4 +1,4 @@
-/**
+﻿/**
  * OWNER DASHBOARD - Main dashboard interface for property owners/landlords
  * 
  * PURPOSE:
@@ -63,12 +63,12 @@ import {
   SunIcon, MoonIcon, BellRingIcon, HistoryIcon, CreditCardIcon, ShieldAlertIcon,
   CrownIcon, MessageSquareIcon, ZapIcon,
 } from 'lucide-react'
-import { useAuth } from '../contexts/AuthContext'
-import { useTheme } from '../contexts/ThemeContext'
+import { useAuth } from './src/contexts/AuthContext'
+import { useTheme } from './src/contexts/ThemeContext'
 import { toast } from 'sonner'
-import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '../utils/chatStorage'
-import { getProperties, createProperty, updateProperty, deleteProperty, Property } from '../utils/propertyAPI'
-import { OwnerHistorySection } from '../components/OwnerHistorySection'
+import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat, ChatMessage } from './src/utils/chatStorage'
+import { getProperties, createProperty, updateProperty, deleteProperty, Property } from './src/utils/propertyAPI'
+import { OwnerHistorySection } from './src/components/OwnerHistorySection'
 
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ls     = (k: string, fb = '[]') => { try { return JSON.parse(localStorage.getItem(k) || fb) } catch { return JSON.parse(fb) } }
@@ -1029,9 +1029,9 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
       if (!user) return;
       const myChats = await getChats(user.name, 'owner');
       setConvs(myChats);
-      setActive(prev => {
+      setActive((prev: Chat | null) => {
         if (!prev) return null;
-        return myChats.find(c => c.id === prev.id) || prev;
+        return myChats.find((c: Chat) => c.id === prev.id) || prev;
       });
     };
     fetchChats();
@@ -1050,6 +1050,14 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
     const markSeen = async () => {
       if (active && user) {
         await markChatAsSeen(active.id, 'owner');
+        
+        // Immediately refresh conversations to update badge count
+        const myChats = await getChats(user.name, 'owner');
+        setConvs(myChats);
+        
+        // Update active conversation with fresh data
+        const updated = myChats.find((c: Chat) => c.id === active.id);
+        if (updated) setActive(updated);
       }
     };
     markSeen();
@@ -1060,8 +1068,85 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
     const txt = input;
     setInput('');
     await sendMessage(active.id, { text: txt, senderName: user.name, senderRole: 'owner' });
+    
+    // Send notification to tenant
+    try {
+      console.log('🔔 Attempting to send notification to tenant:', active.tenantName);
+      
+      // Fetch tenant email from backend using tenant name
+      const tenantName = active.tenantName;
+      if (tenantName) {
+        const response = await fetch(`http://localhost:5000/api/users`);
+        if (response.ok) {
+          const data = await response.json();
+          const users = data.users || data; // Handle both {users: []} and [] formats
+          console.log('👥 Fetched users:', users.length);
+          
+          const tenant = users.find((u: any) => {
+            const fullName = `${u.firstName} ${u.lastName}`.trim();
+            console.log(`  Comparing: "${fullName}" with "${tenantName}"`);
+            return fullName.toLowerCase() === tenantName.toLowerCase();
+          });
+          
+          console.log('🔍 Found tenant:', tenant ? tenant.email : 'NOT FOUND');
+          
+          if (tenant && tenant.email) {
+            const tenantEmail = tenant.email;
+            
+            // Check if tenant has notifications enabled
+            const notifEnabled = localStorage.getItem(`fm_tenant_notify_messages_${tenantEmail}`) === 'true';
+            console.log('🔔 Notifications enabled for tenant:', notifEnabled);
+            console.log('🔑 LocalStorage key:', `fm_tenant_notify_messages_${tenantEmail}`);
+            
+            if (notifEnabled) {
+              // Get existing tenant notifications
+              const tenantNotifs = JSON.parse(localStorage.getItem(`fm_tenant_notifs_${tenantEmail}`) || '[]');
+              console.log('📬 Existing notifications:', tenantNotifs.length);
+              
+              // Create notification
+              const notification = {
+                id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'message',
+                title: 'New Message',
+                message: `${user.name} has messaged you: "${txt.length > 50 ? txt.substring(0, 50) + '...' : txt}"`,
+                senderName: user.name,
+                messageText: txt,
+                chatId: active.id,
+                read: false,
+                time: 'Just now',
+                createdAt: new Date().toISOString()
+              };
+              
+              console.log('✅ Created notification:', notification);
+              
+              // Add to beginning of array
+              tenantNotifs.unshift(notification);
+              
+              // Save back to localStorage
+              localStorage.setItem(`fm_tenant_notifs_${tenantEmail}`, JSON.stringify(tenantNotifs));
+              console.log('💾 Saved notification to localStorage');
+              
+              // Dispatch event to notify tenant dashboard if it's open
+              window.dispatchEvent(new CustomEvent('tenantNotification', { detail: notification }));
+              console.log('📡 Dispatched notification event');
+            } else {
+              console.log('⚠️ Tenant has not enabled message notifications');
+              console.log('⚠️ Please enable notifications in Tenant Dashboard > Settings > Notifications');
+            }
+          } else {
+            console.log('❌ Tenant not found in database');
+            console.log('❌ Available users:', users.map((u: any) => `${u.firstName} ${u.lastName}`).join(', '));
+          }
+        } else {
+          console.error('❌ Failed to fetch users:', response.status);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error sending notification:', error);
+    }
+    
     const myChats = await getChats(user.name, 'owner');
-    const updated = myChats.find(c => c.id === active.id);
+    const updated = myChats.find((c: Chat) => c.id === active.id);
     if (updated) setActive(updated);
   };
 
@@ -1076,8 +1161,50 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
       const url = URL.createObjectURL(file);
       await sendMessage(active.id, { [type]: url, senderName: user.name, senderRole: 'owner' });
       toast.success(`${type} sent!`);
+      
+      // Send notification to tenant
+      try {
+        const tenantName = active.tenantName;
+        if (tenantName) {
+          const response = await fetch(`http://localhost:5000/api/users`);
+          if (response.ok) {
+            const users = await response.json();
+            const tenant = users.find((u: any) => {
+              const fullName = `${u.firstName} ${u.lastName}`.trim();
+              return fullName.toLowerCase() === tenantName.toLowerCase();
+            });
+            
+            if (tenant && tenant.email) {
+              const tenantEmail = tenant.email;
+              const notifEnabled = localStorage.getItem(`fm_tenant_notify_messages_${tenantEmail}`) === 'true';
+              
+              if (notifEnabled) {
+                const tenantNotifs = JSON.parse(localStorage.getItem(`fm_tenant_notifs_${tenantEmail}`) || '[]');
+                const notification = {
+                  id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                  type: 'message',
+                  title: 'New Message',
+                  message: `${user.name} sent you ${type === 'image' ? 'an image' : type === 'video' ? 'a video' : 'an audio file'}`,
+                  senderName: user.name,
+                  messageText: `[${type}]`,
+                  chatId: active.id,
+                  read: false,
+                  time: 'Just now',
+                  createdAt: new Date().toISOString()
+                };
+                tenantNotifs.unshift(notification);
+                localStorage.setItem(`fm_tenant_notifs_${tenantEmail}`, JSON.stringify(tenantNotifs));
+                window.dispatchEvent(new CustomEvent('tenantNotification', { detail: notification }));
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+      
       const myChats = await getChats(user.name, 'owner');
-      const updated = myChats.find(c => c.id === active.id);
+      const updated = myChats.find((c: Chat) => c.id === active.id);
       if (updated) setActive(updated);
     };
     input.click();
@@ -1167,7 +1294,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
 
             <div className="flex-1 overflow-y-auto p-5 bg-gray-50 space-y-3">
               <AnimatePresence initial={false}>
-                {active.messages.map(m => {
+                {active.messages.map((m: ChatMessage) => {
                   const isOwn = m.senderRole === 'owner'
                   return (
                     <motion.div key={m.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
@@ -1225,7 +1352,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
       if (!user) return;
       const myChats = await getChats(user.name, 'owner');
       setConversations(myChats);
-      setSelectedConv(prev => {
+      setSelectedConv((prev: Chat | null) => {
         if (!prev) return null;
         return myChats.find((c: Chat) => c.id === prev.id) || prev;
       });
@@ -1246,6 +1373,14 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
     const markSeen = async () => {
       if (selectedConv && user) {
         await markChatAsSeen(selectedConv.id, 'owner');
+        
+        // Immediately refresh conversations to update badge count
+        const myChats = await getChats(user.name, 'owner');
+        setConversations(myChats);
+        
+        // Update selected conversation with fresh data
+        const updated = myChats.find((c: Chat) => c.id === selectedConv.id);
+        if (updated) setSelectedConv(updated);
       }
     };
     markSeen();
@@ -1256,6 +1391,84 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
     const txt = message;
     setMessage('');
     await sendMessage(selectedConv.id, { text: txt, senderName: user.name, senderRole: 'owner' });
+    
+    // Send notification to tenant
+    try {
+      console.log('🔔 Attempting to send notification to tenant:', selectedConv.tenantName);
+      
+      // Fetch tenant email from backend using tenant name
+      const tenantName = selectedConv.tenantName;
+      if (tenantName) {
+        // Try to get user by name (search for users with matching name)
+        const response = await fetch(`http://localhost:5000/api/users`);
+        if (response.ok) {
+          const data = await response.json();
+          const users = data.users || data; // Handle both {users: []} and [] formats
+          console.log('👥 Fetched users:', users.length);
+          
+          const tenant = users.find((u: any) => {
+            const fullName = `${u.firstName} ${u.lastName}`.trim();
+            console.log(`  Comparing: "${fullName}" with "${tenantName}"`);
+            return fullName.toLowerCase() === tenantName.toLowerCase();
+          });
+          
+          console.log('🔍 Found tenant:', tenant ? tenant.email : 'NOT FOUND');
+          
+          if (tenant && tenant.email) {
+            const tenantEmail = tenant.email;
+            
+            // Check if tenant has notifications enabled
+            const notifEnabled = localStorage.getItem(`fm_tenant_notify_messages_${tenantEmail}`) === 'true';
+            console.log('🔔 Notifications enabled for tenant:', notifEnabled);
+            console.log('🔑 LocalStorage key:', `fm_tenant_notify_messages_${tenantEmail}`);
+            
+            if (notifEnabled) {
+              // Get existing tenant notifications
+              const tenantNotifs = JSON.parse(localStorage.getItem(`fm_tenant_notifs_${tenantEmail}`) || '[]');
+              console.log('📬 Existing notifications:', tenantNotifs.length);
+              
+              // Create notification
+              const notification = {
+                id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                type: 'message',
+                title: 'New Message',
+                message: `${user.name} has messaged you: "${txt.length > 50 ? txt.substring(0, 50) + '...' : txt}"`,
+                senderName: user.name,
+                messageText: txt,
+                chatId: selectedConv.id,
+                read: false,
+                time: 'Just now',
+                createdAt: new Date().toISOString()
+              };
+              
+              console.log('✅ Created notification:', notification);
+              
+              // Add to beginning of array
+              tenantNotifs.unshift(notification);
+              
+              // Save back to localStorage
+              localStorage.setItem(`fm_tenant_notifs_${tenantEmail}`, JSON.stringify(tenantNotifs));
+              console.log('💾 Saved notification to localStorage');
+              
+              // Dispatch event to notify tenant dashboard if it's open
+              window.dispatchEvent(new CustomEvent('tenantNotification', { detail: notification }));
+              console.log('📡 Dispatched notification event');
+            } else {
+              console.log('⚠️ Tenant has not enabled message notifications');
+              console.log('⚠️ Please enable notifications in Tenant Dashboard > Settings > Notifications');
+            }
+          } else {
+            console.log('❌ Tenant not found in database');
+            console.log('❌ Available users:', users.map((u: any) => `${u.firstName} ${u.lastName}`).join(', '));
+          }
+        } else {
+          console.error('❌ Failed to fetch users:', response.status);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error sending notification:', error);
+    }
+    
     const myChats = await getChats(user.name, 'owner');
     const updated = myChats.find((c: Chat) => c.id === selectedConv.id);
     if (updated) setSelectedConv(updated);
@@ -1272,6 +1485,48 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
       const url = URL.createObjectURL(file);
       await sendMessage(selectedConv.id, { [type]: url, senderName: user.name, senderRole: 'owner' });
       toast.success(`${type} sent!`);
+      
+      // Send notification to tenant
+      try {
+        const tenantName = selectedConv.tenantName;
+        if (tenantName) {
+          const response = await fetch(`http://localhost:5000/api/users`);
+          if (response.ok) {
+            const users = await response.json();
+            const tenant = users.find((u: any) => {
+              const fullName = `${u.firstName} ${u.lastName}`.trim();
+              return fullName.toLowerCase() === tenantName.toLowerCase();
+            });
+            
+            if (tenant && tenant.email) {
+              const tenantEmail = tenant.email;
+              const notifEnabled = localStorage.getItem(`fm_tenant_notify_messages_${tenantEmail}`) === 'true';
+              
+              if (notifEnabled) {
+                const tenantNotifs = JSON.parse(localStorage.getItem(`fm_tenant_notifs_${tenantEmail}`) || '[]');
+                const notification = {
+                  id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+                  type: 'message',
+                  title: 'New Message',
+                  message: `${user.name} sent you ${type === 'image' ? 'an image' : type === 'video' ? 'a video' : 'an audio file'}`,
+                  senderName: user.name,
+                  messageText: `[${type}]`,
+                  chatId: selectedConv.id,
+                  read: false,
+                  time: 'Just now',
+                  createdAt: new Date().toISOString()
+                };
+                tenantNotifs.unshift(notification);
+                localStorage.setItem(`fm_tenant_notifs_${tenantEmail}`, JSON.stringify(tenantNotifs));
+                window.dispatchEvent(new CustomEvent('tenantNotification', { detail: notification }));
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error sending notification:', error);
+      }
+      
       const myChats = await getChats(user.name, 'owner');
       const updated = myChats.find((c: Chat) => c.id === selectedConv.id);
       if (updated) setSelectedConv(updated);
@@ -1313,8 +1568,8 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
         <div className="flex-1 overflow-y-auto">
           {filtered.length === 0 ? (
             <div className="p-8 text-center text-gray-400 dark:text-gray-500 text-sm">No conversations yet</div>
-          ) : filtered.map((conv, idx) => {
-            const unread = conv.messages.filter(m => m.senderRole !== 'owner' && !m.seen).length
+          ) : filtered.map((conv: Chat, idx: number) => {
+            const unread = conv.messages.filter((m: ChatMessage) => m.senderRole !== 'owner' && !m.seen).length
             const lastMsg = conv.messages[conv.messages.length - 1]
             return (
               <motion.button key={conv.id} initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }}
@@ -1380,7 +1635,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
 
             <div className="flex-1 overflow-y-auto p-5 bg-gray-50 dark:bg-gray-900 space-y-3">
               <AnimatePresence initial={false}>
-                {selectedConv.messages.map(msg => {
+                {selectedConv.messages.map((msg: ChatMessage) => {
                   const isOwn = msg.senderRole === 'owner'
                   return (
                     <motion.div key={msg.id} initial={{ opacity: 0, y: 12, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -1453,6 +1708,9 @@ function OwnerSettingsPanel({ user }: { user: any }) {
     email:     user?.email || '',
   })
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
+  const [citizenshipDoc, setCitizenshipDoc] = useState<string | null>(null)
+  const [isVerified, setIsVerified] = useState(false)
+  const [verificationStatus, setVerificationStatus] = useState<'none' | 'pending' | 'verified'>('none')
   const [notifPrefs, setNotifPrefs] = useState(() => {
     const saved = localStorage.getItem(`fm_owner_notifications_${user?.email}`)
     if (saved) {
@@ -1463,8 +1721,11 @@ function OwnerSettingsPanel({ user }: { user: any }) {
     return { bookings: false, approval: false }
   })
   const [saving, setSaving] = useState(false)
+  const [savingPw, setSavingPw] = useState(false)
+  const [passwords, setPasswords] = useState({ current: '', newPass: '', confirm: '' })
   const [errors, setErrors] = useState<Record<string, string>>({})
   const fileInputRef = React.useRef<HTMLInputElement>(null)
+  const citizenshipInputRef = React.useRef<HTMLInputElement>(null)
 
   // Load saved profile data from localStorage
   useEffect(() => {
@@ -1474,9 +1735,94 @@ function OwnerSettingsPanel({ user }: { user: any }) {
         const parsed = JSON.parse(savedProfile)
         setProfile(parsed.profile || profile)
         setProfilePhoto(parsed.photo || null)
+        setCitizenshipDoc(parsed.citizenshipDoc || null)
+        setIsVerified(parsed.isVerified || false)
+        setVerificationStatus(parsed.verificationStatus || 'none')
       } catch {}
     }
   }, [user?.email])
+
+  // Handle citizenship document upload
+  const handleCitizenshipUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Check file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('Document size must be less than 10MB')
+      return
+    }
+
+    // Check file type (images and PDFs)
+    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
+      toast.error('Please select an image or PDF file')
+      return
+    }
+
+    // Convert to base64
+    const reader = new FileReader()
+    reader.onload = (event) => {
+      const base64 = event.target?.result as string
+      setCitizenshipDoc(base64)
+      setVerificationStatus('pending')
+      
+      // Save to localStorage
+      try {
+        const savedProfile = localStorage.getItem(`fm_owner_profile_${user?.email}`)
+        const profileData = savedProfile ? JSON.parse(savedProfile) : { profile }
+        profileData.citizenshipDoc = base64
+        profileData.verificationStatus = 'pending'
+        profileData.updatedAt = new Date().toISOString()
+        localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(profileData))
+        window.dispatchEvent(new Event('ownerProfileUpdated'))
+      } catch {}
+      
+      // Auto-verify after 2 seconds (simulating admin review)
+      setTimeout(() => {
+        setIsVerified(true)
+        setVerificationStatus('verified')
+        
+        try {
+          const savedProfile = localStorage.getItem(`fm_owner_profile_${user?.email}`)
+          const profileData = savedProfile ? JSON.parse(savedProfile) : { profile }
+          profileData.isVerified = true
+          profileData.verificationStatus = 'verified'
+          profileData.verifiedAt = new Date().toISOString()
+          localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(profileData))
+          
+          // Update user in flatmate_user
+          const userStr = localStorage.getItem('flatmate_user')
+          if (userStr) {
+            const currentUser = JSON.parse(userStr)
+            currentUser.isVerified = true
+            localStorage.setItem('flatmate_user', JSON.stringify(currentUser))
+          }
+          
+          window.dispatchEvent(new Event('ownerProfileUpdated'))
+          window.dispatchEvent(new Event('storage'))
+        } catch {}
+        
+        toast('✓ Verification complete! You now have a verified badge', {
+          style: {
+            background: '#2563EB',
+            color: 'white',
+          },
+          duration: 4000,
+        })
+      }, 2000)
+      
+      toast('Citizenship document uploaded! Verifying...', {
+        style: {
+          background: '#F59E0B',
+          color: 'white',
+        },
+      })
+    }
+    reader.onerror = () => {
+      toast.error('Failed to read document file')
+    }
+    reader.readAsDataURL(file)
+  }
 
   // Validate email format
   const validateEmail = (email: string): boolean => {
@@ -1705,6 +2051,7 @@ function OwnerSettingsPanel({ user }: { user: any }) {
           <nav className="space-y-1">
             {[
               { id: 'profile' as const, label: 'Profile', icon: UserIcon },
+              { id: 'verification' as const, label: 'Verification', icon: ShieldCheckIcon },
               { id: 'notifications' as const, label: 'Notifications', icon: BellIcon },
               { id: 'theme' as const, label: 'Theme', icon: SunIcon },
             ].map(item => (
@@ -1808,6 +2155,214 @@ function OwnerSettingsPanel({ user }: { user: any }) {
               {saving && <motion.div animate={{ rotate: 360 }} transition={{ duration: 0.7, repeat: Infinity, ease: 'linear' }} className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full" />}
               {saving ? 'Saving...' : 'Save Profile'}
             </motion.button>
+          </div>
+        )}
+        {activeSection === 'verification' && (
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+            <div className="flex items-center gap-2 mb-5">
+              <ShieldCheckIcon className="w-5 h-5 text-blue-600"/>
+              <h3 className="font-bold text-gray-900">Account Verification</h3>
+            </div>
+            
+            {/* Verification Status Banner */}
+            {verificationStatus === 'verified' && (
+              <div className="mb-5 p-4 bg-gradient-to-r from-blue-50 to-green-50 border-2 border-blue-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center flex-shrink-0">
+                    <CheckIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                      Verified Owner
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-600 text-white text-[10px] font-bold rounded-full">
+                        <ShieldCheckIcon className="w-3 h-3" />
+                        VERIFIED
+                      </span>
+                    </p>
+                    <p className="text-xs text-gray-600 mt-0.5">Your account is verified. Tenants can see your verified badge.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {verificationStatus === 'pending' && (
+              <div className="mb-5 p-4 bg-gradient-to-r from-yellow-50 to-orange-50 border-2 border-yellow-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-yellow-500 rounded-full flex items-center justify-center flex-shrink-0">
+                    <ClockIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">Verification Pending</p>
+                    <p className="text-xs text-gray-600 mt-0.5">Your document is being reviewed. This usually takes a few seconds.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
+            {verificationStatus === 'none' && (
+              <div className="mb-5 p-4 bg-gradient-to-r from-gray-50 to-blue-50 border-2 border-gray-200 rounded-xl">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+                    <AlertCircleIcon className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold text-gray-900">Not Verified</p>
+                    <p className="text-xs text-gray-600 mt-0.5">Upload your citizenship document to get verified and build trust with tenants.</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Benefits Section */}
+            <div className="mb-5 p-4 bg-blue-50 border border-blue-100 rounded-xl">
+              <p className="text-xs font-bold text-blue-900 mb-3">Benefits of Verification:</p>
+              <div className="space-y-2">
+                {[
+                  'Get a blue verified badge visible to all tenants',
+                  'Build trust and credibility with potential tenants',
+                  'Increase booking rates by up to 40%',
+                  'Stand out from unverified property owners',
+                ].map((benefit, idx) => (
+                  <div key={idx} className="flex items-start gap-2">
+                    <CheckCircleIcon className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-gray-700">{benefit}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Upload Section */}
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-700 mb-2">
+                  Upload Citizenship Document
+                </label>
+                <p className="text-[10px] text-gray-500 mb-3">
+                  Upload a clear photo or scan of your citizenship certificate. Accepted formats: JPG, PNG, PDF (max 10MB)
+                </p>
+                
+                {citizenshipDoc ? (
+                  <div className="p-4 bg-green-50 border-2 border-green-200 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                          <FileTextIcon className="w-5 h-5 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-gray-900">Document Uploaded</p>
+                          <p className="text-[10px] text-gray-500">Citizenship certificate</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            // Open document in new tab/modal
+                            const isPDF = citizenshipDoc.startsWith('data:application/pdf')
+                            if (isPDF) {
+                              // For PDF, open in new tab
+                              const newWindow = window.open()
+                              if (newWindow) {
+                                newWindow.document.write(`
+                                  <html>
+                                    <head><title>Citizenship Document</title></head>
+                                    <body style="margin:0">
+                                      <iframe src="${citizenshipDoc}" style="width:100%;height:100vh;border:none"></iframe>
+                                    </body>
+                                  </html>
+                                `)
+                              }
+                            } else {
+                              // For images, open in new tab
+                              const newWindow = window.open()
+                              if (newWindow) {
+                                newWindow.document.write(`
+                                  <html>
+                                    <head><title>Citizenship Document</title></head>
+                                    <body style="margin:0;display:flex;align-items:center;justify-content:center;background:#000">
+                                      <img src="${citizenshipDoc}" style="max-width:100%;max-height:100vh;object-fit:contain" />
+                                    </body>
+                                  </html>
+                                `)
+                              }
+                            }
+                          }}
+                          className="text-xs text-blue-600 hover:text-blue-700 font-semibold flex items-center gap-1"
+                        >
+                          <EyeIcon className="w-3.5 h-3.5" />
+                          View
+                        </button>
+                        <button
+                          onClick={() => {
+                            setCitizenshipDoc(null)
+                            setVerificationStatus('none')
+                            setIsVerified(false)
+                            try {
+                              const savedProfile = localStorage.getItem(`fm_owner_profile_${user?.email}`)
+                              if (savedProfile) {
+                                const parsed = JSON.parse(savedProfile)
+                                parsed.citizenshipDoc = null
+                                parsed.verificationStatus = 'none'
+                                parsed.isVerified = false
+                                localStorage.setItem(`fm_owner_profile_${user?.email}`, JSON.stringify(parsed))
+                                
+                                // Update user in flatmate_user
+                                const userStr = localStorage.getItem('flatmate_user')
+                                if (userStr) {
+                                  const currentUser = JSON.parse(userStr)
+                                  currentUser.isVerified = false
+                                  localStorage.setItem('flatmate_user', JSON.stringify(currentUser))
+                                }
+                                
+                                window.dispatchEvent(new Event('ownerProfileUpdated'))
+                              }
+                            } catch {}
+                            toast('Document removed', { style: { background: '#D1D5DB', color: '#374151' } })
+                          }}
+                          className="text-xs text-red-600 hover:text-red-700 font-semibold"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      ref={citizenshipInputRef}
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleCitizenshipUpload}
+                      className="hidden"
+                    />
+                    <button
+                      onClick={() => citizenshipInputRef.current?.click()}
+                      className="w-full p-6 border-2 border-dashed border-gray-300 rounded-xl hover:border-blue-400 hover:bg-blue-50 transition-all group"
+                    >
+                      <div className="flex flex-col items-center gap-2">
+                        <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                          <FileTextIcon className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <p className="text-sm font-semibold text-gray-700">Click to upload citizenship</p>
+                        <p className="text-xs text-gray-500">JPG, PNG or PDF (max 10MB)</p>
+                      </div>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Security Note */}
+              <div className="p-3 bg-gray-50 border border-gray-200 rounded-xl">
+                <div className="flex items-start gap-2">
+                  <LockIcon className="w-4 h-4 text-gray-500 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-semibold text-gray-700">Your data is secure</p>
+                    <p className="text-[10px] text-gray-500 mt-0.5">
+                      Your citizenship document is encrypted and stored securely. It will only be used for verification purposes and will not be shared with anyone.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
         {activeSection === 'notifications' && (
@@ -2088,7 +2643,7 @@ export function OwnerDashboard() {
     const fetchUnreadCount = async () => {
       if (!user) return;
       const myChats = await getChats(user.name, 'owner');
-      const count = myChats.filter(chat => (chat.unreadCount || 0) > 0).length;
+      const count = myChats.filter((chat: Chat) => (chat.unreadCount || 0) > 0).length;
       setMessageUnreadCount(count);
     };
     

@@ -614,10 +614,37 @@ export function PropertyDetailPage() {
   const [orderTime,      setOrderTime]      = useState('')
   const [bookingData,    setBookingData]    = useState({ fullName: '', phone: '', email: '', moveInDate: '', confirmedWithOwner: '' })
   const [selectedDate,   setSelectedDate]   = useState<Date | null>(null)
+  const [isBooked,       setIsBooked]       = useState(false)
 
   const advanceAmount = property ? Math.round(property.rent * 0.3) : 0
   const fullAmount    = property ? property.rent : 0
   const payAmount     = paymentType === 'advance' ? advanceAmount : paymentType === 'full' ? fullAmount : 0
+
+  // Check if property is already booked
+  useEffect(() => {
+    if (!property) return
+    const currentBookings = ls('fm_bookings')
+    const booked = currentBookings.some((b: any) => b.propertyId === property.id && b.status === 'confirmed')
+    setIsBooked(booked)
+  }, [property])
+
+  // Listen for new bookings
+  useEffect(() => {
+    const handleBookingAdded = () => {
+      if (!property) return
+      const currentBookings = ls('fm_bookings')
+      const booked = currentBookings.some((b: any) => b.propertyId === property.id && b.status === 'confirmed')
+      setIsBooked(booked)
+    }
+    
+    window.addEventListener('bookingAdded', handleBookingAdded)
+    window.addEventListener('storage', handleBookingAdded)
+    
+    return () => {
+      window.removeEventListener('bookingAdded', handleBookingAdded)
+      window.removeEventListener('storage', handleBookingAdded)
+    }
+  }, [property])
 
   // ── Load property ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -690,6 +717,15 @@ export function PropertyDetailPage() {
 
   // ── Booking handlers ───────────────────────────────────────────────────────
   const openBooking = () => { 
+    // Check if property is already booked
+    const currentBookings = ls('fm_bookings')
+    const isBooked = currentBookings.some((b: any) => b.propertyId === property.id && b.status === 'confirmed')
+    
+    if (isBooked) {
+      toast.error('This property has already been booked')
+      return
+    }
+    
     // Get current user from auth context
     const currentUser = JSON.parse(localStorage.getItem('flatmate_user') || '{}')
     
@@ -1013,8 +1049,26 @@ export function PropertyDetailPage() {
                   <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Monthly Rent</p>
                   <p className="text-2xl font-black text-button-primary">रू {property.rent.toLocaleString()}</p>
                 </div>
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={openBooking} className="w-full mb-3 py-3 bg-button-primary text-white font-bold rounded-xl text-sm hover:bg-button-primary/90 transition-all shadow-md flex items-center justify-center gap-2">
-                  <CalendarIcon className="w-4 h-4" /> Book Now
+                <motion.button 
+                  whileHover={{ scale: isBooked ? 1 : 1.02 }} 
+                  whileTap={{ scale: isBooked ? 1 : 0.97 }} 
+                  onClick={openBooking} 
+                  disabled={isBooked}
+                  className={`w-full mb-3 py-3 font-bold rounded-xl text-sm transition-all shadow-md flex items-center justify-center gap-2 ${
+                    isBooked 
+                      ? 'bg-gray-400 text-white cursor-not-allowed opacity-75' 
+                      : 'bg-button-primary text-white hover:bg-button-primary/90'
+                  }`}
+                >
+                  {isBooked ? (
+                    <>
+                      <CheckCircleIcon className="w-4 h-4" /> Booked
+                    </>
+                  ) : (
+                    <>
+                      <CalendarIcon className="w-4 h-4" /> Book Now
+                    </>
+                  )}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} onClick={() => navigate(`/dashboard/tenant?tab=messages&userName=${encodeURIComponent(property.ownerName)}&propertyTitle=${encodeURIComponent(property.title)}`)} className="w-full py-3 bg-white border-2 border-button-primary/30 hover:border-button-primary text-button-primary font-bold rounded-xl text-sm transition-all hover:bg-button-primary/5 flex items-center justify-center gap-2">
                   <MessageCircleIcon className="w-4 h-4" /> Chat with Owner

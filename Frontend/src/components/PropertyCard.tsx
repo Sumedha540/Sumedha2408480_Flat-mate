@@ -2,9 +2,9 @@
 // Heart icon reads/writes from global FavoritesContext
 // so favorites persist across all pages (LandingPage, PropertiesPage, PropertyDetailPage)
 
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { motion } from 'framer-motion'
-import { MapPinIcon, BedDoubleIcon, BathIcon, HeartIcon, EyeIcon } from 'lucide-react'
+import { MapPinIcon, BedDoubleIcon, BathIcon, HeartIcon, EyeIcon, ShieldCheckIcon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { toast } from '../utils/toast'
 import { useFavorites } from '../contexts/FavoritesContext'
@@ -18,16 +18,71 @@ export interface PropertyCardProps {
   bedrooms: number
   bathrooms: number
   ownerName?: string
+  ownerEmail?: string
   views?: number
   isPremium?: boolean
 }
 
 export function PropertyCard({
   id, image, title, location, rent,
-  bedrooms, bathrooms, ownerName, views = 0, isPremium = false
+  bedrooms, bathrooms, ownerName, ownerEmail, views = 0, isPremium = false
 }: PropertyCardProps) {
   const { isFavorite, toggleFavorite } = useFavorites()
   const saved = isFavorite(id)
+  const [isOwnerVerified, setIsOwnerVerified] = useState(false)
+  const [isBooked, setIsBooked] = useState(false)
+
+  // Check if property is booked
+  useEffect(() => {
+    try {
+      const bookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
+      const booked = bookings.some((b: any) => b.propertyId === id && b.status === 'confirmed')
+      setIsBooked(booked)
+    } catch {}
+  }, [id])
+
+  // Listen for booking changes
+  useEffect(() => {
+    const handleBookingChange = () => {
+      try {
+        const bookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
+        const booked = bookings.some((b: any) => b.propertyId === id && b.status === 'confirmed')
+        setIsBooked(booked)
+      } catch {}
+    }
+    
+    window.addEventListener('bookingAdded', handleBookingChange)
+    window.addEventListener('storage', handleBookingChange)
+    
+    return () => {
+      window.removeEventListener('bookingAdded', handleBookingChange)
+      window.removeEventListener('storage', handleBookingChange)
+    }
+  }, [id])
+
+  // Check if owner is verified
+  useEffect(() => {
+    if (ownerEmail) {
+      try {
+        const savedProfile = localStorage.getItem(`fm_owner_profile_${ownerEmail}`)
+        if (savedProfile) {
+          const parsed = JSON.parse(savedProfile)
+          setIsOwnerVerified(parsed.isVerified || false)
+        }
+      } catch {}
+    }
+    
+    // Also check flatmate_user for verification status
+    try {
+      const userStr = localStorage.getItem('flatmate_user')
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        if (user.email === ownerEmail && user.isVerified) {
+          setIsOwnerVerified(true)
+        }
+      }
+    } catch {}
+  }, [ownerEmail])
 
   const handleToggle = (e: React.MouseEvent) => {
     e.preventDefault()
@@ -60,7 +115,11 @@ export function PropertyCard({
           />
           {/* Badges */}
           <div className="absolute top-3 left-3 flex gap-2">
-            <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-primary shadow-sm">For Rent</span>
+            {isBooked ? (
+              <span className="bg-gray-500/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm">Booked</span>
+            ) : (
+              <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-primary shadow-sm">For Rent</span>
+            )}
             {isPremium && <span className="bg-yellow-400 px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm">Premium</span>}
           </div>
           {/* Heart button — connected to global context */}
@@ -95,7 +154,17 @@ export function PropertyCard({
                 {ownerName ? ownerName.charAt(0).toUpperCase() : 'O'}
               </div>
               <div className="flex flex-col">
-                <span className="text-xs font-medium text-gray-900">{ownerName || 'Owner'}</span>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-medium text-gray-900">{ownerName || 'Owner'}</span>
+                  {isOwnerVerified && (
+                    <div className="group relative">
+                      <ShieldCheckIcon className="w-3.5 h-3.5 text-blue-600 fill-blue-600" />
+                      <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 px-2 py-1 bg-gray-900 text-white text-[10px] rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        Verified Owner
+                      </div>
+                    </div>
+                  )}
+                </div>
                 {views > 0 && <span className="text-[10px] text-gray-500 flex items-center gap-1"><EyeIcon className="w-3 h-3" /> {views} views</span>}
               </div>
             </div>

@@ -177,7 +177,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Incorrect password.' });
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -221,7 +221,7 @@ router.post('/verify-login-otp', async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -390,7 +390,7 @@ router.post('/google-login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -434,7 +434,7 @@ router.post('/verify-google-login-otp', async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { userId: user._id, role: user.role },
+      { id: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
