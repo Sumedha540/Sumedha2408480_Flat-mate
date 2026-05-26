@@ -16,6 +16,7 @@ import {
   CreditCardIcon,
 } from 'lucide-react'
 import { toast } from '../utils/toast'
+import { BACKEND_URL } from '../config/api'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface PremiumPropertyCardProps {
@@ -329,7 +330,7 @@ export function PremiumPropertyCard({ image, propertyId = PROPERTY_DETAILS.id }:
   const handleKhaltiPay = async () => {
     setLoading(true)
     try {
-      const res = await fetch('/api/payment/khalti/dummy-pay', {
+      const res = await fetch(`${BACKEND_URL}/api/payment/khalti/dummy-pay`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({

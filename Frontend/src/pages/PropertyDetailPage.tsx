@@ -90,6 +90,7 @@ import { Card } from '../components/ui/Card'
 import { PropertyCard } from '../components/PropertyCard'
 import { toast } from '../utils/toast'
 import { useFavorites } from '../contexts/FavoritesContext'
+import { BACKEND_URL } from '../config/api'
 
 // ─── localStorage helpers ─────────────────────────────────────────────────────
 const ls    = (k: string, fb = '[]') => { try { return JSON.parse(localStorage.getItem(k) || fb) } catch { return JSON.parse(fb) } }
@@ -470,7 +471,7 @@ function ReviewSection({ propertyId, propertyTitle }: { propertyId: string; prop
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error('Please enter a valid email address.'); return }
     setLoading(true)
     try {
-      const res = await fetch('/api/reviews', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: trimmedName, email: email.trim(), comment: trimmedComment, rating: newRating, propertyId, propertyTitle }) })
+      const res = await fetch(`${BACKEND_URL}/api/reviews`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: trimmedName, email: email.trim(), comment: trimmedComment, rating: newRating, propertyId, propertyTitle }) })
       const data = await res.json()
       if (res.status === 422) { toast.error(data.message || 'Review contains inappropriate language.'); return }
       if (!res.ok) { toast.error(data.message || 'Failed to submit review.'); return }
@@ -685,7 +686,7 @@ export function PropertyDetailPage() {
             setProperty(normalized)
             // Recommended from backend
             try {
-              const allRes = await fetch('/api/properties')
+              const allRes = await fetch(`${BACKEND_URL}/api/properties`)
               if (allRes.ok) {
                 const allData = await allRes.json()
                 const recs = (allData.properties || []).filter((x: any) => (x.id || x._id) !== id).slice(0, 8).map((x: any) => ({ ...x, id: x._id || x.id, bedrooms: x.beds || x.bedrooms || 1, bathrooms: x.baths || x.bathrooms || 1 }))
@@ -810,7 +811,7 @@ export function PropertyDetailPage() {
         image: property.image || property.images?.[0] || IMGS[0]
       }
       saveToLocalStorage(record)
-      await fetch('/api/bookings/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
+      await fetch(`${BACKEND_URL}/api/bookings/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
       setBookingStep('success'); 
       toast.success('Booking saved! Pay cash on arrival.', {
         style: {
@@ -824,7 +825,7 @@ export function PropertyDetailPage() {
   const handleKhaltiPay = async () => {
     setPaymentLoading(true)
     try {
-      const res = await fetch('/api/payment/khalti/dummy-pay', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: payAmount, planName: `${paymentType === 'advance' ? 'Advance (30%)' : 'Full Month'} - ${property.title}`, customerName: bookingData.fullName, customerEmail: bookingData.email, customerPhone: bookingData.phone }) })
+      const res = await fetch(`${BACKEND_URL}/api/payment/khalti/dummy-pay`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: payAmount, planName: `${paymentType === 'advance' ? 'Advance (30%)' : 'Full Month'} - ${property.title}`, customerName: bookingData.fullName, customerEmail: bookingData.email, customerPhone: bookingData.phone }) })
       const data = await res.json()
       if (data.success) {
         setReceiptId(data.receiptId); setOrderTime(data.orderTime)
@@ -846,7 +847,7 @@ export function PropertyDetailPage() {
           image: property.image || property.images?.[0] || IMGS[0]
         }
         saveToLocalStorage(record)
-        await fetch('/api/bookings/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
+        await fetch(`${BACKEND_URL}/api/bookings/save`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(record) }).catch(() => {})
         setBookingStep('success'); 
         toast.success('Payment confirmed via Khalti!', {
           style: {

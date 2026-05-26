@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams, Link } from 'react-router-dom'
+import { BACKEND_URL } from '../config/api'
 
 export function PaymentVerifyPage() {
   const [searchParams] = useSearchParams()
@@ -18,7 +19,7 @@ export function PaymentVerifyPage() {
     }
 
     // Verify with your backend
-    fetch('/api/payment/khalti/verify', {
+    fetch(`${BACKEND_URL}/api/payment/khalti/verify`, {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ pidx }),
