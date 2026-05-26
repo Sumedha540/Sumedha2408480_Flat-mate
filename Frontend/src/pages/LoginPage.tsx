@@ -10,6 +10,8 @@ import {
   CheckIcon, CheckCircleIcon, BuildingIcon,
 } from 'lucide-react';
 
+import { BACKEND_URL } from '../config/api';
+
 const GOOGLE_CLIENT_ID = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ?? '';
 type LoginStep = 'role' | 'form' | 'otp' | 'success';
 
@@ -74,7 +76,7 @@ export function LoginPage() {
       setIsLoading(true);
       setIsGoogleLogin(true);
       try {
-        const res = await fetch('http://localhost:5000/auth/google-login', {
+        const res = await fetch(`${BACKEND_URL}/auth/google-login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken: response.credential, role: selectedRoleRef.current }),
@@ -182,7 +184,7 @@ export function LoginPage() {
     }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/login', {
+      const res = await fetch(`${BACKEND_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password, role: selectedRole }),
@@ -266,7 +268,7 @@ export function LoginPage() {
     }
     setIsLoading(true);
     try {
-      const endpoint = isGoogleLogin ? 'http://localhost:5000/auth/verify-google-login-otp' : 'http://localhost:5000/auth/verify-login-otp';
+      const endpoint = isGoogleLogin ? `${BACKEND_URL}/auth/verify-google-login-otp` : `${BACKEND_URL}/auth/verify-login-otp`;
       const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, otp: otpValue }) });
       const data = await res.json();
       if (res.ok) {
@@ -304,7 +306,7 @@ export function LoginPage() {
   };
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('http://localhost:5000/auth/resend-login-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
+      const res = await fetch(`${BACKEND_URL}/auth/resend-login-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email }) });
       const data = await res.json();
       if (res.ok) { 
         toast.success('OTP resent!', {

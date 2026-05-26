@@ -11,6 +11,8 @@ import {
 } from 'lucide-react'
 import { toast } from '../utils/toast'
 
+import { BACKEND_URL } from '../config/api'
+
 interface Props {
   users: any[]
   bookings: any[]
@@ -558,7 +560,7 @@ export function AdminHistorySection({ users, bookings, properties, totalIncome, 
     setLoading(true)
     setError(null)
     try {
-      const baseURL = 'http://localhost:5000/api/history'
+      const baseURL = `${BACKEND_URL}/api/history`
       
       if (activeTab === 'bookings') {
         try {
@@ -668,7 +670,7 @@ export function AdminHistorySection({ users, bookings, properties, totalIncome, 
           // Fetch subscription payments
           let subscriptionPayments: any[] = []
           try {
-            const resSubscriptions = await fetch('http://localhost:5000/api/subscription/payments')
+            const resSubscriptions = await fetch(`${BACKEND_URL}/api/subscription/payments`)
             const dataSubscriptions = await resSubscriptions.json()
             if (dataSubscriptions.success && dataSubscriptions.payments) {
               subscriptionPayments = dataSubscriptions.payments.map((sub: any) => ({

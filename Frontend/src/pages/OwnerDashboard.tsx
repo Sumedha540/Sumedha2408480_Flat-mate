@@ -70,6 +70,8 @@ import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat, ChatMessa
 import { getProperties, createProperty, updateProperty, deleteProperty, Property } from '../utils/propertyAPI'
 import { OwnerHistorySection } from '../components/OwnerHistorySection'
 
+import { BACKEND_URL } from '../config/api'
+
 // â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const ls     = (k: string, fb = '[]') => { try { return JSON.parse(localStorage.getItem(k) || fb) } catch { return JSON.parse(fb) } }
 const setLS  = (k: string, v: any)   => { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} }
@@ -330,7 +332,7 @@ function AddPropertyModal({ onClose, onAdd, editingProperty }: { onClose: () => 
       let userId = currentUser?.id;
       if (!userId && currentUser?.email) {
         try {
-          const userResponse = await fetch(`http://localhost:5000/api/users/email/${encodeURIComponent(currentUser.email)}`);
+          const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${encodeURIComponent(currentUser.email)}`);
           if (userResponse.ok) {
             const userData = await userResponse.json();
             userId = userData.user.id || userData.user._id;
@@ -1093,7 +1095,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
       // Fetch tenant email from backend using tenant name
       const tenantName = active.tenantName;
       if (tenantName) {
-        const response = await fetch(`http://localhost:5000/api/users`);
+        const response = await fetch(`${BACKEND_URL}/api/users`);
         if (response.ok) {
           const data = await response.json();
           const users = data.users || data; // Handle both {users: []} and [] formats
@@ -1183,7 +1185,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
       try {
         const tenantName = active.tenantName;
         if (tenantName) {
-          const response = await fetch(`http://localhost:5000/api/users`);
+          const response = await fetch(`${BACKEND_URL}/api/users`);
           if (response.ok) {
             const users = await response.json();
             const tenant = users.find((u: any) => {
@@ -1411,7 +1413,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
       const tenantName = selectedConv.tenantName;
       if (tenantName) {
         // Try to get user by name (search for users with matching name)
-        const response = await fetch(`http://localhost:5000/api/users`);
+        const response = await fetch(`${BACKEND_URL}/api/users`);
         if (response.ok) {
           const data = await response.json();
           const users = data.users || data; // Handle both {users: []} and [] formats
@@ -1525,7 +1527,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
         try {
           const tenantName = selectedConv.tenantName;
           if (tenantName) {
-            const response = await fetch(`http://localhost:5000/api/users`);
+            const response = await fetch(`${BACKEND_URL}/api/users`);
             if (response.ok) {
               const users = await response.json();
               const tenant = users.find((u: any) => {
@@ -1950,7 +1952,7 @@ function OwnerSettingsPanel({ user }: { user: any }) {
       // Get user ID from backend using email
       const getUserId = async (email: string) => {
         try {
-          const response = await fetch(`http://localhost:5000/api/users/email/${encodeURIComponent(email)}`)
+          const response = await fetch(`${BACKEND_URL}/api/users/email/${encodeURIComponent(email)}`)
           const data = await response.json()
           if (data.success && data.user) {
             return data.user.id || data.user._id
@@ -1966,7 +1968,7 @@ function OwnerSettingsPanel({ user }: { user: any }) {
       
       if (userId) {
         // Save to backend database
-        const response = await fetch(`http://localhost:5000/api/users/${userId}/profile`, {
+        const response = await fetch(`${BACKEND_URL}/api/users/${userId}/profile`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -2623,7 +2625,7 @@ export function OwnerDashboard() {
         }
 
         // Get user ID from email
-        const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+        const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`);
         if (!userResponse.ok) {
           console.error('Failed to fetch user data');
           return;
@@ -2632,7 +2634,7 @@ export function OwnerDashboard() {
         const userId = userData.user.id;
 
         // Fetch notifications
-        const notifResponse = await fetch(`http://localhost:5000/api/users/${userId}/notifications`);
+        const notifResponse = await fetch(`${BACKEND_URL}/api/users/${userId}/notifications`);
         if (!notifResponse.ok) {
           console.error('Failed to fetch notifications');
           return;
@@ -2816,13 +2818,13 @@ export function OwnerDashboard() {
       
       try {
         // Get user ID
-        const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+        const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`);
         if (!userResponse.ok) return;
         const userData = await userResponse.json();
         const userId = userData.user.id;
         
         // Mark all as read in backend
-        await fetch(`http://localhost:5000/api/users/${userId}/notifications/mark-all-read`, {
+        await fetch(`${BACKEND_URL}/api/users/${userId}/notifications/mark-all-read`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' }
         });
@@ -3518,12 +3520,12 @@ export function OwnerDashboard() {
               if (!user?.email) return;
               
               // Get user ID
-              const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+              const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`);
               const userData = await userResponse.json();
               const userId = userData.user.id;
               
               // Mark all as read in backend
-              await fetch(`http://localhost:5000/api/users/${userId}/notifications/mark-all-read`, {
+              await fetch(`${BACKEND_URL}/api/users/${userId}/notifications/mark-all-read`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
               });
@@ -3548,12 +3550,12 @@ export function OwnerDashboard() {
               if (!user?.email) return;
               
               // Get user ID
-              const userResponse = await fetch(`http://localhost:5000/api/users/email/${user.email}`);
+              const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`);
               const userData = await userResponse.json();
               const userId = userData.user.id;
               
               // Clear all notifications in backend
-              await fetch(`http://localhost:5000/api/users/${userId}/notifications`, {
+              await fetch(`${BACKEND_URL}/api/users/${userId}/notifications`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' }
               });

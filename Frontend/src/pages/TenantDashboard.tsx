@@ -58,6 +58,8 @@ import { generateOwnerResponse, simulateTypingDelay } from '../utils/chatbot'
 import { getChats, getOrCreateChat, sendMessage, markChatAsSeen, Chat } from '../utils/chatStorage'
 import { toast } from '../utils/toast'
 
+import { BACKEND_URL } from '../config/api'
+
 // ─── Mock Data ────────────────────────────────────────────────────────────────
 const mockBookings = [
   { id:'1', property:'Modern 2BHK Apartment', location:'Thamel, Kathmandu', date:'2024-01-15', status:'approved', image:'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&auto=format&fit=crop', ownerName:'Ram Thapa' },
@@ -220,7 +222,7 @@ function ProfileSettingsPanel() {
       
       // Update name in backend database
       try {
-        const response = await fetch(`http://localhost:5000/api/users/email/${user?.email}`, {
+        const response = await fetch(`${BACKEND_URL}/api/users/email/${user?.email}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',

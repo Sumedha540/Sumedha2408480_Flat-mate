@@ -15,6 +15,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { ShieldCheckIcon, RefreshCcw } from 'lucide-react';
 import { toast } from '../utils/toast';
 
+import { BACKEND_URL } from '../config/api';
+
 export function VerifyEmail() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -42,7 +44,7 @@ export function VerifyEmail() {
     if (!canResend) return;
     
     try {
-      const response = await fetch("http://localhost:5000/auth/resend-otp", {
+      const response = await fetch(`${BACKEND_URL}/auth/resend-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -78,7 +80,7 @@ export function VerifyEmail() {
 
     setIsLoading(true);
     try {
-      const response = await fetch("http://localhost:5000/auth/verify-otp", {
+      const response = await fetch(`${BACKEND_URL}/auth/verify-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp: otpValue }),

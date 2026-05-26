@@ -8,6 +8,8 @@ import { CustomDropdown } from './CustomDropdown'
 import { toast } from '../utils/toast'
 import { createProperty } from '../utils/propertyAPI'
 
+import { BACKEND_URL } from '../config/api'
+
 interface AddPropertyModalAdminProps {
   onClose: () => void
   onAdd: (property: any) => void
@@ -44,7 +46,7 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
           return
         }
 
-        const response = await fetch('http://localhost:5000/api/users', {
+        const response = await fetch(`${BACKEND_URL}/api/users`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }

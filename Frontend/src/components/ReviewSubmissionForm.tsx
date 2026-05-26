@@ -8,6 +8,8 @@ import {
 } from 'lucide-react'
 import { toast } from '../utils/toast'
 
+import { BACKEND_URL } from '../config/api'
+
 const BANNED_WORDS = [
   'stupid','idiot',
   'worst','terrible','awful','horrible','disgusting','hate','kill',
@@ -94,7 +96,7 @@ export function ReviewSubmissionForm() {
 
     setIsLoading(true)
     try {
-      const res = await fetch('http://localhost:5000/reviews', {
+      const res = await fetch(`${BACKEND_URL}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: form.name.trim(), email: form.email.trim().toLowerCase(), comment: form.comment.trim(), rating: form.rating }),

@@ -12,6 +12,8 @@ import { PropertyCard } from '../components/PropertyCard'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 
+import { BACKEND_URL } from '../config/api'
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const categories = [
   { id: 'all',    name: 'All',    icon: SparklesIcon,  count: '500+' },
@@ -268,7 +270,7 @@ export function PropertiesPage() {
     const fetchProperties = async () => {
       try {
         // Fetch only approved properties from backend
-        const response = await fetch('http://localhost:5000/api/properties?status=approved');
+        const response = await fetch(`${BACKEND_URL}/api/properties?status=approved`);
         if (response.ok) {
           const data = await response.json();
           setOwnerProperties(data.properties || []);

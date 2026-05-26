@@ -8,6 +8,8 @@ import {
   CheckCircleIcon, ArrowLeftIcon, ShieldCheckIcon,
 } from 'lucide-react';
 
+import { BACKEND_URL } from '../config/api';
+
 type FPStep = 'email' | 'otp' | 'reset' | 'success';
 
 export function ForgotPasswordPage() {
@@ -27,7 +29,7 @@ export function ForgotPasswordPage() {
     if (!email.trim()) { toast.error('Please enter your email'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/forgot-password', {
+      const res = await fetch(`${BACKEND_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
@@ -63,7 +65,7 @@ export function ForgotPasswordPage() {
     if (otpValue.length !== 6) { toast.error('Please enter all 6 digits'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/verify-forgot-otp', {
+      const res = await fetch(`${BACKEND_URL}/auth/verify-forgot-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otpValue }),
@@ -84,7 +86,7 @@ export function ForgotPasswordPage() {
 
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('http://localhost:5000/auth/forgot-password', {
+      const res = await fetch(`${BACKEND_URL}/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
@@ -102,7 +104,7 @@ export function ForgotPasswordPage() {
     if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/reset-password', {
+      const res = await fetch(`${BACKEND_URL}/auth/reset-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), newPassword }),

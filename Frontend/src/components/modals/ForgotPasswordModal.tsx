@@ -4,6 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { XIcon, MailIcon, ArrowLeftIcon, LockIcon, EyeIcon, EyeOffIcon } from 'lucide-react';
 import { toast } from '../../utils/toast';
 
+import { BACKEND_URL } from '../../config/api';
+
 interface ForgotPasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -25,7 +27,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin }: ForgotPa
     if (!email) { toast.error('Please enter your email'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/forgot-password', {
+      const res = await fetch(`${BACKEND_URL}/auth/forgot-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });
@@ -42,7 +44,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin }: ForgotPa
     if (otpValue.length !== 6) { toast.error('Please enter the complete OTP'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/verify-forgot-otp', {
+      const res = await fetch(`${BACKEND_URL}/auth/verify-forgot-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), otp: otpValue }),
       });
@@ -59,7 +61,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin }: ForgotPa
     if (newPassword.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/reset-password', {
+      const res = await fetch(`${BACKEND_URL}/auth/reset-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), newPassword }),
       });
@@ -82,7 +84,7 @@ export function ForgotPasswordModal({ isOpen, onClose, onBackToLogin }: ForgotPa
 
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('http://localhost:5000/auth/forgot-password', {
+      const res = await fetch(`${BACKEND_URL}/auth/forgot-password`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase() }),
       });

@@ -8,6 +8,8 @@ import { CustomDropdown } from './CustomDropdown'
 import { toast } from '../utils/toast'
 import { createProperty, updateProperty } from '../utils/propertyAPI'
 
+import { BACKEND_URL } from '../config/api'
+
 interface AddPropertyModalOwnerProps {
   onClose: () => void
   onAdd: (property: any) => void
@@ -44,7 +46,7 @@ export const AddPropertyModalOwner: React.FC<AddPropertyModalOwnerProps> = ({ on
           return
         }
 
-        const response = await fetch('http://localhost:5000/api/subscription/status', {
+        const response = await fetch(`${BACKEND_URL}/api/subscription/status`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -102,7 +104,7 @@ export const AddPropertyModalOwner: React.FC<AddPropertyModalOwnerProps> = ({ on
         return
       }
 
-      const response = await fetch('http://localhost:5000/api/subscription/subscribe', {
+      const response = await fetch(`${BACKEND_URL}/api/subscription/subscribe`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

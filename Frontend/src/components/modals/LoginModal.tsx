@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { EyeIcon, EyeOffIcon, XIcon, MailIcon, LockIcon, CheckCircleIcon, CheckIcon } from 'lucide-react';
 import { useAuth, UserRole } from '../../contexts/AuthContext';
 import { toast } from '../../utils/toast';
+import { BACKEND_URL } from '../../config/api';
 
 const GOOGLE_CLIENT_ID = ((import.meta as any).env || {}).VITE_GOOGLE_CLIENT_ID || '';
 
@@ -34,7 +35,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onForgotPasswordCli
     if (!termsAccepted) { toast.error('Please accept Terms & Conditions first'); return; }
     setIsLoading(true); setIsGoogleLogin(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/google-login', {
+      const res = await fetch(`${BACKEND_URL}/auth/google-login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken: response.credential }),
       });
@@ -89,7 +90,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onForgotPasswordCli
     if (!acceptedTerms) { toast.error('Please accept Terms & Conditions'); return; }
     setIsLoading(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/login', {
+      const res = await fetch(`${BACKEND_URL}/auth/login`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
@@ -119,8 +120,8 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onForgotPasswordCli
     setIsLoading(true);
     try {
       const endpoint = isGoogleLogin
-        ? 'http://localhost:5000/auth/verify-google-login-otp'
-        : 'http://localhost:5000/auth/verify-login-otp';
+        ? `${BACKEND_URL}/auth/verify-google-login-otp`
+        : `${BACKEND_URL}/auth/verify-login-otp`;
       const res = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: otpValue }),
@@ -136,7 +137,7 @@ export function LoginModal({ isOpen, onClose, onSignupClick, onForgotPasswordCli
 
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('http://localhost:5000/auth/resend-login-otp', {
+      const res = await fetch(`${BACKEND_URL}/auth/resend-login-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });

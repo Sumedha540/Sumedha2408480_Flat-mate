@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { EyeIcon, EyeOffIcon, XIcon, MailIcon, LockIcon, UserIcon, CheckCircleIcon, CheckIcon } from 'lucide-react';
 import { useAuth, UserRole } from '../../contexts/AuthContext';
 import { toast } from '../../utils/toast';
+import { BACKEND_URL } from '../../config/api';
 
 const GOOGLE_CLIENT_ID = ((import.meta as any).env || {}).VITE_GOOGLE_CLIENT_ID || '';
 
@@ -32,11 +33,12 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
   const googleButtonRef = useRef<HTMLDivElement>(null);
   const googleInitialized = useRef(false);
 
+
   const handleGoogleResponse = async (response: any, termsAccepted: boolean) => {
     if (!termsAccepted) { toast.error('Please accept Terms & Conditions first'); return; }
     setIsLoading(true); setIsGoogleSignup(true);
     try {
-      const res = await fetch('http://localhost:5000/auth/google-signup', {
+      const res = await fetch(`${BACKEND_URL}/auth/google-signup`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idToken: response.credential, role }),
       });
@@ -93,7 +95,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
     setIsLoading(true);
     try {
       const parts = name.trim().split(' ');
-      const res = await fetch('http://localhost:5000/auth/signup', {
+      const res = await fetch(`${BACKEND_URL}/auth/signup`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firstName: parts[0],
@@ -126,8 +128,8 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
     setIsLoading(true);
     try {
       const endpoint = isGoogleSignup
-        ? 'http://localhost:5000/auth/verify-google-otp'
-        : 'http://localhost:5000/auth/verify-otp';
+        ? `${BACKEND_URL}/auth/verify-google-otp`
+        : `${BACKEND_URL}/auth/verify-otp`;
       const res = await fetch(endpoint, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, otp: otpValue }),
@@ -143,7 +145,7 @@ export function SignupModal({ isOpen, onClose, onLoginClick }: SignupModalProps)
 
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('http://localhost:5000/auth/resend-otp', {
+      const res = await fetch(`${BACKEND_URL}/auth/resend-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
       });

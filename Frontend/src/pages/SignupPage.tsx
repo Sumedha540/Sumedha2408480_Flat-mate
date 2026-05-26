@@ -10,6 +10,8 @@ import {
   EyeIcon, EyeOffIcon, CheckIcon, CheckCircleIcon, BuildingIcon,
 } from 'lucide-react';
 
+import { BACKEND_URL } from '../config/api';
+
 const GOOGLE_CLIENT_ID = (import.meta as any).env?.VITE_GOOGLE_CLIENT_ID ?? '';
 type SignupStep = 'role' | 'form' | 'otp' | 'success';
 
@@ -64,7 +66,7 @@ export function SignupPage() {
       setIsLoading(true);
       setIsGoogleSignup(true);
       try {
-        const res = await fetch('http://localhost:5000/auth/google-signup', {
+        const res = await fetch(`${BACKEND_URL}/auth/google-signup`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ idToken: response.credential, role: roleRef.current }),
@@ -121,7 +123,7 @@ export function SignupPage() {
     setIsLoading(true);
     try {
       const parts = formData.name.trim().split(' ');
-      const res = await fetch('http://localhost:5000/auth/signup', {
+      const res = await fetch(`${BACKEND_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName: parts[0], lastName: parts.slice(1).join(' ') || parts[0], email: formData.email.trim().toLowerCase(), password: formData.password, role: formData.role }),
@@ -148,7 +150,7 @@ export function SignupPage() {
     if (otpValue.length !== 6) { toast.error('Please enter the complete OTP'); return; }
     setIsLoading(true);
     try {
-      const endpoint = isGoogleSignup ? 'http://localhost:5000/auth/verify-google-otp' : 'http://localhost:5000/auth/verify-otp';
+      const endpoint = isGoogleSignup ? `${BACKEND_URL}/auth/verify-google-otp` : `${BACKEND_URL}/auth/verify-otp`;
       const res = await fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: formData.email, otp: otpValue }) });
       const data = await res.json();
       if (res.ok) {
@@ -167,7 +169,7 @@ export function SignupPage() {
   };
   const handleResendOtp = async () => {
     try {
-      const res = await fetch('http://localhost:5000/auth/resend-otp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: formData.email }) });
+      const res = await fetch(`${BACKEND_URL}/auth/resend-otp`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: formData.email }) });
       const data = await res.json();
       if (res.ok) { toast.success('OTP resent!'); setOtp(['', '', '', '', '', '']); }
       else toast.error(data.message || 'Failed to resend');

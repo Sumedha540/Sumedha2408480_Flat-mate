@@ -79,6 +79,7 @@ import { Input } from '../components/ui/Input';
 import { Card } from '../components/ui/Card';
 import { useAuth } from '../contexts/AuthContext';
 import { toast } from '../utils/toast';
+import { BACKEND_URL } from '../config/api';
 // Office coordinates (Kathmandu, Nepal)
 const OFFICE_LAT = 27.7172;
 const OFFICE_LNG = 85.3240;
@@ -321,7 +322,7 @@ export function ContactPage() {
     try {
       console.log('Submitting contact form:', formData);
       
-      const response = await fetch('http://localhost:5000/api/contact/submit', {
+      const response = await fetch(`${BACKEND_URL}/api/contact/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
