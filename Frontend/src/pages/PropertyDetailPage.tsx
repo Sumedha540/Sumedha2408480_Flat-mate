@@ -1356,7 +1356,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useParams, Link, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import DatePicker from 'react-datepicker'
-// import 'react-datepicker/dist/react-datepicker.css'
+import 'react-datepicker/dist/react-datepicker.css'
 import {
   MapPinIcon, BedDoubleIcon, BathIcon, UtensilsIcon, HomeIcon,
   PhoneIcon, MailIcon, EyeIcon, MessageCircleIcon, ChevronLeftIcon,
