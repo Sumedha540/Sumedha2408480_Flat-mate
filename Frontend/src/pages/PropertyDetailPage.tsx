@@ -745,6 +745,7 @@ export function PropertyDetailPage() {
     setPaymentType('full') 
   }
 
+  //bookings
   const saveToLocalStorage = (record: any) => {
     console.log('💾 Saving booking to localStorage:', record)
     console.log('📧 Booking email:', record.customerEmail)

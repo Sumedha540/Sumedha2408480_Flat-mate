@@ -161,7 +161,7 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    // ✅ Validate that the user's role matches what they selected
+    // Validate that the user's role matches what they selected
     if (role) {
       const normalizedRole = role === 'owner' ? 'landlord' : role;
       const userRole = user.role === 'owner' ? 'landlord' : user.role;
@@ -177,7 +177,7 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(400).json({ message: 'Incorrect password.' });
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -221,7 +221,7 @@ router.post('/verify-login-otp', async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -356,7 +356,7 @@ router.post('/verify-google-otp', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// GOOGLE LOGIN
+// GOOGLE LOGIN (Auto-register if user doesn't exist)
 // ═══════════════════════════════════════════════════════════════════════════════
 router.post('/google-login', async (req, res) => {
   try {
@@ -368,13 +368,32 @@ router.post('/google-login', async (req, res) => {
     });
     const payload = ticket.getPayload();
     const email = payload.email.toLowerCase();
+    const firstName = payload.given_name || payload.name.split(' ')[0];
+    const lastName = payload.family_name || payload.name.split(' ').slice(1).join(' ') || firstName;
+    const googleId = payload.sub;
 
-    const user = await User.findOne({ email, isVerified: true });
+    let user = await User.findOne({ email });
+
+    // If user doesn't exist, auto-register them with Google
     if (!user) {
-      return res.status(404).json({
-        message: 'No account found. Please sign up first.',
-        shouldSignup: true,
+      user = await User.create({
+        firstName,
+        lastName,
+        email,
+        password: await bcrypt.hash(Math.random().toString(36), 10), // Random password (not used)
+        role: role || 'tenant',
+        isVerified: true, // Auto-verify Google users
+        isGoogleUser: true,
+        googleId,
       });
+      console.log('✅ New Google user auto-registered:', email);
+    } else if (!user.isVerified) {
+      // If user exists but not verified, verify them now
+      user.isVerified = true;
+      user.isGoogleUser = true;
+      user.googleId = googleId;
+      await user.save();
+      console.log('✅ Existing unverified user verified via Google:', email);
     }
 
     // ✅ Validate that the user's role matches what they selected
@@ -390,7 +409,7 @@ router.post('/google-login', async (req, res) => {
     }
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
@@ -434,7 +453,7 @@ router.post('/verify-google-login-otp', async (req, res) => {
     await user.save();
 
     const token = jwt.sign(
-      { id: user._id, role: user.role },
+      { userId: user._id, role: user.role },
       process.env.JWT_SECRET,
       { expiresIn: '7d' }
     );
