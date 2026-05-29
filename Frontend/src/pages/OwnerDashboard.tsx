@@ -2594,14 +2594,24 @@ export function OwnerDashboard() {
   useEffect(() => {
     const fetchProperties = async () => {
       try {
-        if (!user) {
+        if (!user || !user.email) {
           setProperties([]);
           return;
         }
         
-        // Fetch properties from backend by owner name
-        const props = await getProperties({ ownerName: user.name });
-        console.log('Fetched owner properties from backend:', props.length);
+        // Get user ID from email first
+        const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`);
+        if (!userResponse.ok) {
+          console.error('Failed to fetch user data for properties');
+          setProperties([]);
+          return;
+        }
+        const userData = await userResponse.json();
+        const userId = userData.user.id || userData.user._id;
+        
+        // Fetch properties from backend by owner ID (more reliable than name)
+        const props = await getProperties({ ownerId: userId });
+        console.log('Fetched owner properties from backend:', props.length, 'for user ID:', userId);
         setProperties(props);
       } catch (error) {
         console.error('Error fetching properties:', error);

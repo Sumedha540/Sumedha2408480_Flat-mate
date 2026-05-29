@@ -16,7 +16,7 @@ interface User {
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
-  login: (name: string, role: UserRole, email?: string) => void;
+  login: (name: string, role: UserRole, email?: string, id?: string) => void;
   signup: (name: string, email: string, role: UserRole) => void;
   logout: () => void;
   updateUser: (updates: Partial<User>) => void;
@@ -44,8 +44,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const login = (name: string, role: UserRole, email = '') => {
-    const u: User = { name, email, role };
+  const login = (name: string, role: UserRole, email = '', id?: string) => {
+    const u: User = { id, name, email, role };
     setUser(u);
     localStorage.setItem('flatmate_user', JSON.stringify(u));
   };

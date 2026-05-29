@@ -61,6 +61,8 @@ export function LoginPage() {
 
   // ─── Google Button ───────────────────────────────────────────
   useEffect(() => {
+
+    //user interface initialization
     if (step !== 'form') return;
 
     const handleCredentialResponse = async (response: any) => {
@@ -95,7 +97,7 @@ export function LoginPage() {
           });
           setStep('success');
           setTimeout(() => {
-            login(data.user.name, data.user.role, data.user.email);
+            login(data.user.name, data.user.role, data.user.email, data.user.id);
             if (data.user.role === 'admin') navigate('/dashboard/admin');
             else if (data.user.role === 'landlord' || data.user.role === 'owner') navigate('/dashboard/owner');
             else navigate('/');
@@ -202,7 +204,7 @@ export function LoginPage() {
         });
         setStep('success');
         setTimeout(() => {
-          login(data.user.name, data.user.role, data.user.email);
+          login(data.user.name, data.user.role, data.user.email, data.user.id);
           if (data.user.role === 'admin') navigate('/dashboard/admin');
           else if (data.user.role === 'landlord' || data.user.role === 'owner') navigate('/dashboard/owner');
           else navigate('/');
