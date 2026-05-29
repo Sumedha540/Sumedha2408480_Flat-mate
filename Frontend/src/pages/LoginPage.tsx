@@ -28,7 +28,7 @@ export function LoginPage() {
       } else if (user.role === 'landlord' || user.role === 'owner') {
         navigate('/dashboard/owner', { replace: true });
       } else if (user.role === 'tenant') {
-        navigate('/dashboard/tenant', { replace: true });
+        navigate('/', { replace: true });
       } else {
         navigate('/', { replace: true });
       }
