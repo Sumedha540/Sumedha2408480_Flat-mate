@@ -14,9 +14,10 @@ const propertySchema = new mongoose.Schema(
     area: { type: String, required: true },
     status: { 
       type: String, 
-      enum: ['pending', 'approved', 'rejected'], 
+      enum: ['pending', 'approved', 'rejected', 'unavailable'], 
       default: 'pending' 
     },
+    isBooked: { type: Boolean, default: false },
     furnishing: { type: String, default: 'Unfurnished' },
     parking: { type: String, default: 'Not available' },
     wifi: { type: Boolean, default: false },
