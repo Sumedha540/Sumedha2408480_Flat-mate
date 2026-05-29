@@ -32,6 +32,11 @@ const bookingSchema = new mongoose.Schema({
     enum: ['full', 'advance', 'half'], 
     required: true 
   },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'on_hold', 'completed', 'refunded', 'failed'],
+    default: 'on_hold'
+  },
   transactionId: { type: String, default: '' },
   receiptId: { type: String, unique: true, required: true },
   

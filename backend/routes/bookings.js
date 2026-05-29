@@ -73,6 +73,7 @@ router.post('/', async (req, res) => {
       amount,
       paymentMethod,
       paymentType,
+      paymentStatus: paymentMethod === 'Cash' ? 'pending' : 'on_hold', // Cash is pending, online payment is on hold
       transactionId: transactionId || '',
       receiptId,
       moveInDate: moveInDate || '',
@@ -198,6 +199,7 @@ router.put('/:id/confirm', async (req, res) => {
     }
 
     booking.status = 'confirmed';
+    booking.paymentStatus = 'completed'; // Payment is now completed
     await booking.save();
 
     // Update property status to unavailable
@@ -215,6 +217,7 @@ router.put('/:id/confirm', async (req, res) => {
       },
       {
         status: 'rejected',
+        paymentStatus: 'refunded', // Refund other bookings
         rejectionReason: 'Property already booked by another tenant'
       }
     );
@@ -228,7 +231,7 @@ router.put('/:id/confirm', async (req, res) => {
             id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             type: 'booking_confirmed',
             title: 'Booking Confirmed!',
-            message: `Your booking for "${booking.propertyTitle}" has been confirmed by the landlord.`,
+            message: `Your booking for "${booking.propertyTitle}" has been confirmed by the landlord. Payment completed.`,
             propertyId: booking.propertyId,
             propertyTitle: booking.propertyTitle,
             read: false,
@@ -245,7 +248,7 @@ router.put('/:id/confirm', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Booking confirmed successfully',
+      message: 'Booking confirmed and payment completed successfully',
       booking: {
         id: booking._id.toString(),
         _id: booking._id.toString(),
@@ -276,6 +279,7 @@ router.put('/:id/reject', async (req, res) => {
     }
 
     booking.status = 'rejected';
+    booking.paymentStatus = 'refunded'; // Refund the payment
     booking.rejectionReason = reason || 'Not specified';
     await booking.save();
 
@@ -288,7 +292,7 @@ router.put('/:id/reject', async (req, res) => {
             id: `notif_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
             type: 'booking_rejected',
             title: 'Booking Rejected',
-            message: `Your booking for "${booking.propertyTitle}" was rejected. Reason: ${reason || 'Not specified'}`,
+            message: `Your booking for "${booking.propertyTitle}" was rejected. Payment will be refunded. Reason: ${reason || 'Not specified'}`,
             propertyId: booking.propertyId,
             propertyTitle: booking.propertyTitle,
             read: false,
@@ -305,7 +309,7 @@ router.put('/:id/reject', async (req, res) => {
 
     res.json({
       success: true,
-      message: 'Booking rejected',
+      message: 'Booking rejected and payment refunded',
       booking: {
         id: booking._id.toString(),
         _id: booking._id.toString(),
