@@ -1985,25 +1985,6 @@ export function AdminDashboard() {
           ))}
         </div>
 
-        {/* Quick Actions */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-gray-900 mb-1">Quick Actions</h3>
-              <p className="text-xs text-gray-600">Manage your platform efficiently</p>
-            </div>
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowAddPropertyModal(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-button-primary text-white rounded-xl text-sm font-bold hover:bg-button-primary/90 transition-all shadow-md"
-            >
-              <PlusIcon className="w-4 h-4" />
-              Add Property
-            </motion.button>
-          </div>
-        </div>
-
         {/* Owner new property alert */}
         {adminOwnerNotifs.filter((n:any)=>n.type==='new_property'&&!n.read).length>0&&(
           <motion.div initial={{opacity:0,y:-8}} animate={{opacity:1,y:0}}

@@ -94,7 +94,6 @@ app.use(express.json({ limit: 'infinity' }));
 app.use(express.urlencoded({ limit: 'infinity', extended: true }));
 
 app.use('/auth', authRoutes);
-app.use('/reviews', reviewRoutes);
 app.use('/api/payment/khalti', khaltiRoutes);
 app.use('/api/bookings', bookingRoutes);
 app.use('/api/reviews', reviewRoutes);

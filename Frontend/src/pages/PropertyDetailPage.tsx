@@ -358,15 +358,26 @@ function ReviewSection({ propertyId, propertyTitle }: { propertyId: string; prop
   const [editComment, setEditComment] = useState('')
   const [editRating, setEditRating]   = useState(5)
 
-  // ── FIX: was `/api/reviews?...` (relative, hits frontend on Render)
+  // ── Fetch reviews for this property ──────────────────────────────────────────
   useEffect(() => {
-    fetch(`${BACKEND_URL}/api/reviews?propertyId=${propertyId}`)
-      .then(r => r.json())
-      .then((data: any) => {
-        if (Array.isArray(data)) setReviews(data.filter((r: any) => r.propertyId === propertyId))
-        else if (data.success && Array.isArray(data.reviews)) setReviews(data.reviews)
+    console.log('🔍 Fetching reviews for property:', propertyId)
+    fetch(`${BACKEND_URL}/api/reviews/${propertyId}`)
+      .then(r => {
+        console.log('📡 Review fetch response status:', r.status)
+        return r.json()
       })
-      .catch(() => {})
+      .then((data: any) => {
+        console.log('📦 Review data received:', data)
+        if (data.success && Array.isArray(data.reviews)) {
+          console.log(`✅ Setting ${data.reviews.length} reviews`)
+          setReviews(data.reviews)
+        } else {
+          console.log('⚠️ Invalid review data format')
+        }
+      })
+      .catch((err) => {
+        console.error('❌ Error fetching reviews:', err)
+      })
   }, [propertyId])
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -375,43 +386,67 @@ function ReviewSection({ propertyId, propertyTitle }: { propertyId: string; prop
     if (!trimmedComment || !trimmedName || !email.trim()) { toast.error('Please fill in your name, email and review.'); return }
     if (hasBannedWords(trimmedComment) || hasBannedWords(trimmedName)) { toast.error('Your review contains inappropriate language.'); return }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { toast.error('Please enter a valid email address.'); return }
+    
+    // Get current user
+    let userId = 'anonymous'
+    try {
+      const userStr = localStorage.getItem('flatmate_user')
+      if (userStr) {
+        const user = JSON.parse(userStr)
+        userId = user.id || user._id || user.email
+        console.log('👤 Current user ID:', userId)
+      }
+    } catch {}
+    
+    const reviewData = { 
+      propertyId, 
+      userId,
+      name: trimmedName, 
+      email: email.trim(), 
+      comment: trimmedComment, 
+      rating: newRating
+    }
+    
+    console.log('📤 Submitting review:', reviewData)
     setLoading(true)
     try {
       const res = await fetch(`${BACKEND_URL}/api/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: trimmedName, email: email.trim(), comment: trimmedComment, rating: newRating, propertyId, propertyTitle }),
+        body: JSON.stringify(reviewData),
       })
+      console.log('📡 Review submission response status:', res.status)
       const data = await res.json()
-      if (res.status === 422) { toast.error(data.message || 'Review contains inappropriate language.'); return }
-      if (!res.ok) { toast.error(data.message || 'Failed to submit review.'); return }
-      setReviews(prev => [{
+      console.log('📦 Review submission response data:', data)
+      
+      if (res.status === 409) { toast.error('You have already reviewed this property.'); setLoading(false); return }
+      if (res.status === 422) { toast.error(data.message || 'Review contains inappropriate language.'); setLoading(false); return }
+      if (!res.ok) { toast.error(data.message || 'Failed to submit review.'); setLoading(false); return }
+      
+      // Add review to list
+      const newReview = {
         ...(data.review || {}),
         _id: data.review?._id || Date.now().toString(),
         name: trimmedName,
         email: email.trim(),
         comment: trimmedComment,
         rating: newRating,
+        createdAt: new Date().toISOString(),
         date: 'Just now',
         propertyId,
         isOwn: true,
-      }, ...prev])
+      }
+      console.log('✅ Adding review to list:', newReview)
+      setReviews(prev => [newReview, ...prev])
+      
       toast.success('Review published!')
       setName(''); setEmail(''); setNewComment(''); setNewRating(5)
-    } catch {
-      setReviews(prev => [{
-        _id: Date.now().toString(),
-        name: trimmedName,
-        email: email.trim(),
-        comment: trimmedComment,
-        rating: newRating,
-        date: 'Just now',
-        propertyId,
-        isOwn: true,
-      }, ...prev])
-      toast.success('Review added!')
-      setName(''); setEmail(''); setNewComment(''); setNewRating(5)
-    } finally { setLoading(false) }
+    } catch (err) {
+      console.error('❌ Error submitting review:', err)
+      toast.error('Failed to submit review. Please try again.')
+    } finally { 
+      setLoading(false) 
+    }
   }
 
   // ── FIX: was `/api/reviews/${id}` (relative, hits frontend on Render)

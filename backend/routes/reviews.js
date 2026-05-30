@@ -1,20 +1,8 @@
-// ─── ADD THIS TO YOUR backend/routes/reviews.js (new file) ───────────────────
+// ─── Reviews Route ───────────────────────────────────────────────────────────
 import express from 'express'
-import mongoose from 'mongoose'
+import Review from '../models/Review.js'
 
 const router = express.Router()
-
-// ── Mongoose Schema ──────────────────────────────────────────────────────────
-const reviewSchema = new mongoose.Schema({
-  name:      { type: String, required: true, trim: true },
-  email:     { type: String, required: true, trim: true, lowercase: true },
-  comment:   { type: String, required: true, trim: true },
-  rating:    { type: Number, required: true, min: 1, max: 5 },
-  approved:  { type: Boolean, default: true },   // set false if you want manual moderation
-  createdAt: { type: Date, default: Date.now },
-})
-
-const Review = mongoose.models.Review || mongoose.model('Review', reviewSchema)
 
 // ── Server-side hate-speech guard (second layer of protection) ───────────────
 const BANNED_WORDS = [
@@ -31,32 +19,64 @@ function hasBannedWords(text) {
 
 // ── POST /reviews ─────────────────────────────────────────────────────────────
 router.post('/', async (req, res) => {
-  const { name, email, comment, rating } = req.body
+  console.log('📝 POST /api/reviews - Received review submission:', req.body)
+  const { propertyId, userId, name, email, comment, rating } = req.body
 
-  if (!name || !email || !comment || !rating) {
+  if (!propertyId || !userId || !name || !email || !comment || !rating) {
+    console.log('❌ Missing required fields')
     return res.status(400).json({ message: 'All fields are required.' })
   }
 
   // Server-side hate-speech check (client check can be bypassed)
   if (hasBannedWords(comment) || hasBannedWords(name)) {
+    console.log('❌ Inappropriate language detected')
     return res.status(422).json({ message: 'Review contains inappropriate language.' })
   }
 
   try {
-    const review = await Review.create({ name, email, comment, rating })
+    // Check if user already reviewed this property
+    const existingReview = await Review.findOne({ propertyId, userId })
+    if (existingReview) {
+      console.log('❌ User already reviewed this property')
+      return res.status(409).json({ message: 'You have already reviewed this property.' })
+    }
+
+    const review = await Review.create({ propertyId, userId, name, email, comment, rating })
+    console.log('✅ Review saved to database:', review._id)
     res.status(201).json({ message: 'Review submitted successfully!', review })
   } catch (err) {
+    console.error('❌ Error saving review:', err)
+    if (err.code === 11000) {
+      // Duplicate key error
+      return res.status(409).json({ message: 'You have already reviewed this property.' })
+    }
     res.status(500).json({ message: 'Failed to save review.', error: err.message })
   }
 })
 
-// ── GET /reviews (optional — to display saved reviews) ───────────────────────
+// ── GET /reviews/:propertyId ─────────────────────────────────────────────────
+router.get('/:propertyId', async (req, res) => {
+  try {
+    const { propertyId } = req.params
+    console.log('📖 GET /api/reviews/:propertyId - Fetching reviews for property:', propertyId)
+    const reviews = await Review.find({ propertyId, approved: true })
+      .sort({ createdAt: -1 })
+      .limit(100)
+    console.log(`✅ Found ${reviews.length} reviews for property ${propertyId}`)
+    res.json({ success: true, reviews })
+  } catch (err) {
+    console.error('❌ Error fetching reviews:', err)
+    res.status(500).json({ success: false, message: 'Failed to fetch reviews.' })
+  }
+})
+
+// ── GET /reviews (all reviews - optional) ────────────────────────────────────
 router.get('/', async (req, res) => {
   try {
     const reviews = await Review.find({ approved: true }).sort({ createdAt: -1 }).limit(50)
-    res.json(reviews)
+    res.json({ success: true, reviews })
   } catch (err) {
-    res.status(500).json({ message: 'Failed to fetch reviews.' })
+    res.status(500).json({ success: false, message: 'Failed to fetch reviews.' })
   }
 })
 
