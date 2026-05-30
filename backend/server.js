@@ -78,33 +78,34 @@ const allowedOrigins = [
 
 console.log('🌐 CORS enabled for origins:', allowedOrigins);
 
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.log('❌ CORS blocked origin:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true,
-}));
-
-
 // app.use(cors({
-//   origin: [
-//     'http://localhost:5173',
-//     'https://sumedha2408480-flat-mate.onrender.com',
-//   ],
-//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//   origin: function (origin, callback) {
+//     // Allow requests with no origin (like mobile apps or curl requests)
+//     if (!origin) return callback(null, true);
+    
+//     if (allowedOrigins.indexOf(origin) !== -1) {
+//       callback(null, true);
+//     } else {
+//       console.log('❌ CORS blocked origin:', origin);
+//       callback(new Error('Not allowed by CORS'));
+//     }
+//   },
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
 //   allowedHeaders: ['Content-Type', 'Authorization'],
 //   credentials: true,
-// }))
+// }));
+
+
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://sumedha2408480-flat-mate.onrender.com',
+    'https://sumedha2408480-flat-mate-backend.onrender.com'
+  ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true,
+}))
 
 // Remove payload size limit for image uploads
 app.use(express.json({ limit: 'infinity' }));
