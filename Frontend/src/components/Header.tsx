@@ -62,7 +62,8 @@ export function Header() {
 
   const isActive = (path: string) => location.pathname === path
 
-  const navLinks = [
+  // Hide navbar links for landlords/owners - they should only access their dashboard
+  const navLinks = (user?.role === 'landlord' || user?.role === 'owner' || user?.role === 'admin') ? [] : [
     { name: 'Home',          path: '/' },
     { name: 'Properties',    path: '/properties' },
     { name: 'Find Roommate', path: '/find-roommate' },

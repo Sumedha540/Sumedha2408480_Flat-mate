@@ -8,6 +8,7 @@ import { MapPinIcon, BedDoubleIcon, BathIcon, HeartIcon, EyeIcon, ShieldCheckIco
 import { Link } from 'react-router-dom'
 import { toast } from '../utils/toast'
 import { useFavorites } from '../contexts/FavoritesContext'
+import { BACKEND_URL } from '../config/api'
 
 export interface PropertyCardProps {
   id: string
@@ -30,24 +31,88 @@ export function PropertyCard({
   const { isFavorite, toggleFavorite } = useFavorites()
   const saved = isFavorite(id)
   const [isOwnerVerified, setIsOwnerVerified] = useState(false)
-  const [isBooked, setIsBooked] = useState(false)
+  const [bookingStatus, setBookingStatus] = useState<'available' | 'pending' | 'booked'>('available')
 
-  // Check if property is booked
+  // Check if property has bookings from backend
   useEffect(() => {
-    try {
-      const bookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-      const booked = bookings.some((b: any) => b.propertyId === id && b.status === 'confirmed')
-      setIsBooked(booked)
-    } catch {}
+    const checkBookingStatus = async () => {
+      try {
+        // Get current user
+        const userStr = localStorage.getItem('flatmate_user')
+        const currentUser = userStr ? JSON.parse(userStr) : null
+        
+        const response = await fetch(`${BACKEND_URL}/api/history/bookings?search=${id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.bookings) {
+            const propertyBookings = data.bookings.filter((b: any) => b.propertyId === id)
+            const confirmedBooking = propertyBookings.find((b: any) => b.status === 'confirmed')
+            
+            if (confirmedBooking) {
+              // Property is booked - show to everyone
+              setBookingStatus('booked')
+            } else {
+              // Check if current user has a pending booking
+              const userPendingBooking = propertyBookings.find((b: any) => 
+                b.status === 'pending' && 
+                currentUser && 
+                (b.tenantEmail === currentUser.email || b.customerEmail === currentUser.email)
+              )
+              
+              if (userPendingBooking) {
+                // Current user has pending booking - show "Pending" to them only
+                setBookingStatus('pending')
+              } else {
+                // No confirmed booking and user doesn't have pending booking - show "For Rent"
+                setBookingStatus('available')
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking booking status:', error)
+      }
+    }
+    
+    checkBookingStatus()
   }, [id])
 
   // Listen for booking changes
   useEffect(() => {
-    const handleBookingChange = () => {
+    const handleBookingChange = async () => {
       try {
-        const bookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-        const booked = bookings.some((b: any) => b.propertyId === id && b.status === 'confirmed')
-        setIsBooked(booked)
+        // Get current user
+        const userStr = localStorage.getItem('flatmate_user')
+        const currentUser = userStr ? JSON.parse(userStr) : null
+        
+        const response = await fetch(`${BACKEND_URL}/api/history/bookings?search=${id}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.bookings) {
+            const propertyBookings = data.bookings.filter((b: any) => b.propertyId === id)
+            const confirmedBooking = propertyBookings.find((b: any) => b.status === 'confirmed')
+            
+            if (confirmedBooking) {
+              // Property is booked - show to everyone
+              setBookingStatus('booked')
+            } else {
+              // Check if current user has a pending booking
+              const userPendingBooking = propertyBookings.find((b: any) => 
+                b.status === 'pending' && 
+                currentUser && 
+                (b.tenantEmail === currentUser.email || b.customerEmail === currentUser.email)
+              )
+              
+              if (userPendingBooking) {
+                // Current user has pending booking - show "Pending" to them only
+                setBookingStatus('pending')
+              } else {
+                // No confirmed booking and user doesn't have pending booking - show "For Rent"
+                setBookingStatus('available')
+              }
+            }
+          }
+        }
       } catch {}
     }
     
@@ -60,28 +125,25 @@ export function PropertyCard({
     }
   }, [id])
 
-  // Check if owner is verified
+  // Check if owner is verified from backend database
   useEffect(() => {
-    if (ownerEmail) {
+    const checkOwnerVerification = async () => {
+      if (!ownerEmail) return
+      
       try {
-        const savedProfile = localStorage.getItem(`fm_owner_profile_${ownerEmail}`)
-        if (savedProfile) {
-          const parsed = JSON.parse(savedProfile)
-          setIsOwnerVerified(parsed.isVerified || false)
+        const response = await fetch(`${BACKEND_URL}/api/users/email/${ownerEmail}`)
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.user) {
+            setIsOwnerVerified(data.user.isVerified || false)
+          }
         }
-      } catch {}
+      } catch (error) {
+        console.error('Error checking owner verification:', error)
+      }
     }
     
-    // Also check flatmate_user for verification status
-    try {
-      const userStr = localStorage.getItem('flatmate_user')
-      if (userStr) {
-        const user = JSON.parse(userStr)
-        if (user.email === ownerEmail && user.isVerified) {
-          setIsOwnerVerified(true)
-        }
-      }
-    } catch {}
+    checkOwnerVerification()
   }, [ownerEmail])
 
   const handleToggle = (e: React.MouseEvent) => {
@@ -115,8 +177,10 @@ export function PropertyCard({
           />
           {/* Badges */}
           <div className="absolute top-3 left-3 flex gap-2">
-            {isBooked ? (
+            {bookingStatus === 'booked' ? (
               <span className="bg-gray-500/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm">Booked</span>
+            ) : bookingStatus === 'pending' ? (
+              <span className="bg-yellow-400/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-white shadow-sm">Pending</span>
             ) : (
               <span className="bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-primary shadow-sm">For Rent</span>
             )}
@@ -175,3 +239,4 @@ export function PropertyCard({
     </Link>
   )
 }
+

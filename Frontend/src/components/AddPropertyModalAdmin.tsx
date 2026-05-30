@@ -1,18 +1,106 @@
 // src/components/AddPropertyModalAdmin.tsx
-// Admin Dashboard - Add Property Modal with Owner Selection and Progress Bar (No Video Upload)
-
-import React, { useState, useEffect } from 'react'
-import { motion } from 'framer-motion'
-import { XIcon, CheckIcon, ImageIcon, UserIcon } from 'lucide-react'
-import { CustomDropdown } from './CustomDropdown'
+import React, { useState, useEffect, useRef } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { XIcon, CheckIcon, ImageIcon, UserIcon, ChevronDownIcon } from 'lucide-react'
 import { toast } from '../utils/toast'
 import { createProperty } from '../utils/propertyAPI'
-
 import { BACKEND_URL } from '../config/api'
 
 interface AddPropertyModalAdminProps {
   onClose: () => void
   onAdd: (property: any) => void
+}
+
+const InlineDropdown: React.FC<{
+  value: string
+  onChange: (value: string) => void
+  options: { value: string; label: string }[]
+  placeholder?: string
+  label?: string
+  error?: string
+  icon?: React.ReactNode
+}> = ({ value, onChange, options, placeholder = 'Select...', label, error, icon }) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const selectedOption = options.find(o => o.value === value)
+
+  return (
+    <div ref={ref} className="relative">
+      {label && (
+        <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+          {icon}
+          {label}
+        </label>
+      )}
+      <div
+        onClick={() => setIsOpen(prev => !prev)}
+        className={`w-full px-4 py-2.5 border-2 rounded-xl text-sm bg-white dark:bg-gray-700 cursor-pointer flex items-center justify-between transition-colors
+          ${isOpen
+            ? 'border-button-primary'
+            : 'border-gray-200 dark:border-gray-600 hover:border-button-primary/50'
+          }`}
+      >
+        <span className={selectedOption ? 'text-gray-700 dark:text-white' : 'text-gray-400'}>
+          {selectedOption?.label || placeholder}
+        </span>
+        <ChevronDownIcon
+          className={`w-4 h-4 text-button-primary flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.12 }}
+            className="absolute left-0 right-0 mt-1 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl shadow-xl overflow-hidden"
+            style={{ zIndex: 9999 }}
+          >
+            <div className="max-h-56 overflow-y-auto">
+              {options.length === 0 ? (
+                <div className="px-4 py-3 text-sm text-gray-400 text-center">
+                  No options available
+                </div>
+              ) : (
+                options.map(option => (
+                  <div
+                    key={option.value}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      onChange(option.value)
+                      setIsOpen(false)
+                    }}
+                    className={`px-4 py-2.5 cursor-pointer text-sm transition-colors duration-150 ${
+                      option.value === value
+                        ? 'bg-button-primary text-white font-semibold'
+                        : 'text-gray-700 dark:text-gray-200 hover:bg-[#D7EDE4] dark:hover:bg-gray-600 hover:text-[#0D3A2F] dark:hover:text-white'
+                    }`}
+                  >
+                    {option.label}
+                  </div>
+                ))
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  )
 }
 
 export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ onClose, onAdd }) => {
@@ -24,7 +112,6 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
     description: '',
     amenities: [] as string[],
     title: '',
-    ownerName: '',
     ownerId: ''
   })
   const [images, setImages] = useState<File[]>([])
@@ -36,7 +123,15 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
 
   const amenitiesList = ['WiFi', 'Parking', 'Elevator', 'Security', 'Water Supply', 'Backup Power', 'Garden', 'Gym']
 
-  // Fetch owners list
+  const propertyTypeOptions = [
+    { value: 'Room', label: 'Room' },
+    { value: '1BHK', label: '1BHK' },
+    { value: '2BHK', label: '2BHK' },
+    { value: '3BHK', label: '3BHK+' },
+    { value: 'Studio', label: 'Studio' },
+    { value: 'Shared', label: 'Shared' },
+  ]
+
   useEffect(() => {
     const fetchOwners = async () => {
       try {
@@ -47,19 +142,22 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
         }
 
         const response = await fetch(`${BACKEND_URL}/api/users`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': `Bearer ${token}` }
         })
 
         if (response.ok) {
           const data = await response.json()
+          console.log('Fetched users:', data.users) // debug
+
+          // Accept any role that could be an owner
           const ownersList = data.users
-            .filter((u: any) => u.role === 'landlord')
+            .filter((u: any) => ['owner'].includes(u.role))
             .map((u: any) => ({
               value: u._id,
               label: `${u.firstName} ${u.lastName} (${u.email})`
             }))
+
+          console.log('Owners list:', ownersList) // debug
           setOwners(ownersList)
         }
       } catch (error) {
@@ -68,7 +166,6 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
         setLoadingOwners(false)
       }
     }
-
     fetchOwners()
   }, [])
 
@@ -110,7 +207,7 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
 
     try {
       setUploadProgress(10)
-      
+
       let imageUrls: string[] = []
       if (images.length > 0) {
         setUploadProgress(20)
@@ -120,6 +217,7 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
 
       const selectedOwner = owners.find(o => o.value === form.ownerId)
       const ownerName = selectedOwner?.label.split(' (')[0] || 'Unknown Owner'
+      const ownerEmail = selectedOwner?.label.match(/\(([^)]+)\)/)?.[1] || ''
 
       const propertyData = {
         title: form.title,
@@ -129,7 +227,7 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
         baths: 1,
         type: form.type,
         area: '850 sqft',
-        status: 'approved' as const, // Auto-approve for admin
+        status: 'approved' as const,
         furnishing: 'Unfurnished',
         parking: 'Available',
         wifi: form.amenities.includes('WiFi'),
@@ -137,15 +235,14 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
         amenities: form.amenities,
         image: imageUrls[0] || 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop',
         images: imageUrls.length > 0 ? imageUrls : ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop'],
-        ownerName: ownerName,
+        ownerName,
         ownerId: form.ownerId,
+        ownerEmail,
       }
 
       setUploadProgress(80)
-
-      // Save to backend via API
       const created = await createProperty(propertyData)
-      
+
       if (created) {
         setUploadProgress(100)
         toast.success('Property added and published successfully!')
@@ -166,15 +263,15 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} />
-      
+
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
-        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden"
+        className="relative bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700 shrink-0">
           <div>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Add New Property</h2>
             <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Fill in the property details below</p>
@@ -186,7 +283,7 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
 
         {/* Progress Bar */}
         {saving && (
-          <div className="px-6 pt-4">
+          <div className="px-6 pt-4 shrink-0">
             <div className="relative w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
@@ -201,31 +298,33 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
           </div>
         )}
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+        {/* Scrollable content */}
+        <div className="px-6 py-6 overflow-y-auto flex-1">
           <div className="space-y-6">
+
             {/* Owner Selection */}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
-                <UserIcon className="w-4 h-4" />
-                Select Owner *
-              </label>
               {loadingOwners ? (
-                <div className="w-full px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-gray-400">
-                  Loading owners...
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+                    <UserIcon className="w-4 h-4" />
+                    Select Owner *
+                  </label>
+                  <div className="w-full px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-400 dark:bg-gray-700">
+                    Loading owners...
+                  </div>
                 </div>
               ) : (
-                <CustomDropdown
+                <InlineDropdown
+                  label="Select Owner *"
+                  icon={<UserIcon className="w-4 h-4" />}
                   value={form.ownerId}
                   onChange={(value) => setForm({ ...form, ownerId: value })}
-                  options={[
-                    { value: '', label: 'Select an owner' },
-                    ...owners
-                  ]}
+                  options={owners}
                   placeholder="Select an owner"
+                  error={errors.ownerId}
                 />
               )}
-              {errors.ownerId && <p className="text-xs text-red-500 mt-1">{errors.ownerId}</p>}
             </div>
 
             {/* Title */}
@@ -245,24 +344,14 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
 
             {/* Property Type and Location */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <CustomDropdown
-                  value={form.type}
-                  onChange={(value) => setForm({ ...form, type: value })}
-                  options={[
-                    { value: '', label: 'Select type' },
-                    { value: 'Room', label: 'Room' },
-                    { value: '1BHK', label: '1BHK' },
-                    { value: '2BHK', label: '2BHK' },
-                    { value: '3BHK', label: '3BHK+' },
-                    { value: 'Studio', label: 'Studio' },
-                    { value: 'Shared', label: 'Shared' }
-                  ]}
-                  label="Property Type *"
-                />
-                {errors.type && <p className="text-xs text-red-500 mt-1">{errors.type}</p>}
-              </div>
-
+              <InlineDropdown
+                label="Property Type *"
+                value={form.type}
+                onChange={(value) => setForm({ ...form, type: value })}
+                options={propertyTypeOptions}
+                placeholder="Select type"
+                error={errors.type}
+              />
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Location *
@@ -293,7 +382,6 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
                 />
                 {errors.price && <p className="text-xs text-red-500 mt-1">{errors.price}</p>}
               </div>
-
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                   Number of Rooms *
@@ -352,7 +440,7 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
                 Property Images
               </label>
-              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center hover:border-button-primary transition-colors cursor-pointer">
+              <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-6 text-center hover:border-button-primary transition-colors">
                 <input
                   type="file"
                   accept="image/*"
@@ -363,23 +451,20 @@ export const AddPropertyModalAdmin: React.FC<AddPropertyModalAdminProps> = ({ on
                 />
                 <label htmlFor="property-images-admin" className="cursor-pointer">
                   <ImageIcon className="w-10 h-10 mx-auto mb-2 text-gray-400" />
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
-                    Click to upload property images
-                  </p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Click to upload property images</p>
                   <p className="text-xs text-gray-400">Upload multiple images (JPG, PNG)</p>
                 </label>
               </div>
               {images.length > 0 && (
-                <p className="text-sm text-green-600 mt-2">
-                  {images.length} image(s) selected
-                </p>
+                <p className="text-sm text-green-600 mt-2">{images.length} image(s) selected</p>
               )}
             </div>
+
           </div>
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 rounded-b-2xl shrink-0">
           <button
             onClick={onClose}
             disabled={saving}

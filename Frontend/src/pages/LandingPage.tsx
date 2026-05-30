@@ -107,7 +107,7 @@ export function LandingPage() {
   const [showAuthModal, setShowAuthModal]   = useState(false)
   const [showLoginModal, setShowLoginModal] = useState(false)
   const [showSignupModal, setShowSignupModal] = useState(false)
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, user } = useAuth()
   const navigate = useNavigate()
   const heroRef = useRef(null)
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] })
@@ -117,9 +117,21 @@ export function LandingPage() {
   const totalReviewPages = Math.ceil(testimonials.length / reviewsPerPage)
   const displayedReviews = testimonials.slice(currentReviewIndex * reviewsPerPage, (currentReviewIndex + 1) * reviewsPerPage)
 
+  // Redirect admins to their dashboard
+  React.useEffect(() => {
+    if (user?.role === 'admin') {
+      navigate('/dashboard/admin', { replace: true })
+    }
+  }, [user, navigate])
+
   const handleViewAllProperties = () => {
     if (isAuthenticated) navigate('/properties')
     else setShowAuthModal(true)
+  }
+
+  // Don't render anything for admins while redirecting
+  if (user?.role === 'admin') {
+    return null
   }
 
   return (

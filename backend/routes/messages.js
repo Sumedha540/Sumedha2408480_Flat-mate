@@ -101,9 +101,21 @@ router.get('/chats', async (req, res) => {
 
     let chats;
     if (userRole === 'tenant') {
-      chats = await Chat.find({ tenantName: userName }).sort({ lastUpdated: -1 });
+      // For tenants, find chats where they are either tenant OR owner (for user-to-user chats)
+      chats = await Chat.find({
+        $or: [
+          { tenantName: userName },
+          { ownerName: userName }
+        ]
+      }).sort({ lastUpdated: -1 });
     } else if (userRole === 'owner' || userRole === 'landlord') {
-      chats = await Chat.find({ ownerName: userName }).sort({ lastUpdated: -1 });
+      // For owners, find chats where they are either owner OR tenant
+      chats = await Chat.find({
+        $or: [
+          { ownerName: userName },
+          { tenantName: userName }
+        ]
+      }).sort({ lastUpdated: -1 });
     } else {
       return res.status(400).json({ error: 'Invalid userRole' });
     }
@@ -114,9 +126,22 @@ router.get('/chats', async (req, res) => {
         const messages = await Message.find({ chatId: chat._id.toString() })
           .sort({ createdAt: 1 });
         
-        const unreadCount = messages.filter(
-          m => m.senderRole !== userRole && m.senderRole !== 'landlord' && !m.seen
-        ).length;
+        // Calculate unread count - messages sent by the OTHER person that haven't been seen
+        const unreadMessages = messages.filter(
+          m => m.senderName !== userName && !m.seen
+        );
+        const unreadCount = unreadMessages.length;
+
+        console.log(`Chat ${chat._id} for user ${userName}:`, {
+          totalMessages: messages.length,
+          unreadCount,
+          unreadMessages: unreadMessages.map(m => ({
+            id: m._id,
+            senderName: m.senderName,
+            text: m.text,
+            seen: m.seen
+          }))
+        });
 
         return {
           id: chat._id.toString(),
@@ -157,22 +182,37 @@ router.post('/chats', async (req, res) => {
       return res.status(400).json({ error: 'tenantName and ownerName are required' });
     }
 
-    // Find existing chat - match by tenant, owner, and property
+    // Find existing chat - check both directions for user-to-user chats
     let chat = await Chat.findOne({
-      tenantName,
-      ownerName,
       $or: [
-        { propertyTitle: propertyTitle || '' },
-        { propertyId: propertyId || '' }
+        // Original direction
+        {
+          tenantName,
+          ownerName,
+          $or: [
+            { propertyTitle: propertyTitle || '' },
+            { propertyId: propertyId || '' }
+          ]
+        },
+        // Reverse direction (for user-to-user chats)
+        {
+          tenantName: ownerName,
+          ownerName: tenantName,
+          $or: [
+            { propertyTitle: propertyTitle || '' },
+            { propertyId: propertyId || '' }
+          ]
+        }
       ]
     });
 
-    // If no exact match, try to find by tenant and owner only
+    // If no exact match with property, try to find by participants only
     if (!chat && propertyTitle) {
       chat = await Chat.findOne({
-        tenantName,
-        ownerName,
-        propertyTitle: propertyTitle,
+        $or: [
+          { tenantName, ownerName, propertyTitle },
+          { tenantName: ownerName, ownerName: tenantName, propertyTitle }
+        ]
       });
     }
 
@@ -270,26 +310,62 @@ router.post('/messages', async (req, res) => {
 // Mark messages as seen
 router.put('/messages/seen', async (req, res) => {
   try {
-    const { chatId, viewerRole } = req.body;
+    const { chatId, viewerRole, viewerName } = req.body;
 
-    if (!chatId || !viewerRole) {
-      return res.status(400).json({ error: 'chatId and viewerRole are required' });
+    if (!chatId) {
+      return res.status(400).json({ error: 'chatId is required' });
     }
 
-    // Normalize role
-    const normalizedRole = viewerRole === 'landlord' ? 'owner' : viewerRole;
+    console.log('Mark as seen request:', { chatId, viewerRole, viewerName });
 
-    // Mark all messages in this chat as seen where sender is not the viewer
-    const result = await Message.updateMany(
-      { 
-        chatId, 
+    // Get all messages in this chat
+    const allMessages = await Message.find({ chatId });
+    console.log(`Total messages in chat: ${allMessages.length}`);
+    console.log('All messages:', allMessages.map(m => ({
+      id: m._id,
+      senderName: m.senderName,
+      senderRole: m.senderRole,
+      seen: m.seen,
+      text: m.text?.substring(0, 30)
+    })));
+
+    // Build query to mark messages as seen
+    let query;
+    if (viewerName) {
+      // Use name-based filtering (more reliable for tenant-to-tenant chats)
+      query = {
+        chatId,
+        senderName: { $ne: viewerName },
+        seen: false
+      };
+      console.log('Using name-based query:', query);
+    } else if (viewerRole) {
+      // Fallback to role-based filtering
+      const normalizedRole = viewerRole === 'landlord' ? 'owner' : viewerRole;
+      query = {
+        chatId,
         senderRole: { $ne: normalizedRole },
-        seen: false 
-      },
-      { $set: { seen: true } }
-    );
+        seen: false
+      };
+      console.log('Using role-based query:', query);
+    } else {
+      return res.status(400).json({ error: 'Either viewerRole or viewerName is required' });
+    }
 
-    console.log(`Marked ${result.modifiedCount} messages as seen in chat ${chatId}`);
+    // Find messages that match our query
+    const messagesToMark = await Message.find(query);
+    console.log(`Found ${messagesToMark.length} messages to mark as seen:`, messagesToMark.map(m => ({
+      id: m._id,
+      senderName: m.senderName,
+      senderRole: m.senderRole,
+      text: m.text?.substring(0, 30),
+      seen: m.seen
+    })));
+
+    // Mark messages as seen
+    const result = await Message.updateMany(query, { $set: { seen: true } });
+
+    console.log(`Successfully marked ${result.modifiedCount} messages as seen in chat ${chatId}`);
 
     res.json({ 
       success: true, 

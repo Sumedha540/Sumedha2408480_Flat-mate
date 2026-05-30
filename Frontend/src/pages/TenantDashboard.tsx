@@ -46,6 +46,7 @@ import {
   ShieldCheckIcon, BedDoubleIcon, BathIcon, TrashIcon, BarChart2Icon,
   ThumbsUpIcon, ListIcon, SendIcon as SendIcon2, EyeIcon, MessageSquareIcon,
   CheckIcon, SunIcon, MoonIcon, FileTextIcon, AlertCircleIcon, LockIcon,
+  UsersIcon,
 } from 'lucide-react'
 import { Card } from '../components/ui/Card'
 import { Button } from '../components/ui/Button'
@@ -352,6 +353,174 @@ function ProfileSettingsPanel() {
         className="mt-6 flex items-center gap-2 px-6 py-3 bg-button-primary text-white font-bold rounded-xl shadow-md hover:bg-button-primary/90 disabled:opacity-60 transition-all">
         {saving ? <><motion.div animate={{ rotate:360 }} transition={{ duration:0.7, repeat:Infinity, ease:'linear' }} className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full" />Saving...</> : 'Save Changes'}
       </motion.button>
+    </div>
+  )
+}
+
+// ─── Roommate Settings Panel ───────────────────────────────────────────────────
+function RoommateSettingsPanel() {
+  const { user } = useAuth()
+  const [lookingForRoom, setLookingForRoom] = useState(false)
+  const [loading, setLoading] = useState(false)
+
+  // Load looking for room status from backend
+  useEffect(() => {
+    const loadStatus = async () => {
+      if (!user?.email) return
+      
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`)
+        const data = await response.json()
+        
+        if (data.success && data.user) {
+          setLookingForRoom(data.user.lookingForRoom || false)
+        }
+      } catch (error) {
+        console.error('Error loading looking for room status:', error)
+      }
+    }
+    
+    loadStatus()
+  }, [user?.email])
+
+  // Toggle looking for room status
+  const handleToggle = async () => {
+    if (!user?.email) return
+    
+    setLoading(true)
+    
+    try {
+      // Get user ID first
+      const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`)
+      const userData = await userResponse.json()
+      
+      if (!userData.success || !userData.user) {
+        toast.error('Failed to find user')
+        setLoading(false)
+        return
+      }
+      
+      const userId = userData.user.id || userData.user._id
+      
+      // Update looking for room status
+      const response = await fetch(`${BACKEND_URL}/api/users/${userId}/looking-for-room`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          lookingForRoom: !lookingForRoom
+        })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        setLookingForRoom(!lookingForRoom)
+        toast.success(data.message)
+        
+        // Dispatch event to update other components
+        window.dispatchEvent(new Event('lookingForRoomUpdated'))
+      } else {
+        toast.error(data.message || 'Failed to update status')
+      }
+    } catch (error) {
+      console.error('Error updating looking for room status:', error)
+      toast.error('Failed to update status')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm p-6">
+      <div className="flex items-center gap-2 mb-5">
+        <UsersIcon className="w-5 h-5 text-purple-600"/>
+        <h3 className="font-bold text-gray-900 dark:text-white">Roommate Finder</h3>
+      </div>
+      
+      {/* Status Banner */}
+      {lookingForRoom ? (
+        <div className="mb-5 p-4 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border-2 border-green-200 dark:border-green-700 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center flex-shrink-0 relative">
+              <UsersIcon className="w-6 h-6 text-white" />
+              <span className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full border-2 border-white animate-pulse"></span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                Looking for Room - Active
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-600 text-white text-[10px] font-bold rounded-full">
+                  <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                  ACTIVE
+                </span>
+              </p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Other users can see you're looking for a room and can message you.</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="mb-5 p-4 bg-gradient-to-r from-gray-50 to-slate-50 dark:from-gray-800 dark:to-slate-800 border-2 border-gray-200 dark:border-gray-700 rounded-xl">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gray-400 rounded-full flex items-center justify-center flex-shrink-0">
+              <UsersIcon className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">Looking for Room - Inactive</p>
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-0.5">Turn this on to let other users know you're looking for a room.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Benefits Section */}
+      <div className="mb-5 p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-xl">
+        <p className="text-xs font-bold text-purple-900 dark:text-purple-300 mb-3">When you turn this on:</p>
+        <div className="space-y-2">
+          {[
+            'A green dot appears on your profile visible to other users',
+            'Other users looking for rooms can message you',
+            'You can connect with potential roommates',
+            'You appear in the "Find Roommate" section',
+          ].map((benefit, idx) => (
+            <div key={idx} className="flex items-start gap-2">
+              <CheckCircleIcon className="w-4 h-4 text-purple-600 dark:text-purple-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-700 dark:text-gray-300">{benefit}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Toggle Button */}
+      <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+        <div>
+          <p className="text-sm font-bold text-gray-900 dark:text-white">Looking for Room</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Allow others to see you're looking for a room</p>
+        </div>
+        <button
+          onClick={handleToggle}
+          disabled={loading}
+          className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+            lookingForRoom ? 'bg-green-600' : 'bg-gray-300'
+          } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+        >
+          <span
+            className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+              lookingForRoom ? 'translate-x-7' : 'translate-x-1'
+            }`}
+          />
+        </button>
+      </div>
+
+      {/* Privacy Note */}
+      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800 rounded-lg">
+        <div className="flex items-start gap-2">
+          <LockIcon className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+          <p className="text-xs text-gray-700 dark:text-gray-300">
+            <span className="font-bold">Privacy:</span> Only users who also have "Looking for Room" enabled can message you. Your personal information remains private.
+          </p>
+        </div>
+      </div>
     </div>
   )
 }
@@ -996,154 +1165,99 @@ export function TenantDashboard() {
     return () => clearInterval(interval)
   }, [user?.email])
 
-  // ── Bookings from localStorage ──
+  // ── Bookings from Backend API ──
   const [bookings, setBookings] = useState<any[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
+
+  // Load bookings from backend API
+  const loadBookings = async () => {
+    if (!user?.email) return
+    
+    console.log('🔄 Loading bookings for user:', user?.email, user?.name)
+    setBookingsLoading(true)
+    
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/history/bookings?search=${encodeURIComponent(user.email)}`)
+      const data = await response.json()
+      
+      if (data.success && data.bookings) {
+        console.log('📦 Bookings fetched from API:', data.bookings.length)
+        
+        // Transform backend data to match frontend format
+        const transformedBookings = data.bookings.map((b: any) => ({
+          id: b._id,
+          propertyId: b.propertyId,
+          propertyTitle: b.propertyTitle,
+          location: b.propertyLocation,
+          ownerName: b.ownerName,
+          ownerId: b.ownerId,
+          ownerEmail: b.ownerEmail,
+          ownerPhone: b.ownerPhone,
+          customerName: b.tenantName,
+          customerEmail: b.tenantEmail,
+          customerPhone: b.tenantPhone,
+          tenantName: b.tenantName,
+          tenantEmail: b.tenantEmail,
+          tenantPhone: b.tenantPhone,
+          checkInDate: b.checkInDate,
+          checkOutDate: b.checkOutDate,
+          moveInDate: b.moveInDate,
+          rent: b.rent,
+          amount: b.amount,
+          paymentMethod: b.paymentMethod,
+          paymentType: b.paymentType,
+          paymentStatus: b.paymentStatus,
+          transactionId: b.transactionId,
+          receiptId: b.receiptId,
+          status: b.status,
+          rejectionReason: b.rejectionReason,
+          specialRequests: b.specialRequests,
+          createdAt: b.createdAt,
+          bookedAt: b.createdAt,
+          image: b.propertyImage || 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&auto=format&fit=crop'
+        }))
+        
+        console.log('✅ Setting bookings:', transformedBookings)
+        setBookings(transformedBookings)
+      } else {
+        console.log('⚠️ No bookings found')
+        setBookings([])
+      }
+    } catch (err) {
+      console.error('❌ Error loading bookings:', err)
+      setBookings([])
+    } finally {
+      setBookingsLoading(false)
+    }
+  }
 
   // Load bookings on mount and when user changes
   useEffect(() => {
-    const loadBookings = () => {
-      console.log('🔄 Loading bookings for user:', user?.email, user?.name)
-      
-      try { 
-        const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-        console.log('📦 Total bookings in localStorage:', allBookings.length)
-        
-        // Remove specific unwanted bookings by receipt ID
-        const unwantedReceipts = ['KH-MO2QO1EF-J7TL', 'KH-MO2I8FBG-2EEH', 'KH-MNVG5G4L-R9Z1']
-        
-        // Remove old sample bookings and unwanted bookings
-        const cleanedBookings = allBookings.filter((b: any) => 
-          !b.receiptId?.startsWith('BK-SAMPLE') && !unwantedReceipts.includes(b.receiptId)
-        )
-        console.log('🧹 Cleaned bookings:', cleanedBookings.length)
-        
-        // Add ONE sample rejected booking if not already added
-        const hasRejected = cleanedBookings.some((b: any) => b.status === 'rejected' && b.customerEmail === user?.email)
-        if (!hasRejected && user?.email) {
-          const sampleRejected = {
-            propertyId: 'sample-rej-1',
-            propertyTitle: 'Luxury Villa in Budhanilkantha',
-            ownerName: 'Rajesh Maharjan',
-            rent: 45000,
-            paymentType: 'full',
-            amount: 45000,
-            customerName: user.name || 'User',
-            customerEmail: user.email,
-            customerPhone: '9800000000',
-            moveInDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-            receiptId: `BK-REJ-${Date.now().toString(36).toUpperCase()}`,
-            status: 'rejected',
-            rejectionReason: 'Property already booked for the selected dates',
-            createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            bookedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=400&auto=format&fit=crop'
-          }
-          cleanedBookings.unshift(sampleRejected)
-        }
-        
-        // Save cleaned bookings back
-        localStorage.setItem('fm_bookings', JSON.stringify(cleanedBookings))
-        
-        // Filter bookings for current user by email or name
-        const userBookings = cleanedBookings.filter((b: any) => {
-          if (!user) return false
-          const emailMatch = user.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
-          const nameMatch = user.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
-          console.log(`🔍 Checking booking: ${b.propertyTitle}`, {
-            bookingEmail: b.customerEmail,
-            userEmail: user.email,
-            emailMatch,
-            bookingName: b.customerName,
-            userName: user.name,
-            nameMatch
-          })
-          return emailMatch || nameMatch
-        })
-        
-        console.log('👤 User bookings found:', userBookings.length)
-        
-        // Sort by creation date (newest first)
-        userBookings.sort((a: any, b: any) => {
-          const dateA = new Date(a.createdAt || a.bookedAt || 0).getTime()
-          const dateB = new Date(b.createdAt || b.bookedAt || 0).getTime()
-          return dateB - dateA
-        })
-        
-        console.log('✅ Setting bookings:', userBookings)
-        setBookings(userBookings)
-      } catch (err) {
-        console.error('❌ Error loading bookings:', err)
-        setBookings([])
-      }
-    }
-    
-    if (user) {
+    if (user?.email) {
       loadBookings()
     }
-  }, [user?.email, user?.name])
+  }, [user?.email])
 
-  // Auto-refresh bookings every 3 seconds
+  // Auto-refresh bookings every 5 seconds
   useEffect(() => {
+    if (!user?.email) return
+    
     const interval = setInterval(() => {
-      if (!user) return
-      
-      try {
-        const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-        
-        // Remove specific unwanted bookings by receipt ID
-        const unwantedReceipts = ['KH-MO2QO1EF-J7TL', 'KH-MO2I8FBG-2EEH', 'KH-MNVG5G4L-R9Z1']
-        
-        // Remove sample bookings and unwanted bookings
-        const cleanedBookings = allBookings.filter((b: any) => 
-          !b.receiptId?.startsWith('BK-SAMPLE') && !unwantedReceipts.includes(b.receiptId)
-        )
-        
-        const userBookings = cleanedBookings.filter((b: any) => {
-          const emailMatch = user.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
-          const nameMatch = user.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
-          return emailMatch || nameMatch
-        })
-        
-        // Sort by creation date (newest first)
-        userBookings.sort((a: any, b: any) => {
-          const dateA = new Date(a.createdAt || a.bookedAt || 0).getTime()
-          const dateB = new Date(b.createdAt || b.bookedAt || 0).getTime()
-          return dateB - dateA
-        })
-        
-        setBookings(userBookings)
-      } catch {}
-    }, 3000)
+      loadBookings()
+    }, 5000)
+    
     return () => clearInterval(interval)
-  }, [user?.email, user?.name])
+  }, [user?.email])
 
-  // Reload from storage when tab becomes active or storage changes
+  // Reload when tab becomes active or custom event fires
   useEffect(() => {
     const reload = () => {
-      if (!user) return
+      if (user?.email) {
+        loadBookings()
+      }
       
+      // Still load requirements and notifications from localStorage
       try {
-        const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-        const unwantedReceipts = ['KH-MO2QO1EF-J7TL', 'KH-MO2I8FBG-2EEH', 'KH-MNVG5G4L-R9Z1']
-        const cleanedBookings = allBookings.filter((b: any) => 
-          !b.receiptId?.startsWith('BK-SAMPLE') && !unwantedReceipts.includes(b.receiptId)
-        )
-        
-        const userBookings = cleanedBookings.filter((b: any) => {
-          const emailMatch = user.email && b.customerEmail?.toLowerCase() === user.email.toLowerCase()
-          const nameMatch = user.name && b.customerName?.toLowerCase().includes(user.name.toLowerCase())
-          return emailMatch || nameMatch
-        })
-        
-        // Sort by creation date (newest first)
-        userBookings.sort((a: any, b: any) => {
-          const dateA = new Date(a.createdAt || a.bookedAt || 0).getTime()
-          const dateB = new Date(b.createdAt || b.bookedAt || 0).getTime()
-          return dateB - dateA
-        })
-        
-        setBookings(userBookings)
-        
         setRequirements(JSON.parse(localStorage.getItem('fm_requirements') || '[]'))
         setUserNotifs(JSON.parse(localStorage.getItem(`fm_notifs_${user?.name || 'user'}`) || '[]'))
       } catch {}
@@ -1151,7 +1265,6 @@ export function TenantDashboard() {
     
     window.addEventListener('focus', reload)
     window.addEventListener('storage', reload)
-    // Custom event for immediate updates
     window.addEventListener('bookingAdded', reload)
     
     return () => {
@@ -1187,12 +1300,13 @@ export function TenantDashboard() {
   const urlTab = searchParams.get('tab')
   const fromPage = searchParams.get('from') || 'properties'
   const [activeTab, setActiveTab] = useState(urlTab || 'overview')
-  const [settingsTab, setSettingsTab] = useState<'profile' | 'verification' | 'display' | 'notifications'>('profile')
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'verification' | 'roommate' | 'display' | 'notifications'>('profile')
 
   // Messages params from PropertyDetailPage / FindRoommatePage (must be declared before useEffect)
   const msgUserId        = searchParams.get('userId')        || undefined
   const msgUserName      = searchParams.get('userName')      || undefined
   const msgPropertyTitle = searchParams.get('propertyTitle') || undefined
+  const msgChatId        = searchParams.get('chatId')        || undefined
 
   // Messages state
   const [conversations, setConversations] = useState<Chat[]>([])
@@ -1252,7 +1366,7 @@ export function TenantDashboard() {
     const markSeen = async () => {
       if (selectedConv && user && activeTab === 'messages') {
         const userRole = (user.role === 'landlord' ? 'owner' : user.role) as 'tenant' | 'owner';
-        await markChatAsSeen(selectedConv.id, userRole);
+        await markChatAsSeen(selectedConv.id, userRole, user.name);
         
         // Immediately refresh conversations to update badge count
         const myChats = await getChats(user.name, userRole);
@@ -1266,19 +1380,114 @@ export function TenantDashboard() {
       }
     };
     markSeen();
-  }, [selectedConv?.id, selectedConv?.messages?.length, user, activeTab]);
+  }, [selectedConv?.id, user, activeTab]);
+
+  // Handle selecting a conversation and marking as seen
+  const handleSelectConversation = async (conv: Chat) => {
+    setSelectedConv(conv);
+    
+    // Immediately mark as seen
+    if (user) {
+      // Determine the other person's name in the conversation
+      const otherPersonName = conv.tenantName === user.name ? conv.ownerName : conv.tenantName;
+      
+      console.log('Marking messages as seen for:', {
+        chatId: conv.id,
+        currentUser: user.name,
+        otherPerson: otherPersonName,
+        userRole: user.role,
+        conversationParticipants: {
+          tenantName: conv.tenantName,
+          ownerName: conv.ownerName
+        },
+        messages: conv.messages.map(m => ({
+          id: m.id,
+          senderName: m.senderName,
+          seen: m.seen,
+          text: m.text?.substring(0, 20)
+        }))
+      });
+      
+      const userRole = (user.role === 'landlord' ? 'owner' : user.role) as 'tenant' | 'owner';
+      
+      // Mark messages from the OTHER person as seen
+      // We'll send the other person's name so the backend can mark their messages
+      const result = await markChatAsSeen(conv.id, userRole, user.name);
+      
+      console.log('Mark as seen result:', result);
+      
+      // Refresh conversations to update badge
+      const myChats = await getChats(user.name, userRole);
+      setConversations(myChats);
+      
+      // Update selected conversation
+      const updated = myChats.find(c => c.id === conv.id);
+      if (updated) {
+        console.log('Updated conversation unread count:', updated.unreadCount);
+        console.log('Messages after marking:', updated.messages.map(m => ({
+          senderName: m.senderName,
+          seen: m.seen
+        })));
+        setSelectedConv(updated);
+      }
+    }
+  };
 
   // Initial Check from URL query strings (Owner contact init)
   useEffect(() => {
     const initChat = async () => {
       if (!user || activeTab !== 'messages') return;
       
+      // If chatId is provided, find and select that chat
+      if (msgChatId) {
+        const userRole = (user.role === 'landlord' ? 'owner' : user.role) as 'tenant' | 'owner';
+        const myChats = await getChats(user.name, userRole);
+        const chat = myChats.find(c => c.id === msgChatId);
+        if (chat) {
+          setSelectedConv(chat);
+          // Clear the chatId from URL to prevent re-selecting on refresh
+          navigate(`/dashboard/tenant?tab=messages`, { replace: true });
+        }
+        return;
+      }
+      
       if (msgUserName) {
         const decodedOwner = decodeURIComponent(msgUserName);
         const decodedTitle = msgPropertyTitle ? decodeURIComponent(msgPropertyTitle) : undefined;
         const decodedPropId = msgUserId ? decodeURIComponent(msgUserId) : undefined;
         
-        const newChat = await getOrCreateChat(user.name, decodedOwner, decodedTitle, decodedPropId);
+        // Check if this is a roommate connection (from find-roommate page)
+        if (fromPage === 'find-roommate') {
+          // Check if both users have lookingForRoom enabled
+          try {
+            // Get current user's status
+            const currentUserResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`)
+            const currentUserData = await currentUserResponse.json()
+            
+            // Get other user's status by name (we need to find them)
+            const usersResponse = await fetch(`${BACKEND_URL}/api/users/roommates/available`)
+            const usersData = await usersResponse.json()
+            
+            const otherUser = usersData.users?.find((u: any) => u.name === decodedOwner)
+            
+            if (!currentUserData.user?.lookingForRoom) {
+              toast.error('You must enable "Looking for Room" in settings to message other users')
+              navigate('/dashboard/tenant?tab=settings')
+              return
+            }
+            
+            if (!otherUser || !otherUser.lookingForRoom) {
+              toast.error('This user is no longer looking for a room')
+              return
+            }
+          } catch (error) {
+            console.error('Error checking lookingForRoom status:', error)
+          }
+        }
+        
+        // For roommate messaging, use "Roommate Chat" as the property title
+        const chatTitle = fromPage === 'find-roommate' ? 'Roommate Chat' : decodedTitle;
+        const newChat = await getOrCreateChat(user.name, decodedOwner, chatTitle, decodedPropId);
         if (newChat) {
           setSelectedConv(newChat);
         }
@@ -1286,7 +1495,7 @@ export function TenantDashboard() {
     };
     
     initChat();
-  }, [msgUserName, msgPropertyTitle, msgUserId, user, activeTab]);
+  }, [msgUserName, msgPropertyTitle, msgUserId, msgChatId, user, activeTab, fromPage, navigate]);
 
   const tabs = [
     { id:'overview',       label:'Overview',          icon: HomeIcon },
@@ -1542,7 +1751,7 @@ export function TenantDashboard() {
                       const displayName = user?.role === 'tenant' ? conv.ownerName : conv.tenantName;
                       return (
                       <motion.button key={conv.id} initial={{ opacity:0, x:-16 }} animate={{ opacity:1, x:0 }}
-                        transition={{ delay: idx*0.05 }} onClick={() => setSelectedConv(conv)}
+                        transition={{ delay: idx*0.05 }} onClick={() => handleSelectConversation(conv)}
                         className={`w-full p-4 flex items-start gap-3 text-left border-b border-gray-50 transition-colors hover:bg-gray-50 ${selectedConv?.id === conv.id ? 'bg-button-primary/5 border-l-2 border-l-button-primary' : ''}`}>
                         <div className="relative flex-shrink-0">
                           <AvatarCircle name={displayName} />
@@ -1557,11 +1766,6 @@ export function TenantDashboard() {
                           )}
                           <div className="flex items-center justify-between">
                             <p className="text-xs text-gray-500 truncate flex-1">{lastMsg ? (lastMsg.text || 'Media message') : 'Start a conversation'}</p>
-                            {unreadCount > 0 && (
-                              <span className="ml-2 w-5 h-5 bg-button-primary text-white text-xs rounded-full flex items-center justify-center flex-shrink-0 font-bold">
-                                {unreadCount}
-                              </span>
-                            )}
                           </div>
                         </div>
                       </motion.button>
@@ -1764,6 +1968,7 @@ export function TenantDashboard() {
                   {[
                     { id: 'profile' as const, label: 'Profile', icon: UserIcon },
                     { id: 'verification' as const, label: 'Verification', icon: ShieldCheckIcon },
+                    { id: 'roommate' as const, label: 'Roommate Finder', icon: UsersIcon },
                     { id: 'notifications' as const, label: 'Notifications', icon: BellIcon },
                     { id: 'display' as const, label: 'Display', icon: SunIcon },
                   ].map(item => (
@@ -1787,6 +1992,7 @@ export function TenantDashboard() {
             <div className="flex-1 space-y-6">
               {settingsTab === 'profile' && <ProfileSettingsPanel />}
               {settingsTab === 'verification' && <VerificationSettingsPanel />}
+              {settingsTab === 'roommate' && <RoommateSettingsPanel />}
               {settingsTab === 'notifications' && <NotificationSettingsPanel />}
               {settingsTab === 'display' && <DisplayPreferencesPanel />}
             </div>
@@ -1936,7 +2142,7 @@ export function TenantDashboard() {
             <nav className="space-y-1 flex-1">
               {tabs.map(tab => {
                 const Icon = tab.icon
-                const badgeCount = tab.id === 'messages' ? unreadMessageCount : tab.id === 'notifications' ? unreadNotificationCount : 0
+                const badgeCount = tab.id === 'notifications' ? unreadNotificationCount : 0
                 return (
                   <motion.button key={tab.id} whileHover={{ x:3 }} whileTap={{ scale:0.98 }}
                     onClick={() => setActiveTab(tab.id)}
@@ -2021,7 +2227,7 @@ export function TenantDashboard() {
                 <div className="px-4 py-3 flex flex-wrap gap-2">
                   {tabs.map(tab => {
                     const Icon = tab.icon
-                    const badgeCount = tab.id === 'messages' ? unreadMessageCount : tab.id === 'notifications' ? unreadNotificationCount : 0
+                    const badgeCount = tab.id === 'notifications' ? unreadNotificationCount : 0
                     return (
                       <button key={tab.id} onClick={() => { setActiveTab(tab.id); setMobileMenuOpen(false) }}
                         className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-semibold transition-all relative ${activeTab===tab.id ? 'bg-button-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
@@ -2096,29 +2302,30 @@ export function TenantDashboard() {
                   Keep Booking
                 </button>
                 <button
-                  onClick={() => {
+                  onClick={async () => {
                     try {
-                      // Remove booking from localStorage
-                      const allBookings = JSON.parse(localStorage.getItem('fm_bookings') || '[]')
-                      const updatedBookings = allBookings.filter((booking: any) => booking.receiptId !== bookingToCancel.receiptId)
-                      localStorage.setItem('fm_bookings', JSON.stringify(updatedBookings))
+                      // Call backend API to delete booking
+                      const response = await fetch(`${BACKEND_URL}/api/bookings/${bookingToCancel.id}`, {
+                        method: 'DELETE'
+                      })
                       
-                      // Update state
-                      setBookings(updatedBookings.filter((booking: any) => {
-                        if (!user) return false
-                        const emailMatch = user.email && booking.customerEmail?.toLowerCase() === user.email.toLowerCase()
-                        const nameMatch = user.name && booking.customerName?.toLowerCase().includes(user.name.toLowerCase())
-                        return emailMatch || nameMatch
-                      }))
+                      const data = await response.json()
                       
-                      // Dispatch events to update property cards
-                      window.dispatchEvent(new Event('bookingAdded'))
-                      window.dispatchEvent(new Event('storage'))
-                      
-                      setCancelModalOpen(false)
-                      setBookingToCancel(null)
-                      
-                      toast.success('Booking cancelled successfully')
+                      if (data.success) {
+                        // Reload bookings from backend
+                        await loadBookings()
+                        
+                        // Dispatch events to update property cards
+                        window.dispatchEvent(new Event('bookingAdded'))
+                        window.dispatchEvent(new Event('storage'))
+                        
+                        setCancelModalOpen(false)
+                        setBookingToCancel(null)
+                        
+                        toast.success('Booking cancelled successfully')
+                      } else {
+                        toast.error(data.message || 'Failed to cancel booking')
+                      }
                     } catch (error) {
                       console.error('Error cancelling booking:', error)
                       toast.error('Failed to cancel booking')

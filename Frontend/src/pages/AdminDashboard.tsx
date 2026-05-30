@@ -98,71 +98,7 @@ const TODAY = new Date()
 const fmt   = (d: Date) => d.toISOString().split('T')[0]
 const daysAgo = (n: number) => fmt(new Date(Date.now() - n * 86400000))
 
-const INIT_USERS = [
-  { id:'u1', firstName:'Anita',   lastName:'Thapa',    email:'anita@example.com',    phone:'+977 9801000001', role:'tenant', status:'active',  joined: daysAgo(45), lastAccess: daysAgo(0),  reports:0, billings:2,  bookings:1, muted:false, blocked:false, archived:false, reportReason:'' },
-  { id:'u2', firstName:'Rajesh',  lastName:'Sharma',   email:'rajesh@example.com',   phone:'+977 9801000002', role:'owner',  status:'active',  joined: daysAgo(60), lastAccess: daysAgo(0),  reports:0, billings:5,  bookings:0, muted:false, blocked:false, archived:false, reportReason:'' },
-  { id:'u3', firstName:'Sita',    lastName:'Gurung',   email:'sita@example.com',     phone:'+977 9801000003', role:'tenant', status:'pending', joined: daysAgo(3),  lastAccess: daysAgo(1),  reports:0, billings:0,  bookings:0, muted:false, blocked:false, archived:false, reportReason:'' },
-  { id:'u4', firstName:'Krishna', lastName:'Adhikari', email:'krishna@example.com',  phone:'+977 9801000004', role:'owner',  status:'pending', joined: daysAgo(10), lastAccess: daysAgo(2),  reports:1, billings:1,  bookings:0, muted:false, blocked:false, archived:false, reportReason:'Listed false property information and overcharged tenants.' },
-  { id:'u5', firstName:'Maya',    lastName:'Rai',      email:'maya@example.com',     phone:'+977 9801000005', role:'tenant', status:'active',  joined: daysAgo(90), lastAccess: daysAgo(0),  reports:0, billings:3,  bookings:2, muted:false, blocked:false, archived:false, reportReason:'' },
-  { id:'u6', firstName:'Bikash',  lastName:'Thapa',    email:'bikash@example.com',   phone:'+977 9801000006', role:'tenant', status:'active',  joined: daysAgo(30), lastAccess: daysAgo(0),  reports:2, billings:1,  bookings:1, muted:true,  blocked:false, archived:false, reportReason:'Spam messaging multiple property owners with fraudulent requests.' },
-  { id:'u7', firstName:'Priya',   lastName:'Maharjan', email:'priya@example.com',    phone:'+977 9801000007', role:'owner',  status:'active',  joined: daysAgo(120),lastAccess: daysAgo(0),  reports:0, billings:8,  bookings:0, muted:false, blocked:false, archived:false, reportReason:'' },
-]
-
-const HIGH_DEMAND_LOCS = ['Thamel, Kathmandu','Lazimpat, Kathmandu','Patan, Lalitpur','Lakeside, Pokhara']
-
-const MONTHLY_INCOME = [
-  { m:'Jan', income:320000, expense:180000 }, { m:'Feb', income:410000, expense:200000 },
-  { m:'Mar', income:390000, expense:195000 }, { m:'Apr', income:480000, expense:220000 },
-  { m:'May', income:520000, expense:235000 }, { m:'Jun', income:610000, expense:280000 },
-]
-const GROWTH = [
-  {m:'Jan',users:120},{m:'Feb',users:165},{m:'Mar',users:210},
-  {m:'Apr',users:280},{m:'May',users:350},{m:'Jun',users:430},
-]
-const SATISFACTION = [
-  {label:'Very Happy',value:48,color:'#64dd90ff'},{label:'Happy',value:29,color:'#b0fb1aff'},
-  {label:'Neutral',value:14,color:'#eed56fff'},{label:'Unhappy',value:6,color:'#f04c4cff'},
-  {label:'Very Sad',value:3,color:'#ea6a6aff'},
-]
-const USER_DIST = [
-  {label:'Tenants',value:70,color:'#3B82F6'},{label:'Owners',value:25,color:'#f6a65cff'},
-  {label:'Admins',value:5,color:'#EC4899'},
-]
-const PREF_LOCS = [
-  {label:'Kathmandu',value:45,color:'#f16464ff'},{label:'Lalitpur',value:22,color:'#2082f1ff'},
-  {label:'Pokhara',value:18,color:'#f5da6cff'},{label:'Bhaktapur',value:9,color:'#ee59abff'},
-  {label:'Others',value:6,color:'#b91a44ff'},
-]
-const MONTHLY_SIGNUPS = [
-  {m:'Jan',v:45,color:'#3B82F6'},{m:'Feb',v:62,color:'#8B5CF6'},
-  {m:'Mar',v:58,color:'#EC4899'},{m:'Apr',v:75,color:'#2F7D5F'},
-  {m:'May',v:89,color:'#0EA5E9'},{m:'Jun',v:102,color:'#F59E0B'},
-]
-const ALERTS_INIT = [
-  {id:'a1',type:'security', msg:'3 failed login attempts on maya@example.com',  time:'10m ago',severity:'high'},
-  {id:'a2',type:'report',   msg:'Bikash Thapa reported for suspicious activity', time:'2h ago', severity:'medium'},
-  {id:'a3',type:'booking',  msg:'High demand spike in Thamel — 18 bookings',    time:'4h ago', severity:'low'},
-  {id:'a4',type:'payment',  msg:'Payment dispute raised for Booking #BK-0012',  time:'1d ago', severity:'medium'},
-]
-const ACTIVITIES = [
-  {icon:'requirement', msg:'New requirement submitted by Anita Thapa',time:'5m ago', color:'bg-blue-50 text-blue-600'},
-  {icon:'booking',     msg:'Property "Modern 2BHK" booked by Maya Rai',time:'12m ago', color:'bg-emerald-50 text-emerald-600'},
-  {icon:'user',        msg:'New user registration: Bikash Thapa',time:'28m ago', color:'bg-purple-50 text-purple-600'},
-  {icon:'payment',     msg:'Payment confirmed: NPR 32,000 received',time:'1h ago', color:'bg-amber-50 text-amber-600'},
-  {icon:'alert',       msg:'Report filed against Krishna Adhikari',time:'2h ago', color:'bg-red-50 text-red-600'},
-  {icon:'check',       msg:'Requirement approved: Priya Adhikari',time:'3h ago', color:'bg-teal-50 text-teal-600'},
-]
-const RISK = [
-  {label:'Low Risk', pct:62,colorClass:'bg-emerald-300',color:'#86EFAC'},
-  {label:'Medium Risk',pct:27,colorClass:'bg-amber-300',color:'#FCD34D'},
-  {label:'High Risk',pct:11,colorClass:'bg-red-300',color:'#f41212ff'},
-]
-const PERF = [
-  {label:'Booking Rate',      v:78,color:'#A7F3D0'},
-  {label:'Property Fill Rate',v:64,color:'#93C5FD'},
-  {label:'Response Rate',     v:91,color:'#896ff3ff'},
-  {label:'Repeat Customers',  v:43,color:'#FDE68A'},
-]
+// Mock data removed - all data now fetched from backend
 
 // ─── Utility ──────────────────────────────────────────────────────────────────
 function daysSince(d: string) {
@@ -649,7 +585,7 @@ function UserDetailModal({ user, bookings, onClose }: { user:any; bookings:any[]
 // ─── Admin Properties Panel ───────────────────────────────────────────────────
 function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: any[]; blockedOwners: string[]; onBlockUser: (uid: string) => void }) {
   const [properties, setProperties] = useState<any[]>([])
-  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all')
+  const [filter, setFilter] = useState<'all' | 'pending' | 'approved' | 'unavailable' | 'rejected'>('all')
   const [loading, setLoading] = useState(true)
   const [previewProperty, setPreviewProperty] = useState<any>(null)
   const [galleryOpen, setGalleryOpen] = useState(false)
@@ -763,12 +699,14 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
   const displayed = properties.filter((p: any) => {
     if (filter === 'pending')  return p.status === 'pending'
     if (filter === 'approved') return p.status === 'approved'
+    if (filter === 'unavailable') return p.status === 'unavailable'
     if (filter === 'rejected') return p.status === 'rejected'
     return true
   })
 
   const pendingCount  = properties.filter((p: any) => p.status === 'pending').length
   const approvedCount = properties.filter((p: any) => p.status === 'approved').length
+  const unavailableCount = properties.filter((p: any) => p.status === 'unavailable').length
 
   return (
     <div>
@@ -795,7 +733,7 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
       {/* Filter tabs */}
       <div className="flex gap-2 mb-4 flex-wrap items-center justify-between">
         <div className="flex gap-2 flex-wrap">
-          {(['all', 'pending', 'approved', 'rejected'] as const).map(f => (
+          {(['all', 'pending', 'approved', 'unavailable', 'rejected'] as const).map(f => (
             <button key={f} onClick={() => setFilter(f)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold border-2 capitalize transition-all ${filter === f ? 'bg-button-primary text-white border-button-primary' : 'bg-white text-gray-600 border-gray-200 hover:border-button-primary/40'}`}>
               {f}{f === 'pending' && pendingCount > 0 ? ` (${pendingCount})` : ''}
@@ -835,10 +773,11 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
             const ownerBlocked = blockedOwners.includes(p.ownerId || '')
             const isPending  = p.status === 'pending'
             const isApproved = p.status === 'approved'
+            const isUnavailable = p.status === 'unavailable'
             const isRejected = p.status === 'rejected'
             return (
               <motion.div key={p.id || p._id} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-opacity ${ownerBlocked ? 'opacity-50' : ''} ${isPending ? 'border-amber-200' : isApproved ? 'border-green-200' : 'border-red-100'}`}>
+                className={`bg-white rounded-2xl border shadow-sm overflow-hidden transition-opacity ${ownerBlocked ? 'opacity-50' : ''} ${isPending ? 'border-amber-200' : isApproved ? 'border-green-200' : isUnavailable ? 'border-gray-200' : 'border-red-100'}`}>
                 <div className="flex flex-wrap items-center gap-3 p-4">
                   {/* Thumbnail */}
                   <div className="w-14 h-14 rounded-xl overflow-hidden flex-shrink-0 bg-gray-100">
@@ -858,8 +797,8 @@ function AdminPropertiesPanel({ users, blockedOwners, onBlockUser }: { users: an
                   </div>
 
                   {/* Status badge */}
-                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${isPending ? 'bg-amber-100 text-amber-700' : isApproved ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                    {isPending ? '⏳ Pending' : isApproved ? '✓ Approved' : '✗ Rejected'}
+                  <span className={`text-xs font-bold px-2.5 py-1 rounded-full flex-shrink-0 ${isPending ? 'bg-amber-100 text-amber-700' : isApproved ? 'bg-green-100 text-green-700' : isUnavailable ? 'bg-gray-100 text-gray-700' : 'bg-red-100 text-red-600'}`}>
+                    {isPending ? '⏳ Pending' : isApproved ? '✓ Approved' : isUnavailable ? '🔒 Unavailable' : '✗ Rejected'}
                   </span>
 
                   {/* Actions */}
@@ -1339,8 +1278,8 @@ export function AdminDashboard() {
     return (localStorage.getItem('fm_font_size') || 'medium') as 'small' | 'medium' | 'large'
   })
 
-  // Users state
-  const [users, setUsers] = useState(INIT_USERS)
+  // Users state - fetch from backend only
+  const [users, setUsers] = useState<any[]>([])
   const [selected, setSelected] = useState<string[]>([])
   const [userTab, setUserTab] = useState<'users'|'requirements'|'reviews'|'reports'>('users')
   const [userSearch, setUserSearch] = useState('')
@@ -1376,18 +1315,18 @@ export function AdminDashboard() {
           }
         } else {
           console.error('Failed to fetch users from backend');
-          // Load local users only
+          // Load local users only (no mock data)
           const localUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
           if (localUsers.length > 0) {
-            setUsers([...INIT_USERS, ...localUsers])
+            setUsers(localUsers)
           }
         }
       } catch (error) {
         console.error('Error fetching users:', error);
-        // Load local users as fallback
+        // Load local users as fallback (no mock data)
         const localUsers = JSON.parse(localStorage.getItem('fm_local_users') || '[]')
         if (localUsers.length > 0) {
-          setUsers([...INIT_USERS, ...localUsers])
+          setUsers(localUsers)
         }
       }
     };
@@ -1976,8 +1915,9 @@ export function AdminDashboard() {
     return match
   })
 
-  const totalIncome  = MONTHLY_INCOME.reduce((s,m) => s+m.income, 0)
-  const totalExpense = MONTHLY_INCOME.reduce((s,m) => s+m.expense, 0)
+  // Mock data removed - calculate from real bookings data
+  const totalIncome  = bookings.filter((b: any) => b.status === 'confirmed').reduce((s: number, b: any) => s + (b.amount || 0), 0)
+  const totalExpense = 0 // Can be calculated from real expense data when available
   const profit       = totalIncome - totalExpense
   const pendingReqs  = reqList.filter((r:any) => r.status === 'pending').length
   
@@ -2168,30 +2108,22 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm col-span-1">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="font-bold text-gray-900 text-sm">Total Income (P&L)</h3>
-              <span className="text-xs text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-full">+18%</span>
+              <h3 className="font-bold text-gray-900 text-sm">Total Income (From Bookings)</h3>
             </div>
-            <p className="text-base font-black text-emerald-600 mb-0.5">NPR {(profit/1000).toFixed(0)}K profit</p>
-            <div className="flex gap-4 text-xs mb-2">
-              <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-emerald-500 rounded inline-block"/>Income</span>
-              <span className="flex items-center gap-1"><span className="w-3 h-1.5 bg-red-300 rounded inline-block"/>Expense</span>
-            </div>
-            <ProfitBarChart data={MONTHLY_INCOME}/>
+            <p className="text-base font-black text-emerald-600 mb-0.5">NPR {(totalIncome/1000).toFixed(0)}K</p>
+            <p className="text-xs text-gray-400 mb-2">From confirmed bookings</p>
           </div>
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <div className="flex items-center justify-between mb-1">
-              <h3 className="font-bold text-gray-900 text-sm">Customer Growth</h3>
-              <span className="text-xs text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full">+24%</span>
+              <h3 className="font-bold text-gray-900 text-sm">Total Users</h3>
             </div>
-            <p className="text-base font-black text-blue-600">{GROWTH[GROWTH.length-1].users}</p>
-            <p className="text-xs text-gray-400 mb-2">Total registered users</p>
-            <GrowthLineChart data={GROWTH}/>
+            <p className="text-base font-black text-blue-600">{users.length}</p>
+            <p className="text-xs text-gray-400 mb-2">Registered users</p>
           </div>
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 text-sm mb-1">Customer Satisfaction</h3>
-            <p className="text-base font-black text-emerald-600 mb-0.5">77%</p>
-            <p className="text-xs text-gray-400 mb-2">Happy or very happy</p>
-            <DonutChart data={SATISFACTION} size={100}/>
+            <h3 className="font-bold text-gray-900 text-sm mb-1">Total Bookings</h3>
+            <p className="text-base font-black text-emerald-600 mb-0.5">{bookings.length}</p>
+            <p className="text-xs text-gray-400 mb-2">All booking requests</p>
           </div>
         </div>
 
@@ -2216,47 +2148,33 @@ export function AdminDashboard() {
               <ActivityIcon className="w-4 h-4 text-button-primary"/> Recent Activities
             </h3>
             <div className="space-y-3">
-              {ACTIVITIES.map((a,i)=>(
-                <motion.div key={i} initial={{opacity:0,x:-8}} animate={{opacity:1,x:0}} transition={{delay:i*0.06}}
-                  className="flex items-start gap-3">
-                  <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${a.color}`}>
-                    <ActivityIcon className="w-3.5 h-3.5"/>
-                  </div>
-                  <div className="flex-1 min-w-0 border-b border-gray-50 pb-2">
-                    <p className="text-xs text-gray-700 leading-snug">{a.msg}</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">{a.time}</p>
-                  </div>
-                </motion.div>
-              ))}
+              <p className="text-xs text-gray-500 text-center py-8">Real-time activities will appear here</p>
             </div>
           </div>
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm space-y-4">
             <div>
               <h3 className="font-bold text-gray-900 text-sm mb-3 flex items-center gap-2">
-                <ShieldAlertIcon className="w-4 h-4 text-button-primary"/> Risk Indicators
+                <ShieldAlertIcon className="w-4 h-4 text-button-primary"/> Platform Statistics
               </h3>
-              {RISK.map(r=>(
-                <div key={r.label} className="mb-2.5">
-                  <div className="flex justify-between text-xs mb-1"><span className="font-medium text-gray-700">{r.label}</span><span className="font-bold">{r.pct}%</span></div>
-                  <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
-                    <motion.div className={`h-2.5 rounded-full ${r.colorClass}`}
-                      initial={{width:0}} animate={{width:`${r.pct}%`}} transition={{duration:0.8,ease:[0.16,1,0.3,1]}}/>
+              <div className="space-y-3">
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-gray-700">Total Properties</span>
+                    <span className="font-bold">{properties.length}</span>
                   </div>
                 </div>
-              ))}
-            </div>
-            <div>
-              <h4 className="font-bold text-gray-900 text-xs mb-2 flex items-center gap-2">
-                <MapPinIcon className="w-3.5 h-3.5 text-red-500"/> High Demand Locations
-              </h4>
-              <div className="space-y-1.5">
-                {HIGH_DEMAND_LOCS.map(l=>(
-                  <div key={l} className="flex items-center gap-2 text-xs">
-                    <MapPinIcon className="w-3 h-3 text-red-400 flex-shrink-0"/>
-                    <span className="text-gray-700 flex-1 truncate">{l}</span>
-                    <span className="text-[10px] bg-red-50 text-red-600 font-bold px-1.5 py-0.5 rounded-full">Hot</span>
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-gray-700">Total Users</span>
+                    <span className="font-bold">{users.length}</span>
                   </div>
-                ))}
+                </div>
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="font-medium text-gray-700">Total Bookings</span>
+                    <span className="font-bold">{bookings.length}</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -2266,32 +2184,21 @@ export function AdminDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-900 text-sm mb-4 flex items-center gap-2">
-              <MapPinIcon className="w-4 h-4 text-button-primary"/> Customer Preferred Locations
+              <MapPinIcon className="w-4 h-4 text-button-primary"/> Property Locations
             </h3>
-            <DonutChart data={PREF_LOCS} size={110}/>
+            <p className="text-xs text-gray-500 text-center py-8">Location analytics will appear here</p>
           </div>
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-900 text-sm mb-4 flex items-center gap-2">
               <TrendingUpIcon className="w-4 h-4 text-button-primary"/> Performance Stats
             </h3>
-            <PerformanceRadial data={PERF}/>
+            <p className="text-xs text-gray-500 text-center py-8">Performance metrics will appear here</p>
           </div>
           <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-sm">
             <h3 className="font-bold text-gray-900 text-sm mb-4 flex items-center gap-2">
-              <AlertTriangleIcon className="w-4 h-4 text-amber-500"/> Last Security Reports
+              <AlertTriangleIcon className="w-4 h-4 text-amber-500"/> Security Reports
             </h3>
-            <div className="space-y-2">
-              {ALERTS_INIT.slice(0,3).map((a,i)=>(
-                <motion.div key={a.id} initial={{opacity:0}} animate={{opacity:1}} transition={{delay:i*0.07}}
-                  className={`flex items-start gap-2 p-2.5 rounded-xl ${a.severity==='high'?'bg-red-50':a.severity==='medium'?'bg-amber-50':'bg-blue-50'}`}>
-                  <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full flex-shrink-0 mt-0.5 ${a.severity==='high'?'bg-red-500 text-white':a.severity==='medium'?'bg-amber-500 text-white':'bg-blue-500 text-white'}`}>{a.severity.toUpperCase()}</span>
-                  <div>
-                    <p className="text-xs text-gray-800 leading-snug">{a.msg}</p>
-                    <p className="text-[10px] text-gray-400">{a.time}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+            <p className="text-xs text-gray-500 text-center py-8">Security alerts will appear here</p>
           </div>
         </div>
       </motion.div>
@@ -2599,8 +2506,75 @@ export function AdminDashboard() {
     )
 
     // ── BOOKINGS ──────────────────────────────────────────────────────────────
-    case 'bookings': return (
+    case 'bookings': {
+      // Check for pending property approval notifications
+      const clearedNotifs = ls('fm_admin_cleared_notifs', '[]') as string[]
+      const pendingProperties = properties.filter(p => p.status === 'pending')
+      const visiblePendingProperties = pendingProperties.filter(p => 
+        !clearedNotifs.includes(p.id || p._id)
+      )
+      const hasPendingApprovals = visiblePendingProperties.length > 0
+
+      return (
       <motion.div initial={{opacity:0,y:12}} animate={{opacity:1,y:0}}>
+        {/* Notification Banner for Pending Property Approvals */}
+        {hasPendingApprovals && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-5 bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 shadow-sm"
+          >
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center flex-shrink-0">
+                <BellIcon className="w-5 h-5 text-white" />
+              </div>
+              <div className="flex-1">
+                <h4 className="font-bold text-amber-900 text-sm mb-1">
+                  {visiblePendingProperties.length} {visiblePendingProperties.length === 1 ? 'Property' : 'Properties'} Awaiting Approval
+                </h4>
+                <p className="text-xs text-amber-700 mb-3">
+                  You have pending property submissions that need review. Please check the Properties section to approve or reject them.
+                </p>
+                <div className="flex items-center gap-2">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('properties')}
+                    className="px-4 py-2 bg-amber-500 text-white text-xs font-bold rounded-xl hover:bg-amber-600 transition-colors flex items-center gap-2"
+                  >
+                    <BuildingIcon className="w-4 h-4" />
+                    Review Properties
+                  </motion.button>
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => setActiveTab('alerts')}
+                    className="px-4 py-2 border-2 border-amber-300 text-amber-700 text-xs font-semibold rounded-xl hover:bg-amber-100 transition-colors flex items-center gap-2"
+                  >
+                    <BellIcon className="w-4 h-4" />
+                    View Notifications
+                  </motion.button>
+                </div>
+              </div>
+              <button
+                onClick={() => {
+                  // Mark all as cleared
+                  const allPendingIds = visiblePendingProperties.map(p => p.id || p._id)
+                  const currentCleared = ls('fm_admin_cleared_notifs', '[]') as string[]
+                  const updatedCleared = [...new Set([...currentCleared, ...allPendingIds])]
+                  setLS('fm_admin_cleared_notifs', updatedCleared)
+                  toast('Notification dismissed', {
+                    style: { background: '#D1D5DB', color: '#374151' }
+                  })
+                }}
+                className="p-2 hover:bg-amber-100 rounded-lg transition-colors"
+              >
+                <XIcon className="w-4 h-4 text-amber-600" />
+              </button>
+            </div>
+          </motion.div>
+        )}
+
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-500 bg-gray-100 px-3 py-1.5 rounded-full font-semibold">{visibleBookings.length} bookings</span>
@@ -2663,6 +2637,7 @@ export function AdminDashboard() {
         )}
       </motion.div>
     )
+    }
 
     // ── PROPERTIES ────────────────────────────────────────────────────────────
     case 'properties': return (
@@ -2708,74 +2683,24 @@ export function AdminDashboard() {
           </motion.div>
         )}
 
-        {/* Charts row 1 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <motion.div initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}} transition={{delay:0.15}}
-            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-bold text-gray-900">Income vs Expense</h3>
-                <p className="text-xs text-gray-400">Profit & Loss — last 6 months</p>
-              </div>
-              <div className="flex gap-3 text-xs">
-                <span className="flex items-center gap-1.5"><span className="w-3 h-2 bg-emerald-500 rounded inline-block"/>Income</span>
-                <span className="flex items-center gap-1.5"><span className="w-3 h-2 bg-red-300 rounded inline-block"/>Expense</span>
-              </div>
+        {/* Analytics - Real Data Only */}
+        <div className="bg-white rounded-2xl p-8 border border-gray-100 shadow-sm text-center">
+          <h3 className="font-bold text-gray-900 mb-2">Analytics Dashboard</h3>
+          <p className="text-sm text-gray-500 mb-4">Real-time analytics will be displayed here</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="p-4 bg-blue-50 rounded-xl">
+              <p className="text-2xl font-bold text-blue-600">{users.length}</p>
+              <p className="text-xs text-gray-600 mt-1">Total Users</p>
             </div>
-            <ProfitBarChart data={MONTHLY_INCOME}/>
-          </motion.div>
-
-          <motion.div initial={{opacity:0,x:20}} animate={{opacity:1,x:0}} transition={{delay:0.15}}
-            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="font-bold text-gray-900">Customer Growth</h3>
-                <p className="text-xs text-gray-400">Monthly new registrations</p>
-              </div>
-              <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2.5 py-1 rounded-full">+24% ↑</span>
+            <div className="p-4 bg-green-50 rounded-xl">
+              <p className="text-2xl font-bold text-green-600">{properties.length}</p>
+              <p className="text-xs text-gray-600 mt-1">Total Properties</p>
             </div>
-            <GrowthLineChart data={GROWTH}/>
-          </motion.div>
-        </div>
-
-        {/* Charts row 2 */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.25}}
-            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-1">User Distribution</h3>
-            <p className="text-xs text-gray-400 mb-4">Tenants, owners and admins</p>
-            <DonutChart data={USER_DIST} size={120}/>
-          </motion.div>
-
-          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.3}}
-            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-1">Monthly Signups</h3>
-            <p className="text-xs text-gray-400 mb-4">New users per month</p>
-            <SignupBarChart data={MONTHLY_SIGNUPS}/>
-          </motion.div>
-
-          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.35}}
-            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-1">Customer Satisfaction</h3>
-            <p className="text-xs text-gray-400 mb-4">Overall sentiment breakdown</p>
-            <DonutChart data={SATISFACTION} size={110}/>
-          </motion.div>
-        </div>
-
-        {/* Charts row 3 */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.4}}
-            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-1">High Demand Locations</h3>
-            <p className="text-xs text-gray-400 mb-4">Top searched areas this month</p>
-            <DonutChart data={PREF_LOCS} size={120}/>
-          </motion.div>
-
-          <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.45}}
-            className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
-            <h3 className="font-bold text-gray-900 mb-4">Performance Statistics</h3>
-            <PerformanceRadial data={PERF}/>
-          </motion.div>
+            <div className="p-4 bg-purple-50 rounded-xl">
+              <p className="text-2xl font-bold text-purple-600">{bookings.length}</p>
+              <p className="text-xs text-gray-600 mt-1">Total Bookings</p>
+            </div>
+          </div>
         </div>
       </motion.div>
     )

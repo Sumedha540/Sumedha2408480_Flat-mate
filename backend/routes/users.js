@@ -136,6 +136,88 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /api/users/roommates/available - Get users who are looking for rooms (MUST BE BEFORE /:id)
+router.get('/roommates/available', async (req, res) => {
+  try {
+    const { currentUserId } = req.query;
+
+    // Find all users who are looking for rooms and are verified
+    const query = {
+      lookingForRoom: true,
+      isVerified: true,
+      role: { $ne: 'admin' }
+    };
+
+    // Exclude current user if provided
+    if (currentUserId) {
+      query._id = { $ne: currentUserId };
+    }
+
+    const users = await User.find(query)
+      .select('-password -otp -otpExpiry -loginOtp -loginOtpExpiry -googleId -notifications')
+      .sort({ updatedAt: -1 });
+
+    const formattedUsers = users.map(user => ({
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      firstName: user.firstName,
+      lastName: user.lastName,
+      name: `${user.firstName} ${user.lastName}`.trim(),
+      email: user.email,
+      phone: user.phone || 'N/A',
+      role: user.role === 'landlord' ? 'owner' : user.role,
+      profilePicture: user.profilePicture || null,
+      lookingForRoom: user.lookingForRoom,
+      joined: user.createdAt.toISOString().split('T')[0],
+      lastActive: user.updatedAt.toISOString()
+    }));
+
+    res.json({
+      success: true,
+      users: formattedUsers,
+      count: formattedUsers.length
+    });
+  } catch (error) {
+    console.error('Error fetching available roommates:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
+// GET /api/users/email/:email - Get user by email (MUST BE BEFORE /:id)
+router.get('/email/:email', async (req, res) => {
+  try {
+    const email = req.params.email.toLowerCase().trim();
+    const user = await User.findOne({ email })
+      .select('-password -otp -otpExpiry -loginOtp -loginOtpExpiry -googleId');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    res.json({
+      success: true,
+      user: {
+        id: user._id.toString(),
+        _id: user._id.toString(),
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: user.phone || 'N/A',
+        role: user.role,
+        profilePicture: user.profilePicture || null,
+        lookingForRoom: user.lookingForRoom || false,
+        status: user.isVerified ? 'active' : 'pending',
+        joined: user.createdAt.toISOString().split('T')[0],
+        lastAccess: user.updatedAt.toISOString().split('T')[0],
+        isGoogleUser: user.isGoogleUser || false
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching user by email:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
 // GET /api/users/:id - Get single user
 router.get('/:id', async (req, res) => {
   try {
@@ -164,40 +246,6 @@ router.get('/:id', async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching user:', error);
-    res.status(500).json({ success: false, message: 'Server error', error: error.message });
-  }
-});
-
-// GET /api/users/email/:email - Get user by email
-router.get('/email/:email', async (req, res) => {
-  try {
-    const email = req.params.email.toLowerCase().trim();
-    const user = await User.findOne({ email })
-      .select('-password -otp -otpExpiry -loginOtp -loginOtpExpiry -googleId');
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
-    }
-
-    res.json({
-      success: true,
-      user: {
-        id: user._id.toString(),
-        _id: user._id.toString(),
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone || 'N/A',
-        role: user.role,
-        profilePicture: user.profilePicture || null,
-        status: user.isVerified ? 'active' : 'pending',
-        joined: user.createdAt.toISOString().split('T')[0],
-        lastAccess: user.updatedAt.toISOString().split('T')[0],
-        isGoogleUser: user.isGoogleUser || false
-      }
-    });
-  } catch (error) {
-    console.error('Error fetching user by email:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });
@@ -358,6 +406,37 @@ router.put('/:id/password', async (req, res) => {
     });
   } catch (error) {
     console.error('Error updating password:', error);
+    res.status(500).json({ success: false, message: 'Server error', error: error.message });
+  }
+});
+
+// PUT /api/users/:id/looking-for-room - Toggle looking for room status (MUST BE BEFORE /:id routes)
+router.put('/:id/looking-for-room', async (req, res) => {
+  try {
+    const { lookingForRoom } = req.body;
+
+    if (typeof lookingForRoom !== 'boolean') {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'lookingForRoom must be a boolean value' 
+      });
+    }
+
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    user.lookingForRoom = lookingForRoom;
+    await user.save();
+
+    res.json({
+      success: true,
+      message: `Looking for room status ${lookingForRoom ? 'enabled' : 'disabled'}`,
+      lookingForRoom: user.lookingForRoom
+    });
+  } catch (error) {
+    console.error('Error updating looking for room status:', error);
     res.status(500).json({ success: false, message: 'Server error', error: error.message });
   }
 });

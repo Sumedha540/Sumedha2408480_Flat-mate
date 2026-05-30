@@ -147,13 +147,13 @@ export const sendMessage = async (
 };
 
 // Mark messages as seen
-export const markChatAsSeen = async (chatId: string, viewerRole: 'tenant' | 'owner' | 'admin' | 'landlord'): Promise<boolean> => {
+export const markChatAsSeen = async (chatId: string, viewerRole: 'tenant' | 'owner' | 'admin' | 'landlord', viewerName?: string): Promise<boolean> => {
   try {
     const normalizedRole = viewerRole === 'landlord' ? 'owner' : viewerRole;
     const response = await fetch(`${API_URL}/api/messages/messages/seen`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chatId, viewerRole: normalizedRole }),
+      body: JSON.stringify({ chatId, viewerRole: normalizedRole, viewerName }),
     });
     if (!response.ok) {
       console.error('Failed to mark messages as seen:', response.status, response.statusText);

@@ -97,15 +97,6 @@ const PASTELS = {
 const daysAgo = (n: number) => new Date(Date.now() - n * 86400000).toISOString().split('T')[0]
 
 const INIT_PROPERTIES: any[] = []
-const INIT_TENANTS: any[] = [
-  { id: 't1', firstName: 'Anita',  lastName: 'Thapa',    email: 'anita@example.com',  phone: '+977 9801000001', property: 'Modern 2BHK Apartment', propId: 'p1', rentDue: daysAgo(-5),  status: 'active',  paid: true,  joinedDate: daysAgo(45), lastAccess: daysAgo(0), reports: 0, blocked: false, muted: false, archived: false },
-  { id: 't2', firstName: 'Bikash', lastName: 'Shrestha', email: 'bikash@example.com', phone: '+977 9801000002', property: 'Spacious 3BHK Flat',    propId: 'p2', rentDue: daysAgo(-2),  status: 'active',  paid: false, joinedDate: daysAgo(30), lastAccess: daysAgo(1), reports: 0, blocked: false, muted: false, archived: false },
-  { id: 't3', firstName: 'Sita',   lastName: 'Gurung',   email: 'sita@example.com',   phone: '+977 9801000003', property: 'Cozy Studio Room',      propId: 'p3', rentDue: daysAgo(-10), status: 'pending', paid: false, joinedDate: daysAgo(3),  lastAccess: daysAgo(2), reports: 1, blocked: false, muted: false, archived: false },
-]
-const INIT_APPLICATIONS: any[] = [
-  { id: 'app1', name: 'Rajan Pradhan', phone: '+977 9812345678', propId: 'p1', propTitle: 'Modern 2BHK Apartment', date: daysAgo(1), status: 'pending', message: 'I am a working professional looking for a long-term stay. Can we discuss terms?' },
-  { id: 'app2', name: 'Sunita Rai',    phone: '+977 9887654321', propId: 'p2', propTitle: 'Spacious 3BHK Flat',    date: daysAgo(3), status: 'pending', message: 'Family of 4, need a spacious place. We are very clean and responsible.' },
-]
 const MONTHLY_REV = [
   { m: 'Jan', revenue: 37000, expense: 12000 },
   { m: 'Feb', revenue: 45000, expense: 14000 },
@@ -1067,7 +1058,7 @@ function MessengerPanel({ activeConvId }: { activeConvId?: string }) {
   useEffect(() => {
     const markSeen = async () => {
       if (active && user) {
-        await markChatAsSeen(active.id, 'owner');
+        await markChatAsSeen(active.id, 'owner', user.name);
         
         // Immediately refresh conversations to update badge count
         const myChats = await getChats(user.name, 'owner');
@@ -1385,7 +1376,7 @@ function OwnerMessengerFull({ user, activeConvId }: { user: any; activeConvId?: 
   useEffect(() => {
     const markSeen = async () => {
       if (selectedConv && user) {
-        await markChatAsSeen(selectedConv.id, 'owner');
+        await markChatAsSeen(selectedConv.id, 'owner', user.name);
         
         // Immediately refresh conversations to update badge count
         const myChats = await getChats(user.name, 'owner');
@@ -2532,19 +2523,10 @@ export function OwnerDashboard() {
   const [refreshing, setRefreshing] = useState(false)
 
   const [properties, setProperties] = useState<any[]>([])
-  const [tenants, setTenants] = useState<any[]>(() => {
-    const stored = ls('fm_owner_tenants')
-    // Check if this is first time (no stored tenants)
-    if (stored.length === 0) {
-      // First time: save INIT_TENANTS to localStorage and use them
-      setLS('fm_owner_tenants', INIT_TENANTS)
-      return INIT_TENANTS
-    }
-    // Not first time: only use stored tenants (respects deletions)
-    return stored
-  })
-  const [applications, setApplications] = useState(INIT_APPLICATIONS)
-  const [bookings, setBookings] = useState<any[]>(() => ls('fm_bookings'))
+  const [tenants, setTenants] = useState<any[]>([]) // Start with empty array, will be populated from bookings
+  const [applications, setApplications] = useState<any[]>([])
+  const [bookings, setBookings] = useState<any[]>([])
+  const [bookingsLoading, setBookingsLoading] = useState(false)
   const [notifs, setNotifs] = useState<any[]>([]) // Notifications fetched from backend
   const [selectedApp, setSelectedApp] = useState<any>(null)
   const [messageUnreadCount, setMessageUnreadCount] = useState(0)
@@ -2556,6 +2538,7 @@ export function OwnerDashboard() {
   const [blockTenantModal, setBlockTenantModal] = useState<{ id: string; name: string } | null>(null)
   const [blockReason, setBlockReason] = useState('')
   const [showAddPropertyModal, setShowAddPropertyModal] = useState(false)
+  const [viewPropertyModal, setViewPropertyModal] = useState<any>(null)
 
   // Load profile photo from localStorage
   const [profilePhoto, setProfilePhoto] = useState<string | null>(() => {
@@ -2612,6 +2595,7 @@ export function OwnerDashboard() {
         // Fetch properties from backend by owner ID (more reliable than name)
         const props = await getProperties({ ownerId: userId });
         console.log('Fetched owner properties from backend:', props.length, 'for user ID:', userId);
+        console.log('Property statuses:', props.map((p: any) => ({ id: p.id, title: p.title, status: p.status })));
         setProperties(props);
       } catch (error) {
         console.error('Error fetching properties:', error);
@@ -2621,8 +2605,8 @@ export function OwnerDashboard() {
 
     fetchProperties();
     
-    // Poll for updates every 10 seconds
-    const interval = setInterval(fetchProperties, 10000);
+    // Poll for updates every 5 seconds (reduced for faster status updates)
+    const interval = setInterval(fetchProperties, 5000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -2693,6 +2677,64 @@ export function OwnerDashboard() {
     return date.toLocaleDateString();
   };
 
+  // Fetch bookings from backend
+  useEffect(() => {
+    const fetchBookings = async () => {
+      setBookingsLoading(true);
+      try {
+        if (!user?.email) {
+          setBookings([]);
+          return;
+        }
+
+        // Get user ID from email
+        const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`);
+        if (!userResponse.ok) {
+          console.error('Failed to fetch user data for bookings');
+          setBookings([]);
+          return;
+        }
+        const userData = await userResponse.json();
+        const userId = userData.user.id || userData.user._id;
+
+        // Fetch bookings for this owner
+        const bookingsResponse = await fetch(`${BACKEND_URL}/api/bookings?ownerId=${userId}`);
+        if (!bookingsResponse.ok) {
+          console.error('Failed to fetch bookings');
+          setBookings([]);
+          return;
+        }
+        const bookingsData = await bookingsResponse.json();
+        
+        if (bookingsData.success && bookingsData.bookings) {
+          // Transform backend bookings to frontend format
+          const transformedBookings = bookingsData.bookings.map((b: any) => ({
+            ...b,
+            customerName: b.tenantName,
+            customerEmail: b.tenantEmail,
+            customerPhone: b.tenantPhone,
+            bookedAt: b.createdAt,
+          }));
+          setBookings(transformedBookings);
+          console.log('Fetched bookings from backend:', transformedBookings.length);
+        } else {
+          setBookings([]);
+        }
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        setBookings([]);
+      } finally {
+        setBookingsLoading(false);
+      }
+    };
+
+    fetchBookings();
+    
+    // Poll for booking updates every 5 seconds
+    const interval = setInterval(fetchBookings, 5000);
+    return () => clearInterval(interval);
+  }, [user]);
+
   // Calculate message unread count
   useEffect(() => {
     const fetchUnreadCount = async () => {
@@ -2716,36 +2758,8 @@ export function OwnerDashboard() {
     }
   };
 
-  const handleConfirmBooking = (b: any) => {
-    if (!window.confirm(`Confirm booking for ${b.customerName}?`)) return
-    const allB = ls('fm_bookings')
-    const match = allB.find((x: any) => x.receiptId === b.receiptId)
-    if (match) {
-      match.status = 'confirmed'
-      if (match.paymentType === 'cash' || match.amount === 0) {
-        // Find property rent to assign
-        const props = ls('fm_all_properties')
-        const prop = props.find((p: any) => p.title === match.propertyTitle)
-        if (prop) match.amount = prop.rent
-      }
-      setLS('fm_bookings', allB)
-      setBookings(allB)
-      
-      const adminN = ls('fm_admin_notifs')
-      adminN.unshift({ id: Date.now().toString(), type: 'booking', title: 'Booking Confirmed', msg: `Owner confirmed booking for ${match.propertyTitle}`, time: 'Just now', read: false })
-      setLS('fm_admin_notifs', adminN)
-      
-      const notifsList = ls('fm_owner_notifs')
-      notifsList.unshift({ id: Date.now().toString(), type: 'success', title: 'Booking Confirmed', msg: `You confirmed the booking for ${b.customerName}.`, time: 'Just now', read: false })
-      setLS('fm_owner_notifs', notifsList)
-      
-      toast.success('Booking confirmed!')
-    }
-  }
-
-
   // Filter/search
-  const [propFilter, setPropFilter] = useState('all')
+  const [propFilter, setPropFilter] = useState<'all' | 'pending' | 'approved' | 'unavailable' | 'rejected'>('all')
   const [propFilterOpen, setPropFilterOpen] = useState(false)
   const [tenantSearch, setTenantSearch] = useState('')
   const [tenantFilter, setTenantFilter] = useState('all')
@@ -2798,24 +2812,6 @@ export function OwnerDashboard() {
     return storedTenants
   }
 
-  useEffect(() => {
-    // Initial sync
-    const initialTenants = syncBookingsToTenants()
-    setTenants([...initialTenants, ...INIT_TENANTS])
-    
-    const id = setInterval(() => {
-      setBookings(ls('fm_bookings'))
-      
-      // Sync bookings to tenants on each refresh
-      const syncedTenants = syncBookingsToTenants()
-      // Only use synced tenants from localStorage, don't re-add INIT_TENANTS
-      setTenants(syncedTenants)
-
-      // Notifications are now fetched from backend via separate useEffect
-      // Don't reset properties here - they're managed by the dedicated useEffect
-    }, 5000)
-    return () => clearInterval(id)
-  }, [])
   
   // Auto-mark notifications as read when visiting notifications tab
   useEffect(() => {
@@ -3001,16 +2997,149 @@ export function OwnerDashboard() {
     })
   }
 
+  // Booking confirm/reject handlers
+  const handleConfirmBooking = async (booking: any) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/bookings/${booking._id || booking.id}/confirm`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      
+      if (response.ok) {
+        toast.success('Booking confirmed! Property marked as unavailable.')
+        // Refresh bookings
+        const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user?.email}`)
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          const userId = userData.user.id || userData.user._id
+          const bookingsResponse = await fetch(`${BACKEND_URL}/api/bookings?ownerId=${userId}`)
+          if (bookingsResponse.ok) {
+            const bookingsData = await bookingsResponse.json()
+            if (bookingsData.success && bookingsData.bookings) {
+              const transformedBookings = bookingsData.bookings.map((b: any) => ({
+                ...b,
+                customerName: b.tenantName,
+                customerEmail: b.tenantEmail,
+                customerPhone: b.tenantPhone,
+                bookedAt: b.createdAt,
+              }))
+              setBookings(transformedBookings)
+            }
+          }
+        }
+        window.dispatchEvent(new Event('bookingUpdated'))
+      } else {
+        const data = await response.json()
+        toast.error(data.message || 'Failed to confirm booking')
+      }
+    } catch (error) {
+      console.error('Error confirming booking:', error)
+      toast.error('Failed to confirm booking')
+    }
+  }
+
+  const handleRejectBooking = async (booking: any, reason: string) => {
+    try {
+      const response = await fetch(`${BACKEND_URL}/api/bookings/${booking._id || booking.id}/reject`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason }),
+      })
+      
+      if (response.ok) {
+        toast('Booking rejected. Payment will be refunded.', {
+          style: { background: '#ef4444', color: 'white' }
+        })
+        // Refresh bookings
+        const userResponse = await fetch(`${BACKEND_URL}/api/users/email/${user?.email}`)
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          const userId = userData.user.id || userData.user._id
+          const bookingsResponse = await fetch(`${BACKEND_URL}/api/bookings?ownerId=${userId}`)
+          if (bookingsResponse.ok) {
+            const bookingsData = await bookingsResponse.json()
+            if (bookingsData.success && bookingsData.bookings) {
+              const transformedBookings = bookingsData.bookings.map((b: any) => ({
+                ...b,
+                customerName: b.tenantName,
+                customerEmail: b.tenantEmail,
+                customerPhone: b.tenantPhone,
+                bookedAt: b.createdAt,
+              }))
+              setBookings(transformedBookings)
+            }
+          }
+        }
+        window.dispatchEvent(new Event('bookingUpdated'))
+      } else {
+        const data = await response.json()
+        toast.error(data.message || 'Failed to reject booking')
+      }
+    } catch (error) {
+      console.error('Error rejecting booking:', error)
+      toast.error('Failed to reject booking')
+    }
+  }
+
   const myBookings = bookings.filter((b: any) => properties.some(p => (b.propertyTitle || '').toLowerCase().includes(p.title.split(' ')[0].toLowerCase())))
   const pendingApps = applications.filter(a => a.status === 'pending')
   const unreadNotifs = notifs.filter(n => !n.read).length
-  const totalRev = MONTHLY_REV.reduce((s, m) => s + m.revenue, 0)
-  const totalExp = MONTHLY_REV.reduce((s, m) => s + m.expense, 0)
+  
+  // Calculate real revenue from confirmed bookings only (exclude rejected)
+  const confirmedBookings = myBookings.filter((b: any) => b.status === 'confirmed')
+  const totalRev = confirmedBookings.reduce((s: number, b: any) => s + (b.amount || 0), 0)
+  const totalExp = 0 // Expenses can be tracked separately if needed
+
+  // Sync tenants from confirmed bookings only
+  useEffect(() => {
+    if (myBookings && myBookings.length > 0) {
+      const tenantMap = new Map()
+      
+      myBookings
+        .filter((b: any) => b.status === 'confirmed') // Only confirmed bookings
+        .forEach((b: any) => {
+          const email = b.tenantEmail || b.customerEmail
+          if (!email) return
+          
+          // If tenant already exists in map, skip (avoid duplicates)
+          if (tenantMap.has(email.toLowerCase())) return
+          
+          const nameParts = (b.tenantName || b.customerName || '').split(' ')
+          const firstName = nameParts[0] || 'Unknown'
+          const lastName = nameParts.slice(1).join(' ') || 'User'
+          
+          tenantMap.set(email.toLowerCase(), {
+            id: b.tenantId || `t_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+            firstName,
+            lastName,
+            email: email,
+            phone: b.tenantPhone || b.customerPhone || '—',
+            property: b.propertyTitle || '—',
+            propId: b.propertyId || '',
+            rentDue: b.checkOutDate || new Date().toISOString().split('T')[0],
+            status: 'active',
+            paid: b.paymentStatus === 'completed',
+            joinedDate: b.createdAt ? new Date(b.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+            lastAccess: new Date().toISOString().split('T')[0],
+            reports: 0,
+            blocked: false,
+            muted: false,
+            archived: false,
+            blockReason: ''
+          })
+        })
+      
+      setTenants(Array.from(tenantMap.values()))
+    } else {
+      setTenants([])
+    }
+  }, [myBookings.length, bookings.length]) // Re-sync whenever bookings change
 
   const filteredProps = properties.filter(p => { 
     if (propFilter === 'pending') return p.status === 'pending'
     if (propFilter === 'approved') return p.status === 'approved'
     if (propFilter === 'rejected') return p.status === 'rejected'
+    if (propFilter === 'unavailable') return p.status === 'unavailable'
     return true 
   })
   const filteredTenants = tenants.filter(t => {
@@ -3058,9 +3187,9 @@ export function OwnerDashboard() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-3">
-        <StatCard icon={BuildingIcon}   value={properties.length}                            label="Properties"      trend={8}   pastel="blue"   sub={`${properties.filter(p => p.status === 'verified').length} verified`} onClick={() => setActiveTab('properties')} />
-        <StatCard icon={UsersIcon}      value={tenants.filter(t => t.status === 'active').length} label="Active Tenants" trend={5}   pastel="pink"   sub={`${MOCK_INVOICES.filter(i => i.status === 'pending').length} payments due`} onClick={() => setActiveTab('tenants')} />
-        <StatCard icon={DollarSignIcon} value={fmtNPR(totalRev - totalExp)}                  label="Net Revenue"     trend={18}  pastel="green"  sub="This period" onClick={() => setActiveTab('analytics')} />
+        <StatCard icon={BuildingIcon}   value={properties.length}                            label="Properties"      trend={0}   pastel="blue"   sub={`${properties.filter(p => p.status === 'verified').length} verified`} onClick={() => setActiveTab('properties')} />
+        <StatCard icon={UsersIcon}      value={tenants.filter(t => t.status === 'active').length} label="Active Tenants" trend={0}   pastel="pink"   sub={`${MOCK_INVOICES.filter(i => i.status === 'pending').length} payments due`} onClick={() => setActiveTab('tenants')} />
+        <StatCard icon={DollarSignIcon} value={fmtNPR(totalRev - totalExp)}                  label="Net Revenue"     trend={0}  pastel="green"  sub="From confirmed bookings" onClick={() => setActiveTab('analytics')} />
         <StatCard icon={PackageIcon}    value={pendingApps.length}                           label="Pending Apps"    pastel="amber"  sub="Awaiting review" onClick={() => setActiveTab('tenants')} />
       </div>
 
@@ -3178,7 +3307,7 @@ export function OwnerDashboard() {
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
       {/* Status tabs */}
       <div className="flex items-center gap-2 mb-5 flex-wrap">
-        {(['all', 'pending', 'approved', 'rejected'] as const).map(status => {
+        {(['all', 'pending', 'approved', 'unavailable', 'rejected'] as const).map(status => {
           const active = propFilter === status
           const count = status === 'all' ? properties.length : properties.filter(p => p.status === status).length
           return (
@@ -3201,7 +3330,7 @@ export function OwnerDashboard() {
             <div className="relative h-40 overflow-hidden">
               <img src={p.image} alt={p.title} className="w-full h-full object-cover transition-transform duration-500 hover:scale-105" />
               {p.isPremium && <span className="absolute top-2 left-2 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-md">⭐ PREMIUM</span>}
-              <div className="absolute top-2.5 right-2.5"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'pending' ? 'bg-amber-400 text-white' : p.status === 'approved' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'}`}>{p.status === 'pending' ? 'Pending' : p.status === 'approved' ? 'Approved' : 'Rejected'}</span></div>
+              <div className="absolute top-2.5 right-2.5"><span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${p.status === 'pending' ? 'bg-amber-400 text-white' : p.status === 'approved' ? 'bg-green-500 text-white' : p.status === 'unavailable' ? 'bg-gray-500 text-white' : 'bg-red-500 text-white'}`}>{p.status === 'pending' ? 'Pending' : p.status === 'approved' ? 'Approved' : p.status === 'unavailable' ? 'Unavailable' : 'Rejected'}</span></div>
             </div>
             <div className="p-4">
               <h4 className="font-bold text-gray-900 text-xs mb-0.5 truncate">{p.title}</h4>
@@ -3236,7 +3365,7 @@ export function OwnerDashboard() {
               
               <div className="flex gap-1.5">
                 <button 
-                  onClick={() => navigate(`/property/${p.id}`)}
+                  onClick={() => setViewPropertyModal(p)}
                   className="flex-1 flex items-center justify-center gap-1 py-1.5 bg-button-primary text-white text-[10px] font-bold rounded-lg hover:bg-button-primary/90 transition-all">
                   <EyeIcon className="w-3 h-3" />View
                 </button>
@@ -3379,7 +3508,7 @@ export function OwnerDashboard() {
         {[
           { l: 'Total Bookings', v: myBookings.length, pastel: 'blue' as const },
           { l: 'Confirmed', v: myBookings.filter((b: any) => b.status === 'confirmed').length, pastel: 'green' as const },
-          { l: 'Revenue', v: fmtNPR(myBookings.reduce((s: number, b: any) => s + (b.amount || 0), 0)), pastel: 'violet' as const },
+          { l: 'Revenue', v: fmtNPR(myBookings.filter((b: any) => b.status === 'confirmed').reduce((s: number, b: any) => s + (b.amount || 0), 0)), pastel: 'violet' as const },
         ].map((s, i) => {
           const p = PASTELS[s.pastel]
           return <motion.div key={s.l} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }} className={`${p.bg} border ${p.border} rounded-2xl p-4 text-center`}><p className={`text-lg font-bold ${p.val}`}>{s.v}</p><p className="text-xs text-gray-500 mt-0.5">{s.l}</p></motion.div>
@@ -3416,9 +3545,20 @@ export function OwnerDashboard() {
                   <td className="p-3 text-gray-400">{b.moveInDate}</td>
                   <td className="p-3">
                     <div className="flex gap-2">
-                       <button onClick={() => handleChat(b)} className="px-3 py-1 bg-blue-50 text-button-primary text-[11px] font-bold rounded-full hover:bg-blue-100 transition-colors">Chat</button>
-                       {b.status !== 'confirmed' && (
-                         <button onClick={() => handleConfirmBooking(b)} className="px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-full hover:bg-green-100 transition-colors">Confirm</button>
+                       {b.status === 'pending' ? (
+                         <>
+                           <button onClick={() => handleConfirmBooking(b)} className="px-3 py-1 bg-green-50 text-green-700 text-[11px] font-bold rounded-full hover:bg-green-100 transition-colors">Confirm</button>
+                           <button 
+                             onClick={() => {
+                               const reason = prompt('Reason for rejection (optional):')
+                               if (reason !== null) {
+                                 handleRejectBooking(b, reason || 'Not specified')
+                               }
+                             }}
+                             className="px-3 py-1 bg-red-50 text-red-700 text-[11px] font-bold rounded-full hover:bg-red-100 transition-colors">Reject</button>
+                         </>
+                       ) : (
+                         <button onClick={() => handleChat(b)} className="px-3 py-1 bg-blue-50 text-button-primary text-[11px] font-bold rounded-full hover:bg-blue-100 transition-colors">Chat</button>
                        )}
                     </div>
                   </td>
@@ -3437,9 +3577,9 @@ export function OwnerDashboard() {
       {/* KPI row */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { l: 'Total Revenue', v: fmtNPR(totalRev), pastel: 'green' as const, icon: DollarSignIcon, trend: 18 },
-          { l: 'Net Profit',    v: fmtNPR(totalRev - totalExp), pastel: 'blue' as const, icon: TrendingUpIcon, trend: 22 },
-          { l: 'Avg Rent',      v: fmtNPR(Math.round(properties.reduce((s, p) => s + p.rent, 0) / (properties.length || 1))), pastel: 'violet' as const, icon: BuildingIcon, trend: 5 },
+          { l: 'Total Revenue', v: fmtNPR(totalRev), pastel: 'green' as const, icon: DollarSignIcon, trend: 0 },
+          { l: 'Net Profit',    v: fmtNPR(totalRev - totalExp), pastel: 'blue' as const, icon: TrendingUpIcon, trend: 0 },
+          { l: 'Avg Rent',      v: fmtNPR(Math.round(properties.reduce((s, p) => s + p.rent, 0) / (properties.length || 1))), pastel: 'violet' as const, icon: BuildingIcon, trend: 0 },
           { l: 'Avg Rating',    v: '4.5 / 5.0', pastel: 'amber' as const, icon: StarIcon },
         ].map((s, i) => <StatCard key={s.l} icon={s.icon} value={s.v} label={s.l} trend={s.trend} pastel={s.pastel} />)}
       </div>
@@ -3847,6 +3987,200 @@ export function OwnerDashboard() {
             onAdd={handlePropertyAdded}
             editingProperty={editingProperty}
           />
+        )}
+        
+        {/* Property Details Modal */}
+        {viewPropertyModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }} 
+              animate={{ opacity: 0.5 }} 
+              exit={{ opacity: 0 }} 
+              className="absolute inset-0 bg-black" 
+              onClick={() => setViewPropertyModal(null)} 
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.94, y: 20 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.94 }} 
+              transition={{ type: 'spring', stiffness: 320, damping: 28 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden shadow-2xl z-10 flex flex-col">
+              
+              {/* Header */}
+              <div className="px-6 pt-5 pb-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 className="font-bold text-gray-900 text-lg">Property Details</h3>
+                <button 
+                  onClick={() => setViewPropertyModal(null)} 
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                  <XIcon className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              {/* Body */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {/* Property Image */}
+                <div className="relative h-64 rounded-xl overflow-hidden mb-6">
+                  <img 
+                    src={viewPropertyModal.image} 
+                    alt={viewPropertyModal.title} 
+                    className="w-full h-full object-cover" 
+                  />
+                  {viewPropertyModal.isPremium && (
+                    <span className="absolute top-3 left-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                      ⭐ PREMIUM
+                    </span>
+                  )}
+                  <div className="absolute top-3 right-3">
+                    <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${
+                      viewPropertyModal.status === 'pending' ? 'bg-amber-400 text-white' : 
+                      viewPropertyModal.status === 'approved' ? 'bg-green-500 text-white' : 
+                      viewPropertyModal.status === 'unavailable' ? 'bg-gray-500 text-white' : 
+                      'bg-red-500 text-white'
+                    }`}>
+                      {viewPropertyModal.status === 'pending' ? 'Pending' : 
+                       viewPropertyModal.status === 'approved' ? 'Approved' : 
+                       viewPropertyModal.status === 'unavailable' ? 'Unavailable' : 
+                       'Rejected'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Property Info */}
+                <div className="space-y-6">
+                  {/* Title and Location */}
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">{viewPropertyModal.title}</h2>
+                    <div className="flex items-center gap-2 text-gray-600">
+                      <MapPinIcon className="w-5 h-5" />
+                      <span>{viewPropertyModal.location}</span>
+                    </div>
+                  </div>
+
+                  {/* Price */}
+                  <div className="bg-button-primary/10 rounded-xl p-4">
+                    <p className="text-sm text-gray-600 mb-1">Monthly Rent</p>
+                    <p className="text-3xl font-bold text-button-primary">
+                      {fmtNPR(viewPropertyModal.rent)}
+                      <span className="text-base font-normal text-gray-500">/month</span>
+                    </p>
+                  </div>
+
+                  {/* Property Details Grid */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4 text-center">
+                      <BedDoubleIcon className="w-6 h-6 text-button-primary mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-900">{viewPropertyModal.beds} Bedrooms</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4 text-center">
+                      <BathIcon className="w-6 h-6 text-button-primary mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-900">{viewPropertyModal.baths} Bathrooms</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4 text-center">
+                      <HomeIcon className="w-6 h-6 text-button-primary mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-900">{viewPropertyModal.area}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4 text-center">
+                      <BuildingIcon className="w-6 h-6 text-button-primary mx-auto mb-2" />
+                      <p className="text-sm font-semibold text-gray-900">{viewPropertyModal.type}</p>
+                    </div>
+                  </div>
+
+                  {/* Additional Details */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Furnishing</p>
+                      <p className="text-sm font-semibold text-gray-900">{viewPropertyModal.furnishing}</p>
+                    </div>
+                    <div className="bg-gray-50 rounded-xl p-4">
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Parking</p>
+                      <p className="text-sm font-semibold text-gray-900">{viewPropertyModal.parking}</p>
+                    </div>
+                  </div>
+
+                  {/* Description */}
+                  {viewPropertyModal.description && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-3">Description</h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">{viewPropertyModal.description}</p>
+                    </div>
+                  )}
+
+                  {/* Amenities */}
+                  {viewPropertyModal.amenities && viewPropertyModal.amenities.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-3">Amenities</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {viewPropertyModal.amenities.map((amenity: string, idx: number) => (
+                          <span 
+                            key={idx} 
+                            className="px-3 py-1.5 bg-button-primary/10 text-button-primary text-xs font-semibold rounded-full">
+                            {amenity}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Location Map */}
+                  {viewPropertyModal.latitude && viewPropertyModal.longitude && (
+                    <div>
+                      <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <MapPinIcon className="w-5 h-5" />
+                        Location on Map
+                      </h3>
+                      <div className="w-full h-64 rounded-xl overflow-hidden border border-gray-200">
+                        <iframe
+                          width="100%"
+                          height="100%"
+                          frameBorder="0"
+                          src={`https://www.openstreetmap.org/export/embed.html?bbox=${viewPropertyModal.longitude - 0.01},${viewPropertyModal.latitude - 0.01},${viewPropertyModal.longitude + 0.01},${viewPropertyModal.latitude + 0.01}&layer=mapnik&marker=${viewPropertyModal.latitude},${viewPropertyModal.longitude}`}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Stats */}
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="bg-blue-50 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-blue-600">{viewPropertyModal.views || 0}</p>
+                      <p className="text-xs font-medium text-blue-600 mt-1">Views</p>
+                    </div>
+                    <div className="bg-pink-50 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-pink-600">{viewPropertyModal.saves || 0}</p>
+                      <p className="text-xs font-medium text-pink-600 mt-1">Saved</p>
+                    </div>
+                    <div className="bg-violet-50 rounded-xl p-4 text-center">
+                      <p className="text-2xl font-bold text-violet-600">{viewPropertyModal.inquiries || 0}</p>
+                      <p className="text-xs font-medium text-violet-600 mt-1">Inquiries</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div className="px-6 py-4 border-t border-gray-100 flex items-center justify-end gap-3">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setViewPropertyModal(null)}
+                  className="px-4 py-2 text-gray-700 font-semibold rounded-xl hover:bg-gray-100 transition-colors">
+                  Close
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => {
+                    editProperty(viewPropertyModal)
+                    setViewPropertyModal(null)
+                  }}
+                  className="px-4 py-2 bg-button-primary text-white font-semibold rounded-xl hover:bg-button-primary/90 transition-colors flex items-center gap-2">
+                  <EditIcon className="w-4 h-4" />
+                  Edit Property
+                </motion.button>
+              </div>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </main>

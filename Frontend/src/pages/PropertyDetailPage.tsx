@@ -10,7 +10,7 @@ import {
   ChevronRightIcon, XIcon, SendIcon, StarIcon, CheckCircleIcon,
   CalendarIcon, CreditCardIcon, DownloadIcon, AlertCircleIcon,
   BuildingIcon, MapIcon, HeartIcon, ShieldCheckIcon, ArrowLeftIcon,
-  SparklesIcon,
+  SparklesIcon, ClockIcon,
 } from 'lucide-react'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
@@ -747,10 +747,12 @@ export function PropertyDetailPage() {
         if (res.ok) {
           const data = await res.json()
           const p = data.property || data
-          if (p && (p._id || p.id)) {
+          console.log('Backend response:', p)
+          
+          if (p && (p._id || p.id || id)) {
             const normalized = {
               ...p,
-              id:           p._id || p.id,
+              id:           p._id || p.id || id,
               bedrooms:     p.beds || p.bedrooms || 1,
               bathrooms:    p.baths || p.bathrooms || 1,
               lat:          p.latitude || p.lat || 27.7172,
@@ -772,7 +774,14 @@ export function PropertyDetailPage() {
               ownerId:      p.ownerId || '',
             }
             setProperty(normalized)
-            console.log('Property loaded successfully:', normalized.id, normalized.title)
+            console.log('Property loaded successfully:', normalized.id, normalized.title, 'Status:', normalized.status)
+
+            // Check if property is rejected - redirect to properties page
+            if (normalized.status === 'rejected') {
+              toast.error('This property has been rejected and is no longer available')
+              navigate('/properties')
+              return
+            }
 
             // Recommended from backend
             try {
@@ -790,15 +799,24 @@ export function PropertyDetailPage() {
                   }))
                 setRecommended(recs)
               }
-            } catch { /* ignore */ }
+            } catch (err) { 
+              console.log('Failed to load recommendations:', err)
+            }
 
             setLoading(false)
             return
+          } else {
+            console.error('Property data missing id:', p)
           }
+        } else {
+          console.error('Backend response not ok:', res.status)
         }
-      } catch { /* backend unavailable — fall through to local data */ }
+      } catch (err) { 
+        console.error('Backend fetch error:', err)
+      }
 
       // 2. Fallback to ALL_PROPERTIES (generated + premium)
+      console.log('Falling back to local properties')
       const found = ALL_PROPERTIES.find(p => p.id === id)
       if (found) {
         setProperty(found)
@@ -808,18 +826,14 @@ export function PropertyDetailPage() {
         setRecommended(recs)
         setLoading(false)
       } else {
-        console.error('Property not found with id:', id)
+        console.error('Property not found in local data either')
         toast.error('Property not found')
         setLoading(false)
         navigate('/properties')
       }
     }
 
-    load().catch(error => {
-      console.error('Error loading property:', error)
-      setLoading(false)
-      toast.error('Failed to load property')
-    })
+    load()
   }, [id, navigate])
 
   // ── Booking handlers ───────────────────────────────────────────────────────
@@ -1057,23 +1071,6 @@ export function PropertyDetailPage() {
     )
   }
 
-  // Defensive check - ensure property has required fields
-  if (!property.title || !property.location) {
-    console.error('Property missing required fields:', property)
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <BuildingIcon className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-          <p className="text-gray-600">Property data incomplete</p>
-          <button
-            onClick={() => navigate('/properties')}
-            className="mt-4 px-6 py-2.5 bg-button-primary text-white font-semibold rounded-xl"
-          >Back to Properties</button>
-        </div>
-      </div>
-    )
-  }
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <main className="min-h-screen bg-background-light text-primary pb-20">
@@ -1118,7 +1115,16 @@ export function PropertyDetailPage() {
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-4 mb-6">
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <span className="px-2.5 py-1 bg-button-primary/10 text-button-primary text-xs font-bold rounded-full">Available</span>
+              {existingBooking?.status === 'pending' ? (
+                <span className="px-2.5 py-1 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full flex items-center gap-1">
+                  <ClockIcon className="w-3 h-3" />
+                  Pending
+                </span>
+              ) : isBooked ? (
+                <span className="px-2.5 py-1 bg-red-100 text-red-700 text-xs font-bold rounded-full">Booked</span>
+              ) : (
+                <span className="px-2.5 py-1 bg-button-primary/10 text-button-primary text-xs font-bold rounded-full">Available</span>
+              )}
               {property.isPremium && (
                 <span className="px-2.5 py-1 bg-yellow-400 text-white text-xs font-bold rounded-full">Premium</span>
               )}

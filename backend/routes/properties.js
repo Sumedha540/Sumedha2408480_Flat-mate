@@ -6,7 +6,7 @@ const router = express.Router();
 // POST /api/properties - Create new property
 router.post('/', async (req, res) => {
   try {
-    const { title, location, latitude, longitude, rent, beds, baths, type, area, furnishing, parking, wifi, description, amenities, image, images, ownerName, ownerId, ownerEmail, ownerPhone, isPremium } = req.body;
+    const { title, location, latitude, longitude, rent, beds, baths, type, area, furnishing, parking, wifi, description, amenities, image, images, ownerName, ownerId, ownerEmail, ownerPhone, isPremium, status } = req.body;
 
     if (!title || !location || !rent || !type || !area || !ownerName || !ownerId) {
       return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -16,6 +16,11 @@ router.post('/', async (req, res) => {
     const propertyImages = images && images.length > 0 
       ? images 
       : (image ? [image] : ['https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=800&auto=format&fit=crop']);
+
+    // Allow status to be set (for admin), default to 'pending' for regular users
+    const propertyStatus = status && ['pending', 'approved', 'rejected', 'unavailable'].includes(status) 
+      ? status 
+      : 'pending';
 
     const property = await Property.create({
       title,
@@ -39,19 +44,24 @@ router.post('/', async (req, res) => {
       ownerPhone: ownerPhone || '',
       ownerId,
       isPremium: isPremium || false,
-      status: 'pending'
+      status: propertyStatus
     });
 
     console.log('Property created with coordinates:', {
       id: property._id,
       title: property.title,
       latitude: property.latitude,
-      longitude: property.longitude
+      longitude: property.longitude,
+      status: property.status
     });
+
+    const message = propertyStatus === 'approved' 
+      ? 'Property created and published successfully' 
+      : 'Property submitted for review';
 
     res.status(201).json({ 
       success: true,
-      message: 'Property submitted for review', 
+      message, 
       property: {
         id: property._id.toString(),
         _id: property._id.toString(),

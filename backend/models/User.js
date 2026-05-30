@@ -47,6 +47,9 @@ const userSchema = new mongoose.Schema(
       read: { type: Boolean, default: false },
       createdAt: { type: Date, default: Date.now }
     }],
+
+    // Roommate matching
+    lookingForRoom: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -10,7 +10,7 @@ import { RoommateCard } from '../components/RoommateCard'
 import { Card } from '../components/ui/Card'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from '../utils/toast'
-import { allRoommates } from '../utils/roommateData'
+import { BACKEND_URL } from '../config/api'
 
 // ─── Data ─────────────────────────────────────────────────────────────────────
 
@@ -149,6 +149,90 @@ export function FindRoommatePage() {
   const [locationFilter, setLocationFilter] = useState('')
   const [genderFilter, setGenderFilter]   = useState('')
 
+  // ── Real users from database ────────────────────────────────────────────────
+  const [realUsers, setRealUsers] = useState<any[]>([])
+  const [loadingUsers, setLoadingUsers] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+  // Get current user ID
+  useEffect(() => {
+    const getCurrentUserId = async () => {
+      try {
+        const userStr = localStorage.getItem('flatmate_user')
+        if (!userStr) return
+        
+        const user = JSON.parse(userStr)
+        const response = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`)
+        const data = await response.json()
+        
+        if (data.success && data.user) {
+          setCurrentUserId(data.user.id || data.user._id)
+        }
+      } catch (error) {
+        console.error('Error getting current user ID:', error)
+      }
+    }
+    
+    getCurrentUserId()
+  }, [])
+
+  // Load users who are looking for rooms from backend
+  useEffect(() => {
+    const loadUsers = async () => {
+      if (!currentUserId) return // Wait for current user ID
+      
+      setLoadingUsers(true)
+      try {
+        const response = await fetch(`${BACKEND_URL}/api/users/roommates/available?currentUserId=${currentUserId}`)
+        const data = await response.json()
+        
+        if (data.success && data.users) {
+          console.log('✅ Loaded users looking for rooms:', data.users.length)
+          setRealUsers(data.users)
+        } else {
+          console.log('⚠️ No users found')
+          setRealUsers([])
+        }
+      } catch (error) {
+        console.error('❌ Error loading users:', error)
+        setRealUsers([])
+      } finally {
+        setLoadingUsers(false)
+      }
+    }
+    
+    loadUsers()
+    
+    // Refresh every 10 seconds
+    const interval = setInterval(loadUsers, 10000)
+    return () => clearInterval(interval)
+  }, [currentUserId])
+
+  // Listen for lookingForRoom status updates
+  useEffect(() => {
+    const handleUpdate = () => {
+      if (!currentUserId) return
+      
+      // Reload users when status changes
+      const loadUsers = async () => {
+        try {
+          const response = await fetch(`${BACKEND_URL}/api/users/roommates/available?currentUserId=${currentUserId}`)
+          const data = await response.json()
+          
+          if (data.success && data.users) {
+            setRealUsers(data.users)
+          }
+        } catch (error) {
+          console.error('Error reloading users:', error)
+        }
+      }
+      loadUsers()
+    }
+    
+    window.addEventListener('lookingForRoomUpdated', handleUpdate)
+    return () => window.removeEventListener('lookingForRoomUpdated', handleUpdate)
+  }, [currentUserId])
+
   // ── Modal open state ────────────────────────────────────────────────────────
   const [showQuizModal, setShowQuizModal] = useState(false)
 
@@ -192,126 +276,64 @@ export function FindRoommatePage() {
   // ── Search ──────────────────────────────────────────────────────────────────
   const handleSearch = () => setSearchTerm(searchInput)
 
-  const filteredRoommates = allRoommates.filter(r => {
+  // Filter real users based on search criteria
+  const filteredUsers = realUsers.filter(user => {
     const matchSearch = !searchTerm ||
-      r.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.bio.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      r.tags.some(t => t.toLowerCase().includes(searchTerm.toLowerCase()))
-    const matchLocation = !locationFilter || r.location.toLowerCase().includes(locationFilter.toLowerCase())
-    const matchGender   = !genderFilter   || r.gender?.toLowerCase() === genderFilter
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
     
-    // Apply quiz filters if active
-    if (quizFiltersActive && Object.keys(quizAnswers).length > 0) {
-      let matchScore = 0
-      let totalChecks = 0
-
-      // Question 0: Sleep schedule (STRICT MATCHING)
-      if (quizAnswers[0]) {
-        totalChecks++
-        const userAnswer = quizAnswers[0]
-        const profileTags = r.tags || []
-        
-        if (userAnswer.includes('Early bird') && profileTags.includes('Early Riser')) {
-          matchScore++
-        } else if (userAnswer.includes('Night owl') && profileTags.includes('Night Owl')) {
-          matchScore++
-        } else if (userAnswer.includes('in between')) {
-          // Flexible - matches both or neither
-          matchScore++
-        } else if (userAnswer.includes('varies')) {
-          // Very flexible - matches anyone
-          matchScore++
-        }
-      }
-
-      // Question 1: Guests (STRICT MATCHING)
-      if (quizAnswers[1]) {
-        totalChecks++
-        const userAnswer = quizAnswers[1]
-        const profileTags = r.tags || []
-        const bio = r.bio.toLowerCase()
-        
-        if (userAnswer.includes('love hosting') && profileTags.includes('Social')) {
-          matchScore++
-        } else if (userAnswer.includes('Prefer a quiet') && profileTags.includes('Quiet')) {
-          matchScore++
-        } else if (userAnswer.includes('Occasional')) {
-          // Moderate - matches Social or Quiet
-          if (profileTags.includes('Social') || profileTags.includes('Quiet')) {
-            matchScore++
-          }
-        } else if (userAnswer.includes('No guests')) {
-          // Very strict - only matches Quiet
-          if (profileTags.includes('Quiet')) {
-            matchScore++
-          }
-        }
-      }
-
-      // Question 2: Cleanliness (STRICT MATCHING)
-      if (quizAnswers[2]) {
-        totalChecks++
-        const userAnswer = quizAnswers[2]
-        const profileTags = r.tags || []
-        const bio = r.bio.toLowerCase()
-        
-        if (userAnswer.includes('Neat freak') && profileTags.includes('Clean')) {
-          matchScore++
-        } else if (userAnswer.includes('Generally tidy') && (profileTags.includes('Clean') || bio.includes('clean'))) {
-          matchScore++
-        } else if (userAnswer.includes('bit messy')) {
-          // Relaxed about cleanliness - matches most
-          matchScore++
-        } else if (userAnswer.includes('Organized chaos')) {
-          // Very relaxed - matches anyone
-          matchScore++
-        }
-      }
-
-      // Question 3: Smoking/Drinking (STRICT MATCHING)
-      if (quizAnswers[3]) {
-        totalChecks++
-        const userAnswer = quizAnswers[3]
-        const profileTags = r.tags || []
-        const bio = r.bio.toLowerCase()
-        
-        if (userAnswer.includes('Neither') && profileTags.includes('Non-Smoker')) {
-          matchScore++
-        } else if (userAnswer.includes('Social drinker') && !bio.includes('non-smoker')) {
-          // Social drinker - matches anyone except strict non-smokers
-          matchScore++
-        } else if (userAnswer.includes('Smoker')) {
-          // Smoker - only matches if profile doesn't explicitly say non-smoker
-          if (!profileTags.includes('Non-Smoker') && !bio.includes('non-smoker')) {
-            matchScore++
-          }
-        } else if (userAnswer.includes('Both socially')) {
-          // Very social - matches anyone
-          matchScore++
-        }
-      }
-
-      // Question 4: Shared expenses (LESS STRICT - most people are reasonable)
-      if (quizAnswers[4]) {
-        totalChecks++
-        // Most people are reasonable about expenses, so give benefit of doubt
-        matchScore++
-      }
-
-      // Calculate compatibility percentage
-      const compatibilityPercentage = totalChecks > 0 ? (matchScore / totalChecks) * 100 : 0
-      
-      // STRICT: Require at least 80% compatibility
-      const matchQuiz = compatibilityPercentage >= 80
-      
-      return matchSearch && matchLocation && matchGender && matchQuiz
-    }
+    // For now, we don't have location/gender in user model, so we'll skip those filters
+    // You can add these fields to the User model later if needed
     
-    return matchSearch && matchLocation && matchGender
+    return matchSearch
   })
 
-  const handleMessageRoommate = (id: string, name: string) => {
-    navigate(`/dashboard/tenant?tab=messages&userName=${encodeURIComponent(name)}&from=find-roommate`)
+  const handleMessageRoommate = async (id: string, name: string) => {
+    // Check if current user has lookingForRoom enabled
+    try {
+      const currentUserEmail = localStorage.getItem('flatmate_user')
+      if (!currentUserEmail) {
+        toast.error('Please log in to send messages')
+        return
+      }
+      
+      const user = JSON.parse(currentUserEmail)
+      const response = await fetch(`${BACKEND_URL}/api/users/email/${user.email}`)
+      const data = await response.json()
+      
+      if (!data.success || !data.user.lookingForRoom) {
+        toast.error('You must enable "Looking for Room" in settings to message other users')
+        navigate('/dashboard/tenant?tab=settings')
+        return
+      }
+      
+      // Create or get chat between the two users
+      const chatResponse = await fetch(`${BACKEND_URL}/api/messages/chats`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tenantName: user.name,
+          ownerName: name,
+          propertyTitle: 'Roommate Chat',
+          propertyId: ''
+        })
+      })
+      
+      if (!chatResponse.ok) {
+        toast.error('Failed to create chat')
+        return
+      }
+      
+      const chatData = await chatResponse.json()
+      console.log('Chat created/fetched:', chatData.id)
+      
+      // Navigate to messages tab
+      navigate(`/dashboard/tenant?tab=messages&chatId=${chatData.id}`)
+      toast.success(`Chat with ${name} opened!`)
+    } catch (error) {
+      console.error('Error checking user status:', error)
+      toast.error('Failed to send message')
+    }
   }
 
   return (
@@ -413,8 +435,8 @@ export function FindRoommatePage() {
 
             <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} className="mb-6 flex items-center justify-between flex-wrap gap-3">
               <p className="text-gray-600 text-sm">
-                Showing <span className="font-bold text-primary">{filteredRoommates.length}</span> of{' '}
-                <span className="font-bold text-primary">{allRoommates.length}</span> roommates
+                Showing <span className="font-bold text-primary">{filteredUsers.length}</span> of{' '}
+                <span className="font-bold text-primary">{realUsers.length}</span> users looking for rooms
                 {quizFiltersActive && <span className="ml-2 text-green-600 font-semibold">(Quiz Filtered)</span>}
               </p>
               {quizFiltersActive && (
@@ -433,22 +455,57 @@ export function FindRoommatePage() {
 
             <AnimatePresence mode="popLayout">
               <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                {filteredRoommates.map((roommate, index) => (
-                  <motion.div key={roommate.id} layout initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
-                    exit={{ opacity:0, scale:0.9 }} transition={{ delay:index*0.05 }}>
-                    <RoommateCard {...roommate} onMessage={() => handleMessageRoommate(roommate.id, roommate.name)} />
-                  </motion.div>
-                ))}
+                {loadingUsers ? (
+                  <div className="col-span-2 text-center py-12">
+                    <div className="w-12 h-12 border-4 border-button-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                    <p className="text-gray-500">Loading users...</p>
+                  </div>
+                ) : filteredUsers.length > 0 ? (
+                  filteredUsers.map((user, index) => (
+                    <motion.div key={user.id} layout initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }}
+                      exit={{ opacity:0, scale:0.9 }} transition={{ delay:index*0.05 }}>
+                      <RoommateCard 
+                        id={user.id}
+                        name={user.name}
+                        age={25}
+                        gender={user.role === 'tenant' ? 'Tenant' : 'Owner'}
+                        occupation={user.role === 'tenant' ? 'Looking for room' : 'Property owner'}
+                        location="Kathmandu"
+                        bio={`Hi, I'm ${user.name}. I'm looking for a room to share.`}
+                        tags={['Verified', 'Active']}
+                        verified={true}
+                        image={user.profilePicture}
+                        lookingForRoom={user.lookingForRoom}
+                        onMessage={() => handleMessageRoommate(user.id, user.name)} 
+                      />
+                    </motion.div>
+                  ))
+                ) : null}
               </motion.div>
             </AnimatePresence>
 
-            {filteredRoommates.length === 0 && (
+            {!loadingUsers && filteredUsers.length === 0 && realUsers.length === 0 && (
               <div className="text-center py-12">
                 <UsersIcon className="w-16 h-16 text-gray-200 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-primary mb-2">No roommates found</h3>
+                <h3 className="text-xl font-semibold text-primary mb-2">No users looking for rooms</h3>
+                <p className="text-gray-500 mb-6">Check back later or enable "Looking for Room" in your settings to connect with others</p>
+                <Link to="/dashboard/tenant?tab=settings" 
+                  className="inline-block px-6 py-3 bg-button-primary text-white font-bold rounded-full hover:bg-button-primary/90 transition-all">
+                  Go to Settings
+                </Link>
+              </div>
+            )}
+
+            {!loadingUsers && filteredUsers.length === 0 && realUsers.length > 0 && (
+              <div className="text-center py-12">
+                <UsersIcon className="w-16 h-16 text-gray-200 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-primary mb-2">No users match your search</h3>
                 <p className="text-gray-500 mb-6">Try adjusting your search filters</p>
-                <button onClick={() => { setSearchInput(''); setSearchTerm(''); setLocationFilter(''); setGenderFilter('') }}
-                  className="px-6 py-3 bg-button-primary text-white font-bold rounded-full">Clear Filters</button>
+                <button 
+                  onClick={() => { setSearchInput(''); setSearchTerm(''); setLocationFilter(''); setGenderFilter('') }}
+                  className="px-6 py-3 bg-button-primary text-white font-bold rounded-full hover:bg-button-primary/90 transition-all">
+                  Clear Filters
+                </button>
               </div>
             )}
           </div>
